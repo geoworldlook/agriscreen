@@ -26,7 +26,7 @@
  ─────────────────────                  ──────              ───────────────────────                ───────────                         ────────────
  repo 2_geoworldlook                    main  ──pull──►     /content/code  (kod, efemeryczny)
   ├─ step_0x.py  (edycja, selftest) ──push──►                  │  import step_0x
-  └─ notebooks/GWL_Control.ipynb ════ kernel Colab ══════►     │  run_task(...)  ──── zapis ────►  1_geoworldlook-agriscreen/data/
+  └─ notebooks/GWL_Control.ipynb ════ kernel Colab ══════►     │  run_task(...)  ──── zapis ────►  agriscreen/data/
        (sterowanie, podgląd wyników                            │  GEE / CDSE / SEN2SR (T4)          ├─ cache, surowe dane, COG
         inline: wykresy, raporty)                              │                                    ├─ 08_Station_Validation/…
                                                                └─ publish() ──────────────────────► └─ registry/  (tabele CSV)  ──►  Supabase (tabele gwl_*)
@@ -98,13 +98,13 @@ Format długi (`metric`, `value`) pozwala obu modułom (VOWA-20m i AgriWatch) pi
 ```python
 # [0] Bootstrap (Colab przez VS Code lub przeglądarkę). Wcześniej: VS Code → "Colab: Mount Google Drive to Server..."
 import os, sys, subprocess
-REPO, CODE = "https://github.com/geoworldlook/1_geoworldlook-agriscreen.git", "/content/code"
+REPO, CODE = "https://github.com/geoworldlook/agriscreen.git", "/content/code"
 if not os.path.exists(CODE):
     subprocess.run(["git", "clone", "--depth", "1", REPO, CODE], check=True)
 subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", f"{CODE}/requirements-colab.txt"], check=True)
 sys.path.insert(0, CODE)
 from step_05_colab_run import setup_runtime, sync_code, run_task, show_result, run_history
-rt = setup_runtime(data_dir="/content/drive/MyDrive/1_geoworldlook-agriscreen/data")
+rt = setup_runtime(data_dir="/content/drive/MyDrive/agriscreen/data")
 
 # [1] Stacja Condom
 res = run_task("station", {"STATION": "Condom"})

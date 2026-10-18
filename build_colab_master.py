@@ -26,7 +26,7 @@ try:
 except Exception:
     IN_COLAB = False
 
-REPO_URL = 'https://github.com/geoworldlook/1_geoworldlook-agriscreen.git'
+REPO_URL = 'https://github.com/geoworldlook/agriscreen.git'
 PROJECT_DIR = '/content/drive/MyDrive/GeoWorldLook/agriwatch'
 if IN_COLAB:
     if not os.path.exists(os.path.join(PROJECT_DIR, '.git')):

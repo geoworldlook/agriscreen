@@ -30,7 +30,7 @@ pod trawą, czujniki 5/10/20/30 cm) oraz stacje Météo-France (Condom 0,2 km, B
 
 ## 2. Architektura i uruchomienie
 
-**Repozytorium:** `geoworldlook/1_geoworldlook-agriscreen` (GitHub). Kod Python, komentarze i UI po polsku.
+**Repozytorium:** `geoworldlook/agriscreen` (GitHub). Kod Python, komentarze i UI po polsku.
 
 | Plik | Rola |
 |---|---|
@@ -49,7 +49,7 @@ ERA5-Land 0–100 cm ≤ −1; sprawdź winnicę = sucho ORAZ anomalia NDVI winn
 p = Φ((−1 − ρz)/√(1−ρ²)), ρ = 0,58.
 
 **Uruchomienie:** Colab z linku GitHub
-`https://colab.research.google.com/github/geoworldlook/1_geoworldlook-agriscreen/blob/main/notebooks/AgriWatch_Monitor.ipynb`
+`https://colab.research.google.com/github/geoworldlook/agriscreen/blob/main/notebooks/AgriWatch_Monitor.ipynb`
 → „Uruchom wszystko”. Pierwsza komórka montuje Dysk i robi `git pull` kopii na Dysku. GPU tylko przy nowych scenach (SR).
 Wyniki: `MyDrive/GeoWorldLook/agriwatch/data/05_Final_Outputs/agriwatch/` (`dashboard.html`, `run_summary.md`, `bulletin.md`,
 CSV), rejestr: `data/registry/gwl_*.csv`. **Po każdym przebiegu czytać `run_summary.md`.**
