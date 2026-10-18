@@ -47,7 +47,8 @@ miejscach z pomiarami w gruncie: Condom (obszar główny) i obszar pomocniczy (D
   **Następne:** test W3a §5 („ERA5 i SWI zgodnie suche” wobec samego ERA5), W1b+ „Jak to liczymy”, potem W3b.
 - **2026-10-18 — cel W3b doprecyzowany (winiarz: „jak wygląda moja winnica wobec jej historii”):** plan wdrożenia
   `docs/plans/Plan_W3b_moja_winnica.md` (PROPOSED; decyzje D-084–D-089 do zatwierdzenia). Rozwija §5b o testy V1–V3
-  zapisane przed liczeniem, kartę „Moja winnica”, wymagania „dowolnej winnicy” i prawdę terenową w sezonie 2027 (V4).
+  zapisane przed liczeniem (V3: anomalia Sentinel-2 wobec czujników w gruncie Condom, FR-Lus, FR-Aur — bez pomiarów
+  w winnicy, których nie będzie), kartę „Moja winnica” i wymagania „dowolnej winnicy”.
 - Słabości, o których piszemy wprost: jedna stacja naziemna z artefaktami czujników (A4), alarm z NDVI bez trafień,
   brak prawdy terenowej o wodzie w samej winnicy, krótkie normy danych satelitarnych.
 
