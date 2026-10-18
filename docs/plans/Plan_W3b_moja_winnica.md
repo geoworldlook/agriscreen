@@ -52,14 +52,15 @@ o pytanie winiarza z 2026-10-18. Decyzje D-084–D-089 (§8) czekają na zatwier
 |---|---|---|---|
 | **W3b.0** | Notatka metodyczna `docs/evidence/W3b_moja_winnica_metoda.md`: przeczytane źródła z §1, reguły QC działki, definicje anomalii, sformułowania na karcie | notatka + decyzje D-084–D-089 | 1 |
 | **W3b.1** | **Protokół walidacji V1–V3** (§4), zapisany i zahaszowany (SHA-256) **przed** policzeniem anomalii działek na 10 m | `docs/evidence/W3b_protokol_walidacji.md` | 1 |
-| **W3b.2** | Statystyki działek ze wszystkich scen 2016–2026 (rastry z Dysku): `task_area_stats` — dla 22 działek średnia i mediana NDMI/NDVI z pikseli po zwężeniu obrysu (D-085), odsetek pikseli bezchmurnych, liczba pikseli; przyrostowo per działka i scena | `area_stats.csv` | 1–2 |
+| **W3b.2** | Statystyki działek z **już pobranych** scen 2016–2026 (414 rastrów na Dysku, bez nowego pobierania): istniejące `task_scene_stats` + `step_04.site_stats` liczą dziś tylko VINEYARD_06 i stację; rozszerzamy listę obiektów do wszystkich 15 winnic i 5 sadów z `1_AOI_GBOV_CONDOM.geojson` (klucz `VINEYARDS`) i dodajemy zwężenie obrysu o 20 m dla NDMI (D-085; dziś 1 piksel = 10 m). Odsetek pikseli bezchmurnych (`clear_frac`) potok już zapisuje | wiersze w rejestrze obserwacji dla 20 działek | 1 |
 | **W3b.3** | Anomalie: (a) z działki wobec **jej własnej historii** (`scene_anomaly`: ten sam tor orbity, ±15 dni, 5 wcześniejszych lat, z predykcyjne z rozkładu t, min. 5 scen); (b) z **na tle sąsiednich winnic** (z działki minus mediana z pozostałych winnic tej sceny, min. 5 winnic); (c) mapa z pikseli działki dla ostatniej sceny; (d) zmiana od poprzedniej sceny | `area_anomalies.csv`, GeoTIFF + PNG mapy | 1–2 |
 | **W3b.4** | Przebieg V1–V3 w Colab; notatka wyników `docs/evidence/W3b_wyniki.md`; wiersze w `karta_wynikow.md` | wynik niezależnie od kierunku | 1 |
 | **W3b.5** | Karta „Moja winnica” (§5) w dashboardzie, biuletynie (EN), `agriwatch_latest.json`, `run_summary.md`; sekcja notatnika generowana przez `build_colab_master.py`; testy w selfteście | karta | 1–2 |
 | **W3b.6** | **Dowolna winnica** (§6): obrys z pliku GeoJSON na Dysku, kontrola wymagań, pobranie scen dla nowej działki tym samym źródłem, ERA5 i SWI w jej punkcie; próba na drugiej winnicy poza obecnym obszarem | działa dla ≥ 2 winnic | 1–2 |
 | **W3b.7** | **Prawda terenowa, sezon 2027 (V4):** protokół obserwacji wierzchołków pędów (IFV) i dziennik zabiegów (§4, V4); prośba do IFV Sud-Ouest i Chambre d'agriculture du Gers o dane historyczne | wynik V4 po zbiorach 2027 | 1 + sezon |
 
-Razem: ok. 8–11 sesji pracy oraz sezon obserwacji 2027.
+Razem: ok. 7–10 sesji pracy oraz sezon obserwacji 2027. Nowe sceny pobieramy tylko przyrostowo (bieżący sezon,
+czas prawie rzeczywisty) i dla winnic spoza obecnego obszaru (W3b.6); testy V1–V3 liczymy na archiwum z Dysku.
 
 ## 4. Walidacja — co sprawdzamy i jak (szkic protokołu W3b.1)
 
@@ -125,8 +126,8 @@ działki) i kartę „Moja winnica”.
 
 ## 8. Decyzje do zatwierdzenia
 
-- **D-084:** jedno źródło scen dla historii, bieżącej sceny i nowych działek: obecny potok (Sentinel-2 L2A
-  zharmonizowany, maska chmur s2cloudless). Copernicus Data Space tylko jako zapas, po teście zgodności na wspólnym
+- **D-084:** jedno źródło scen dla historii, bieżącej sceny i nowych działek: obecny potok i pobrane już archiwum
+  (Sentinel-2 L2A zharmonizowany, maska chmur s2cloudless; 414 scen 2016–2026 na Dysku). Copernicus Data Space tylko jako zapas, po teście zgodności na wspólnym
   okresie (lekcja z wersji SWI).
 - **D-085:** QC działki — zwężenie obrysu o 20 m dla NDMI (o 10 m dla NDVI), ≥ 80% pikseli bezchmurnych w działce,
   ≥ 10 pikseli 20 m; okno testów VI–IX.
