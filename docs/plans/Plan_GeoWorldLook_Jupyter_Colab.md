@@ -155,7 +155,7 @@ Etap A pokrywa się z M1 z `Plan_wdrozenia_pipeline.md`; etapy B–C to przygoto
 | Rozszerzenie Colab dla VS Code: część funkcji eksperymentalna; nie ma przezroczystego dostępu do plików lokalnych | Kod przez git; dane przez Dysk; notatnik przeglądarkowy jako zapas |
 | Logowanie do GEE na runtime przez VS Code (inne niż w przeglądarce) | `auth_mode="notebook"`; docelowo konto serwisowe GEE (klucz na Dysku, nigdy w repo) |
 | Sekrety (CDSE, Supabase) w VS Code — brak potwierdzonej obsługi Colab Secrets | Plik `.env` na Dysku (obsługiwany już przez `step_01`); klucz `service_role` Supabase tylko na runtime, nigdy na stronie |
-| Repozytorium w folderze **OneDrive pracodawcy** (`OneDrive - opegieka.pl`) | Przenieść repo do katalogu prywatnego przed publikacją i sprzedażą (zgodnie z zasadą NDA z planu i ryzykiem R-002) |
+| Repozytorium w folderze **OneDrive pracodawcy** | Przenieść repo do katalogu prywatnego przed publikacją i sprzedażą (zgodnie z zasadą NDA z planu i ryzykiem R-002) |
 | GEE i Colab tylko do użytku niekomercyjnego | Strona demo/portfolio — w porządku; sprzedaż → ingestia z CDSE (plan v2, F2) |
 | Nieznany schemat bazy i repozytorium strony GeoWorldLook | Potrzebny dostęp (sekcja 9) przed etapem C |
 | Darmowy Supabase: limity bazy i plików `[VERIFY]` | Tylko wyniki zagregowane i wykresy; rastry COG na Dysku/R2 |
