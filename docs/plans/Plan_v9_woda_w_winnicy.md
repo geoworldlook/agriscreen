@@ -46,8 +46,9 @@ miejscach z pomiarami w gruncie: Condom (obszar główny) i obszar pomocniczy (D
   Condom 0,41 [0,33; 0,48] wobec Lusignan 0,68. „Na ile ufać” na karcie podaje teraz liczby z trzech stacji.
   **Następne:** test W3a §5 („ERA5 i SWI zgodnie suche” wobec samego ERA5), W1b+ „Jak to liczymy”, potem W3b.
 - **2026-10-18 — cel W3b doprecyzowany (winiarz: „jak wygląda moja winnica wobec jej historii”):** plan
-  `docs/plans/Plan_W3b_moja_winnica.md` (wersja 3, uproszczona; PROPOSED, decyzje D-084–D-087): karta z trzema
-  zdaniami, testy T1–T3 na archiwum S-2 z Dysku i czujniku ISMN Condom, 4 kroki.
+  `docs/plans/Plan_W3b_moja_winnica.md` (wersja 4; PROPOSED, decyzje D-084–D-087): karta z trzema zdaniami,
+  wskaźnik „woda w liściach” (NDMI + CRSWIR; NDVI, NDRE jako szczegół), testy T1–T3 na archiwum S-2 z Dysku i czujniku
+  ISMN Condom, 4 kroki. Literatura: `docs/evidence/W3b_przeglad_literatury_woda_w_lisciach.md`.
 - Słabości, o których piszemy wprost: jedna stacja naziemna z artefaktami czujników (A4), alarm z NDVI bez trafień,
   brak prawdy terenowej o wodzie w samej winnicy, krótkie normy danych satelitarnych.
 
