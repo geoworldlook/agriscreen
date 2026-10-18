@@ -45,10 +45,9 @@ miejscach z pomiarami w gruncie: Condom (obszar główny) i obszar pomocniczy (D
   A4 nie zmienia R (W1 0,57, W3 0,58), wykluczenie obniża (W2 0,48). Rozbieżność zapisana wprost: anomalie 35-dniowe
   Condom 0,41 [0,33; 0,48] wobec Lusignan 0,68. „Na ile ufać” na karcie podaje teraz liczby z trzech stacji.
   **Następne:** test W3a §5 („ERA5 i SWI zgodnie suche” wobec samego ERA5), W1b+ „Jak to liczymy”, potem W3b.
-- **2026-10-18 — cel W3b doprecyzowany (winiarz: „jak wygląda moja winnica wobec jej historii”):** plan wdrożenia
-  `docs/plans/Plan_W3b_moja_winnica.md` (PROPOSED; decyzje D-084–D-089 do zatwierdzenia). Rozwija §5b o testy V1–V3
-  zapisane przed liczeniem (V3: anomalia Sentinel-2 wobec czujników w gruncie Condom, FR-Lus, FR-Aur — bez pomiarów
-  w winnicy, których nie będzie), kartę „Moja winnica” i wymagania „dowolnej winnicy”.
+- **2026-10-18 — cel W3b doprecyzowany (winiarz: „jak wygląda moja winnica wobec jej historii”):** plan
+  `docs/plans/Plan_W3b_moja_winnica.md` (wersja 3, uproszczona; PROPOSED, decyzje D-084–D-087): karta z trzema
+  zdaniami, testy T1–T3 na archiwum S-2 z Dysku i czujniku ISMN Condom, 4 kroki.
 - Słabości, o których piszemy wprost: jedna stacja naziemna z artefaktami czujników (A4), alarm z NDVI bez trafień,
   brak prawdy terenowej o wodzie w samej winnicy, krótkie normy danych satelitarnych.
 
