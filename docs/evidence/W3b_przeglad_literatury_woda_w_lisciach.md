@@ -8,9 +8,9 @@
 ## Wynik w skrócie
 
 1. **Fizyka przemawia za SWIR.** Woda w liściach pochłania promieniowanie w podczerwieni krótkofalowej (SWIR,
-   1,6 i 2,2 µm). Sam SWIR zależy jednak też od budowy liścia i suchej masy, dlatego potrzebne jest odniesienie
-   do NIR (Ceccato i in. 2001). Oba nasze składniki to robią: NDMI dzieli przez NIR, a CRSWIR odnosi B11 do linii
-   między NIR i SWIR-2.
+   1,6 i 2,2 µm). Sam SWIR zależy jednak też od budowy liścia i suchej masy (woda wyjaśnia tylko 36% zmienności
+   odbicia przy 1600 nm), a odniesienie do NIR podnosi to do 87% (Ceccato i in. 2001, pełny tekst). Oba nasze składniki
+   łączą SWIR z NIR. Granica: SWIR widzi utratę wody w liściach, czyli raczej silny niedobór niż umiarkowany stres.
 2. **W suszy wskaźniki wody reagują wcześniej niż wskaźniki zieleni.** Woda w łanie z Sentinel-2 zareagowała
    na suszę błyskawiczną wcześniej niż LAI i fAPAR (zboża w Europie, lata 2022–2023). To uzasadnia SWIR jako wskaźnik
    główny, a NDVI tylko jako tło.
@@ -31,7 +31,7 @@
 
 | Źródło | Co mówi | Wniosek dla nas |
 |---|---|---|
-| Ceccato P., Flasse S., Tarantola S., Jacquemoud S., Grégoire J.-M. 2001. *Remote Sensing of Environment* 77(1): 22–33, doi:10.1016/S0034-4257(01)00191-2 [W] | SWIR jest czuły na ekwiwalentną grubość wody w liściu (EWT), ale budowa liścia i sucha masa też zmieniają odbicie w SWIR. Sam SWIR nie wystarcza; NIR, mało czuły na wodę, służy jako odniesienie | wskaźnik musi łączyć SWIR z NIR; oba składniki spełniają ten warunek |
+| Ceccato P., Flasse S., Tarantola S., Jacquemoud S., Grégoire J.-M. 2001. *Remote Sensing of Environment* 77(1): 22–33, doi:10.1016/S0034-4257(01)00191-2 [P, pełny tekst 2026-10-18] | Dane laboratoryjne LOPEX93 (37 gatunków) i model PROSPECT, **poziom liścia**. Odbicie przy 1600 nm zależy od wody (EWT) tylko w 36%; reszta to budowa liścia (41%) i sucha masa (23%) — analiza wrażliwości EFAST, tab. 6. Iloraz 1600/820 nm (NIR) podnosi udział wody do 87%; r² z EWT rośnie z 0,77 do 0,92. Związek jest logarytmiczny: **gdy liść traci wodę, czułość SWIR rośnie**. Autorzy zaznaczają, że łan, gleba i geometria oświetlenia nie były badane. Cytują też pracę na słoneczniku: przy umiarkowanym stresie woda na jednostkę powierzchni liścia mało się zmienia (Beaumont 1995), bo roślina ją chroni | wskaźnik musi łączyć SWIR z NIR (oba nasze składniki to robią). **Granica:** SWIR wykrywa utratę wody w liściach, czyli raczej silny niedobór; umiarkowany stres (zamknięte aparaty szparkowe, woda w liściach utrzymana) może być niewidoczny. To trzeba napisać na karcie |
 | Ceccato i in. 2002. *Remote Sensing of Environment* 82: 188–197 (GVMI, cz. 1) [W] | projekt wskaźnika wody roślinności (GVMI) z korektą atmosfery i tła | GVMI zostaje kandydatem z F3 §7; nie dodajemy go teraz (to też NIR–SWIR-1, czyli trzeci wariant tej samej informacji) |
 | Gao B.-C. 1996. *Remote Sensing of Environment* 58(3): 257–266, doi:10.1016/S0034-4257(96)00067-3 [W] | NDWI Gao używa 0,86 i **1,24 µm** | **Korekta nazewnictwa:** Sentinel-2 nie ma pasma 1,24 µm. Nasze NDMI = (B8A − B11)/(B8A + B11) to NDII (Hardisky i in. 1983 [—]), nie NDWI Gao. F3 §6.1 łączy te nazwy — poprawić przy najbliższej zmianie F3 |
 
@@ -40,7 +40,7 @@
 | Wskaźnik | Wzór w potoku (`step_04.compute_indices`) | Pochodzenie i dowody | Rola |
 |---|---|---|---|
 | **NDMI** (NDII) | (B8A − B11)/(B8A + B11) | szeroko stosowany wskaźnik wody w łanie; TerraNIS (model Laroche-Pinel) używa B11 [F3] | składnik 1 |
-| **CRSWIR** | B11 / [B8A + (B12 − B8A)·(1610 − 865)/(2190 − 865)]; wyższy = mniej wody (w złożeniu ze znakiem −) | INRAE, pakiet FORDEAD (Dutrieux, Ose, de Boissieu, Féret; wersja 1.3.0 z 2021, doi:10.15454/4TEO6H; Zenodo doi:10.5281/zenodo.12802456) do wykrywania zamierania lasów jako anomalii piksela wobec własnej sezonowości [W]. Najlepszy wskaźnik dla zamierania świerka we Francji: R² 0,54, trafność 77% (European Journal of Remote Sensing 2025) [W]. Brak prac w winnicach | składnik 2; ta sama logika „anomalia piksela wobec własnej historii” co u nas |
+| **CRSWIR** | B11 / [B8A + (B12 − B8A)·(1610 − 865)/(2190 − 865)]; wyższy = mniej wody (w złożeniu ze znakiem −) | **Wzór sprawdzony w kodzie źródłowym FORDEAD** (`fordead/preprocess.py`, gałąź master, 2026-10-18): `B11/(B8A+((B12-B8A)/(2185.7-864))*(1610.4-864))` — waga 0,5647 wobec naszej 0,5623 (inne środki pasm; różnica pomijalna, do ujednolicenia w K2). FORDEAD liczy anomalię jako CRSWIR minus wartość przewidziana z modelu sezonowości piksela, próg 0,16, i odrzuca piksele z CRSWIR < 0,25 lub > 2. [P]. INRAE, pakiet FORDEAD (Dutrieux, Ose, de Boissieu, Féret; wersja 1.3.0 z 2021, doi:10.15454/4TEO6H; Zenodo doi:10.5281/zenodo.12802456) do wykrywania zamierania lasów jako anomalii piksela wobec własnej sezonowości [W]. Najlepszy wskaźnik dla zamierania świerka we Francji: R² 0,54, trafność 77% (European Journal of Remote Sensing 2025) [W]. Brak prac w winnicach | składnik 2; ta sama logika „anomalia piksela wobec własnej historii” co u nas |
 | NDVI | (B08 − B04)/(B08 + B04) | ilość zieleni; w winnicy 10 m widać tylko silne uszkodzenia; w normalnym, gorącym roku 28% pikseli fałszywie „uszkodzonych” (Pantaleoni Reluy i in. 2022) [F3] | szczegół (tło: ile zieleni) |
 | NDRE | (B8A − B05)/(B8A + B05) | chlorofil i azot, nie woda wprost [F3] | szczegół (żółknięcie liści) |
 
@@ -97,10 +97,29 @@ Korelacje anomalii z (VINEYARD_06, 2016–2024, sceny SR 2,5 m z F4, `a2_variant
 | CWC z modelu PROSAIL | brak produktu operacyjnego; łan rzędowy łamie założenia modelu [F3 §7.2] |
 | Wilgotność gleby z S-2 (OPTRAM, STR) | F4: nie dodaje informacji ponad ERA5 |
 
+## 8. Stan czytania pełnych tekstów (2026-10-18)
+
+| Źródło | Stan |
+|---|---|
+| Ceccato i in. 2001 | **przeczytany w całości** (PDF ze strony współautora, IPGP) |
+| FORDEAD (wzór CRSWIR) | **sprawdzony w kodzie źródłowym** (GitLab INRAE) |
+| Laroche-Pinel i in. 2021, *OENO One*; Pantaleoni Reluy i in. 2022 | przeczytane w całości wcześniej (F3, teksty od użytkownika) |
+| Laroche-Pinel i in. 2021, *Remote Sensing* 13: 1837 | brak — strony MDPI i HAL blokują pobieranie automatyczne |
+| Unnisa, Ogutu, Dash 2025, doi:10.1016/j.rsase.2025.101690 | brak — blokada (Southampton ePrints, ScienceDirect) |
+| Sentinel-2 time series reveal species-specific responses in temperate conifer dieback, *European Journal of Remote Sensing* 2025, doi:10.1080/22797254.2025.2547386 | brak — blokada (Taylor & Francis, HAL) |
+| Ecosystem-dynamics link to hydrologic variations for different land-cover types, *TAO* 28(3): 437, 2017, doi:10.3319/TAO.2016.09.13.01 („Choi i in. 2017” w tekście — autorzy do potwierdzenia) | brak — serwer czasopisma nieosiągalny |
+| Dynamic response of NDVI to soil moisture variations during different hydrological regimes in the Sahel region, *International Journal of Remote Sensing* 2017, doi:10.1080/01431161.2017.1339920 | brak — płatny dostęp |
+| Gao 1996, doi:10.1016/S0034-4257(96)00067-3 | brak — płatny dostęp (potrzebny tylko do potwierdzenia pasma 1,24 µm) |
+| Ceccato i in. 2002, cz. 1, doi:10.1016/S0034-4257(02)00037-8 | brak — płatny dostęp (przejście z liścia na łan) |
+| Hunt i Rock 1989, *Remote Sensing of Environment* 30: 43–54 (MSI) | brak — płatny dostęp (cytowany przez Ceccato 2001) |
+| Delval i in., EGU22-3908 | tylko streszczenie konferencyjne; pełnej pracy nie znaleziono |
+
+Do czasu przeczytania pełnych tekstów liczby z pozycji oznaczonych [W] nie wchodzą do protokołu K1 jako uzasadnienie.
+
 ## Źródła
 
 - Ceccato P. i in. 2001. Detecting vegetation leaf water content using reflectance in the optical domain.
-  *Remote Sensing of Environment* 77(1): 22–33. https://www.ipgp.fr/~jacquemoud/publications/ceccato2001.pdf [W]
+  *Remote Sensing of Environment* 77(1): 22–33. https://www.ipgp.fr/~jacquemoud/publications/ceccato2001.pdf [P]
 - Gao B.-C. 1996. NDWI — A normalized difference water index for remote sensing of vegetation liquid water from space.
   *Remote Sensing of Environment* 58(3): 257–266. https://doi.org/10.1016/S0034-4257(96)00067-3 [W]
 - Dutrieux R., Ose K., de Boissieu F., Féret J.-B. fordead: a python package for vegetation anomalies detection from
