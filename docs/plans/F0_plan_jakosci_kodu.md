@@ -60,7 +60,7 @@ Q-1…Q-5 nie zmieniają dokumentów nr 1 i nr 2. Są decyzjami wykonawczymi w r
 ## 4. Docelowa struktura repozytorium
 
 ```text
-1_geoworldlook-agriscreen/
+agriscreen/
 ├── pyproject.toml                 # pakiet agriwatch; extras: [gee], [sr], [validation], [dev]
 ├── README.md                      # EN, zgodny z kodem
 ├── CHANGELOG.md
