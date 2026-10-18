@@ -1258,15 +1258,76 @@ def water_card_lines(card: Dict[str, Any], lang: str = "pl") -> Dict[str, Any]:
     return {"headline": head, "lines": lines, "footer": footer}
 
 
+# Miejsca walidacji warstwy wody i ich miara główna (protokół docs/evidence/W2_REF_protokol_walidacji.md, D-083)
+REF_TRUST_SITES = (
+    ("SMOSMANIA_Condom", "ISMN_20_30cm_A4W1", "anomaly_clim", "Condom (ISMN, po kontroli A4)", "Condom (ISMN, after A4 QC)"),
+    ("FR-Aur", "ICOS_FR-Aur_30cm", "anomaly_clim", "Auradé (ICOS, Gers)", "Auradé (ICOS, Gers)"),
+    ("FR-Lus", "ICOS_FR-Lus_20_30cm", "anomaly_35d", "Lusignan (ICOS, anomalie 35-dniowe)",
+     "Lusignan (ICOS, 35-day anomalies)"),
+)
+
+
+def read_ref_validation(cfg: Dict[str, Any]) -> Optional[pd.DataFrame]:
+    """Wyniki W2 + REF zapisane przez task_ref_validate (None, gdy jeszcze ich nie ma)."""
+    path = os.path.join(cfg.get("OUTPUT_DIR", ""), "validation_reference.csv")
+    return pd.read_csv(path) if os.path.exists(path) and os.path.getsize(path) > 1 else None
+
+
+def _ref_metric(ref: pd.DataFrame, site: str, reference: str, product: str, segment: str, metric: str):
+    q = ref[(ref["site_id"] == site) & (ref["reference"] == reference) & (ref["product"] == product)
+            & (ref["segment"] == segment) & (ref["metric"] == metric)]
+    return q.iloc[0] if len(q) else None
+
+
+def _ref_trust_lines(ref: pd.DataFrame, cfg: Dict[str, Any], pl: bool, num) -> List[str]:
+    """Zdania „Na ile ufać” z walidacji na trzech stacjach: model i satelita wobec czujników w gruncie."""
+    T = int(cfg.get("SWI_T", 15))
+    out = []
+    for prod, lead_pl, lead_en in (
+            ("ERA5L_SM_RZ", "Kategoria gleby (model ERA5-Land 0–100 cm) wobec czujników w gruncie",
+             "Soil category (ERA5-Land 0–100 cm model) vs in-ground sensors"),
+            (f"SWI_v4_T{T:03d}", f"Satelita (SWI T = {T}) wobec tych samych czujników",
+             f"Satellite (SWI T = {T}) vs the same sensors")):
+        rs, ag, cf = [], [], []
+        for site, reference, seg, name_pl, name_en in REF_TRUST_SITES:
+            r = _ref_metric(ref, site, reference, prod, seg, "pearson_r")
+            if r is None or not np.isfinite(_float(r["value"])):
+                continue
+            rs.append(f"{num(r['value'])} [{num(r['ci_low'])}; {num(r['ci_high'])}] {name_pl if pl else name_en}")
+            if seg == "anomaly_clim":            # klasy i dekady tylko tam, gdzie czujnik ma własną normę (§4)
+                a = _ref_metric(ref, site, reference, prod, "class_agreement", "agreement")
+                fa = _ref_metric(ref, site, reference, prod, "events_dekad", "far")
+                short = name_pl.split(" (")[0] if pl else name_en.split(" (")[0]
+                if a is not None and np.isfinite(_float(a["value"])):
+                    ag.append(f"{num(100 * _float(a['value']), 0)}% ({short})")
+                if fa is not None and np.isfinite(_float(fa["value"])):
+                    cf.append(f"{num(100 * (1 - _float(fa['value'])), 0)}% ({short})")
+        if not rs:
+            continue
+        txt = (f"{lead_pl}, {len(rs)} {plural_pl(len(rs), 'stacja', 'stacje', 'stacji')} (protokół D-083): R anomalii "
+               + ", ".join(rs) if pl else f"{lead_en}, {len(rs)} stations (protocol D-083): anomaly R " + ", ".join(rs))
+        if ag:
+            txt += ("; ta sama klasa (sucho / norma / wilgotno) co czujnik w " + ", ".join(ag) + " dni" if pl
+                    else "; same class (dry / normal / wet) as the sensor on " + ", ".join(ag) + " of days")
+        if cf:
+            txt += ("; suchą dekadę czujnik potwierdzał w " + ", ".join(cf) + " przypadków" if pl
+                    else "; the sensor confirmed a dry dekad in " + ", ".join(cf) + " of cases")
+        out.append(txt + ".")
+    return out
+
+
 def water_trust(val: Optional[pd.DataFrame], wval: Optional[pd.DataFrame], thr: Optional[Dict[str, Any]],
-                cfg: Dict[str, Any], lang: str = "pl", sat: Optional[Dict[str, Any]] = None) -> List[str]:
+                cfg: Dict[str, Any], lang: str = "pl", sat: Optional[Dict[str, Any]] = None,
+                ref_val: Optional[pd.DataFrame] = None) -> List[str]:
     """
     „Na ile ufać” karcie wody (Plan v9 W1b, D-071) — liczby z wyników potoku, nie wpisane na sztywno:
       opad    — ERA5-Land vs deszczomierz Météo-France stacji referencyjnej (validation_weather.csv, sumy 30 dni),
       gleba   — anomalia ERA5-Land 0–100 cm vs ISMN 20–30 cm (validation_anomalies.csv: R z CI, potwierdzone suche
                 dekady = 1 − FAR); prawdopodobieństwo na karcie jest pewnością tej kategorii,
       satelita — zgodność klas ERA5–SWI w latach normy (odsetek dni, kappa, CI z bootstrapu po latach; D-080)
-                i jej wrażliwość na T; satelity nie porównano jeszcze z czujnikami w gruncie (W2, REF),
+                i jej wrażliwość na T,
+      stacje   — gdy jest `ref_val` (validation_reference.csv, W2 + REF): model i satelita wobec czujników na trzech
+                stacjach (miara główna z protokołu D-083) zamiast wiersza z jednej stacji przed kontrolą A4,
       reszta  — niedobór w mm, miejsce wśród lat i „od kiedy”: niezwalidowane (gleba modelu ERA5-Land).
     """
     pl = lang == "pl"
@@ -1289,7 +1350,15 @@ def water_trust(val: Optional[pd.DataFrame], wval: Optional[pd.DataFrame], thr: 
     v = val if val is not None and len(val) else pd.DataFrame(columns=["product", "segment", "metric"])
     s = v[(v["product"] == "ERA5L_SM_RZ") & (v["segment"] == "anomaly_clim") & (v["metric"] == "pearson_r")]
     e = v[(v["segment"] == "events_dekad") & (v["metric"] == "far")]
-    if len(s):
+    ref_lines = _ref_trust_lines(ref_val, cfg, pl, num) if ref_val is not None and len(ref_val) else []
+    if ref_lines:
+        out += ref_lines
+        out.append("Prawdopodobieństwo na karcie to pewność tej kategorii: łączy anomalię modelu z jej zgodnością "
+                   f"z czujnikiem (ρ = {num(cfg.get('PSMA_RHO', 0.58))}) — ρ w rewizji do kroku A5 (ponowne oszacowanie "
+                   "po kontroli A4)." if pl else
+                   "The probability on the card is the confidence in this category: it combines the model anomaly with "
+                   f"its agreement with the sensor (ρ = {num(cfg.get('PSMA_RHO', 0.58))}) — ρ under review until step A5.")
+    elif len(s):
         x = s.iloc[0]
         txt = (f"Kategoria gleby: anomalia ERA5-Land 0–100 cm wobec czujnika ISMN Condom 20–30 cm (136 m od winnicy) — "
                f"R = {num(x['value'])} [{num(x['ci_low'])}; {num(x['ci_high'])}], n = {int(x['n'])} dni" if pl else
@@ -1321,12 +1390,12 @@ def water_trust(val: Optional[pd.DataFrame], wval: Optional[pd.DataFrame], thr: 
                     f"[{pc(ag['po_ci'][0])}; {pc(ag['po_ci'][1])}], kappa = {num(ag['kappa'])} "
                     f"[{num(ag['kappa_ci'][0])}; {num(ag['kappa_ci'][1])}]"
                     + (f"; wrażliwość na T: {sens}" if sens else "")
-                    + ". Satelity nie porównano jeszcze z czujnikami w gruncie (W2, REF).") if pl else
+                    + ("." if ref_lines else ". Satelity nie porównano jeszcze z czujnikami w gruncie (W2, REF).")) if pl else
                    (f"Satellite vs model: same class (dry / normal / wet) on {pc(ag['po'])}% of days {y0}–{y1} "
                     f"[{pc(ag['po_ci'][0])}; {pc(ag['po_ci'][1])}], kappa = {num(ag['kappa'])} "
                     f"[{num(ag['kappa_ci'][0])}; {num(ag['kappa_ci'][1])}]"
                     + (f"; sensitivity to T: {sens}" if sens else "")
-                    + ". The satellite has not yet been compared with in-ground sensors (W2, REF)."))
+                    + ("." if ref_lines else ". The satellite has not yet been compared with in-ground sensors (W2, REF).")))
     out.append("Niedobór w mm, miejsce wśród lat i „od kiedy”: niezwalidowane — to wielkości w glebie modelu "
                "ERA5-Land (okolica ~9 km), traktować orientacyjnie." if pl else
                "Deficit in mm, rank among years and drought start: not validated — quantities in the ERA5-Land model "
@@ -1428,6 +1497,22 @@ def _selftest_water(cfg: Dict[str, Any]) -> None:
     assert "w rewizji" in tr and "niezwalidowane" in tr and "pewność tej kategorii" in tr, tr
     te = " ".join(water_trust(va, wv, {"reference": "MF_1"}, cfg, "en"))
     assert "R = 0.90" in te and "confirmed it in 43%" in te and "not validated" in te, te
+    # W2 + REF: zdania z trzech stacji (liczby z pierwszego przebiegu 2026-10-16), satelita bez dopisku „nie porównano”
+    rows = []
+    for site, reference, seg, _, _ in REF_TRUST_SITES:
+        for prod, r in (("ERA5L_SM_RZ", {"FR-Lus": 0.68}.get(site, 0.57)), ("SWI_v4_T015", 0.53)):
+            rows.append({"site_id": site, "reference": reference, "product": prod, "segment": seg,
+                         "metric": "pearson_r", "value": r, "ci_low": r - 0.08, "ci_high": r + 0.07, "n": 2000})
+            rows.append({"site_id": site, "reference": reference, "product": prod, "segment": "class_agreement",
+                         "metric": "agreement", "value": 0.55, "ci_low": 0.5, "ci_high": 0.6, "n": 2000})
+            rows.append({"site_id": site, "reference": reference, "product": prod, "segment": "events_dekad",
+                         "metric": "far", "value": 0.54, "ci_low": np.nan, "ci_high": np.nan, "n": 300})
+    tr_ref = " ".join(water_trust(va, wv, {"reference": "MF_1"}, dict(cfg, SWI_T=15), sat=sat, ref_val=pd.DataFrame(rows)))
+    assert "3 stacje (protokół D-083): R anomalii 0,57 [0,49; 0,64] Condom (ISMN, po kontroli A4)" in tr_ref, tr_ref
+    assert "0,68 [0,60; 0,75] Lusignan (ICOS, anomalie 35-dniowe)" in tr_ref and "Satelita (SWI T = 15)" in tr_ref
+    assert "co czujnik w 55% (Condom), 55% (Auradé) dni" in tr_ref and "potwierdzał w 46% (Condom)" in tr_ref
+    assert "ISMN Condom 20–30 cm (136 m" not in tr_ref and "nie porównano jeszcze" not in tr_ref, tr_ref
+    assert "3 stations (protocol D-083)" in " ".join(water_trust(va, wv, None, cfg, "en", sat=sat, ref_val=pd.DataFrame(rows)))
     t0 = " ".join(water_trust(None, None, None, cfg))
     assert "brak wyników walidacji" in t0 and "niezwalidowane" in t0, t0
     print(f"[OK] Karta „Woda w winnicy”: {txt['headline']}; {txt['lines'][0]}")

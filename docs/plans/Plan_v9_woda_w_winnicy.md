@@ -39,6 +39,12 @@ miejscach z pomiarami w gruncie: Condom (obszar główny) i obszar pomocniczy (D
   dotychczasowego QC (zamrożone wartości, min. 18 h w dniu). Opis danych ICOS (bez metryk produktu): FR-Lus 1382 dni
   warstwy 20–30 cm (2022-11-29 – 2026-10-14, w tym 44 dni NRT), bez oznaczeń; FR-Aur 2003 dni na 0,30 m (2019 – X 2025),
   FAST_DROP 18 dni; 14 dni z wartością < 0,10 — wszystkie w suchym 2022 r. (do opisania jako obserwacja).
+- **W2 + REF — wyniki (2026-10-18, dane do 2026-10-16; `docs/evidence/W2_REF_wyniki.md`):** model ERA5-Land wobec
+  czujników R 0,57 [0,48; 0,65] Condom (po A4), 0,57 [0,42; 0,70] Auradé, 0,68 [0,62; 0,74] Lusignan (anomalie 35 dni);
+  ta sama klasa co czujnik w 55% dni, suchą dekadę modelu czujnik potwierdza w 46–48%; satelita R 0,57 / 0,52 / 0,53;
+  A4 nie zmienia R (W1 0,57, W3 0,58), wykluczenie obniża (W2 0,48). Rozbieżność zapisana wprost: anomalie 35-dniowe
+  Condom 0,41 [0,33; 0,48] wobec Lusignan 0,68. „Na ile ufać” na karcie podaje teraz liczby z trzech stacji.
+  **Następne:** test W3a §5 („ERA5 i SWI zgodnie suche” wobec samego ERA5), W1b+ „Jak to liczymy”, potem W3b.
 - Słabości, o których piszemy wprost: jedna stacja naziemna z artefaktami czujników (A4), alarm z NDVI bez trafień,
   brak prawdy terenowej o wodzie w samej winnicy, krótkie normy danych satelitarnych.
 
@@ -127,7 +133,8 @@ Wynik „brak poprawy” też wpisujemy. Tabela żyje w `docs/evidence/karta_wyn
 | Krok | Czy zmienia trafność | Co porównujemy |
 |---|---|---|
 | W1 karta | nie — te same liczby inaczej podane | nic; zapisujemy wprost, że to zmiana prezentacji |
-| W3a satelita | nowe, niezależne źródło (nie zmienia kategorii ERA5) | zgodność klas ERA5–SWI 2007–2024: 63% [59; 68], kappa 0,44 [0,36; 0,52] (2026-10-15); trafność SWI wobec czujników — po W2 i REF |
+| W3a satelita | nowe, niezależne źródło (nie zmienia kategorii ERA5) | zgodność klas ERA5–SWI 2007–2024: 63% [59; 68], kappa 0,44 [0,36; 0,52] (2026-10-15); SWI wobec czujników: R 0,57 Condom, 0,52 Auradé, 0,53 Lusignan (W2 + REF) |
+| W2 + REF | referencja po A4 i dwie nowe stacje | ERA5 wobec czujników: R 0,57 Condom (W3 bez A4: 0,58), 0,57 Auradé, 0,68 Lusignan (35 d); szczegóły: `docs/evidence/W2_REF_wyniki.md`, `docs/evidence/karta_wynikow.md` |
 | W2 A4 | zmienia referencję, nie produkt | stara i nowa reguła statusu policzone na tej samej, poprawionej referencji: POD/FAR suchych dekad, Brier prawdopodobieństwa (W1/W2/W3 z notatki A4) |
 | W4 7 dni | nowy element | błąd zmiany niedoboru wobec punktu odniesienia „bez zmian przez 7 dni” |
 | W5 30 dni | nowy element | Brier wobec klimatologii i wobec „susza dziś = susza za 30 dni”; poprawa tylko, gdy lepszy od obu |

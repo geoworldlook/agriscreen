@@ -249,9 +249,11 @@ def monitor_current(ref: pd.Series, products: Dict[str, Tuple[pd.Series, str]], 
     out = {"date": str(t.date()), "sensor_anomaly_35d": float(a.iat[-1]), "products": {}}
     for name, (prod, _) in products.items():
         pc = clim_anomaly(prod.dropna().sort_index(), norm, half_window)["percentile"].dropna()
-        if t in pc.index:
-            cl = _pct_class(pc.loc[[t]]).iat[0]
-            out["products"][name] = {"percentile": float(pc.loc[t]), "class": cl}
+        common = pc.index.intersection(a.index)
+        if len(common):                      # ostatni wspólny dzień (ERA5 dochodzi z opóźnieniem ~5 dni)
+            tc = common.max()
+            out["products"][name] = {"percentile": float(pc.loc[tc]), "class": _pct_class(pc.loc[[tc]]).iat[0],
+                                     "date": str(tc.date()), "sensor_anomaly_35d": float(a.loc[tc])}
     return out
 
 
@@ -355,6 +357,25 @@ def ref_summary_md(val: pd.DataFrame, qc: Optional[pd.DataFrame] = None, cur: Op
                          + f" | {f(far['value']) if far is not None else ''} |")
     else:
         lines.append("(brak wyników)")
+    if val is not None and len(val):
+        main_ref = {"SMOSMANIA_Condom": "ISMN_20_30cm_A4W1",
+                    **{k: f"ICOS_{k}_{v['layer_label']}" for k, v in REF_SITES.items()}}
+        lines += ["", "Ta sama miara we wszystkich miejscach (warstwa główna; R [CI], n) — porównanie przenośności, "
+                      "protokół §5:", "",
+                  "| produkt | segment | " + " | ".join(main_ref) + " |", "|---|---|" + "---|" * len(main_ref)]
+        for prod in ("ERA5L_SM_RZ", "SWI_v4_T015"):
+            for seg in ("anomaly_clim", "anomaly_35d"):
+                cells = []
+                for site, ref in main_ref.items():
+                    q = val[(val["site_id"] == site) & (val["reference"] == ref) & (val["product"] == prod)
+                            & (val["segment"] == seg) & (val["metric"] == "pearson_r")]
+                    cells.append(f"{f(q['value'].iat[0])} [{f(q['ci_low'].iat[0])}; {f(q['ci_high'].iat[0])}], "
+                                 f"{int(q['n'].iat[0])}" if len(q) else "")
+                lines.append(f"| {prod} | {seg} | " + " | ".join(cells) + " |")
+        sens = val[val["segment"].astype(str).str.contains("_from_") & (val["metric"] == "pearson_r")]
+        for r in sens.itertuples():
+            lines.append(f"\nWrażliwość {r.site_id} {r.segment} ({r.product}): R = {f(r.value)} [{f(r.ci_low)}; "
+                         f"{f(r.ci_high)}], n = {int(r.n)}")
     if a4 is not None and len(a4):
         t = a4.groupby("depth_cm")[["days", "fast_drop", "low_010", "low_05wp", "low_015"]].sum()
         lines += ["", "A4 (Condom, dni oznaczone 2016–2024): " + "; ".join(
@@ -368,8 +389,9 @@ def ref_summary_md(val: pd.DataFrame, qc: Optional[pd.DataFrame] = None, cur: Op
         if c and c.get("products"):
             sign = "sucho" if c["sensor_anomaly_35d"] < 0 else "wilgotno"
             cl = {"dry": "sucho", "normal": "w normie", "wet": "wilgotno"}
-            pr = ", ".join(f"{k}: {cl.get(v['class'], v['class'])} (percentyl {v['percentile']:.0f} wobec normy "
-                           f"2007–2024)" for k, v in c["products"].items())
+            pr = ", ".join(f"{k} ({v.get('date', c['date'])}): {cl.get(v['class'], v['class'])} (percentyl "
+                           f"{v['percentile']:.0f} wobec normy 2007–2024; czujnik tego dnia "
+                           f"{v.get('sensor_anomaly_35d', c['sensor_anomaly_35d']):+.3f})" for k, v in c["products"].items())
             lines += ["", f"Kontrola bieżąca {site} ({c['date']}, protokół §6): czujnik — anomalia 35-dniowa "
                           f"{c['sensor_anomaly_35d']:+.3f} m³/m³ ({sign} wobec ostatnich tygodni); {pr}."]
     return "\n".join(lines)

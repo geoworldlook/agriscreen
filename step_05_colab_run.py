@@ -994,7 +994,7 @@ def task_bulletin(rt: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[str, Any]:
         tq = os.path.join(out, "hazard_thresholds.json")
         trust_en = s9.water_trust(val, pd.read_csv(wq) if os.path.exists(wq) else None,
                                   json.load(open(tq)) if os.path.exists(tq) else None, cfg, "en",
-                                  sat=wc.get("satellite"))
+                                  sat=wc.get("satellite"), ref_val=s9.read_ref_validation(cfg))
         extra.append(f"## Water in the soil (area around the vineyard)\n\n**{wl['headline']}**\n\n"
                      + "\n".join(f"- {x}" for x in wl["lines"]) + "\n\n**How far to trust it**\n\n"
                      + "\n".join(f"- {x}" for x in trust_en) + f"\n\n_{wl['footer']}_\n")
@@ -1130,7 +1130,7 @@ def task_summary(rt: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[str, Any]:
         summary["water_card"] = s9.water_card_json(wc)
         with open(js, "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=1, ensure_ascii=False, default=str)
-        trust_pl = s9.water_trust(val, wval, thr, cfg, "pl", sat=wc.get("satellite"))
+        trust_pl = s9.water_trust(val, wval, thr, cfg, "pl", sat=wc.get("satellite"), ref_val=s9.read_ref_validation(cfg))
         water_md = (f"**{wl['headline']}**\n" + "\n".join(f"- {x}" for x in wl["lines"])
                     + "\n\nNa ile ufać:\n" + "\n".join(f"- {x}" for x in trust_pl))
     except Exception as e:
@@ -1465,6 +1465,9 @@ def _selftest(out_dir: str) -> None:
         wjs = json.load(f)["water_card"]
     assert wjs["category"]["code"] and wjs["date"] == "2024-12-31" and "Water in the soil" in bmd, wjs
     assert "Na ile ufać" in dash and "niezwalidowane" in dash and "How far to trust it" in bmd
+    # po W2 + REF karta podaje model i satelitę wobec czujników na 3 stacjach (protokół D-083)
+    assert "3 stacje (protokół D-083)" in dash and "Lusignan (ICOS, anomalie 35-dniowe)" in dash, "brak zdań W2 + REF"
+    assert "3 stations (protocol D-083)" in bmd and "nie porównano jeszcze z czujnikami" not in dash
     # W3a: SWI pobrany przez zadanie (v4 od 2007 i 1 km v2 od 13 VII 2025), wiersz satelity i zgodność na karcie
     for prod in ("v4_0.1deg", "v2_1km"):
         assert os.path.exists(os.path.join(cfg["SWI_DIR"], f"swi_{prod}_point.csv")), prod
