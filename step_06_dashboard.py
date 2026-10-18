@@ -534,7 +534,8 @@ def build_dashboard(rt: Dict[str, Any], cfg: Dict[str, Any], forecast: bool = Tr
         card = s9.water_card(era5, status, cfg, sid, swi=s9.read_swi(cfg))
         wq = os.path.join(out_dir, "validation_weather.csv")
         wval = pd.read_csv(wq) if os.path.exists(wq) else pd.DataFrame()
-        trust_w = s9.water_trust(val, wval, wx.get("thr"), cfg, "pl", sat=card.get("satellite"))
+        trust_w = s9.water_trust(val, wval, wx.get("thr"), cfg, "pl", sat=card.get("satellite"),
+                                 ref_val=s9.read_ref_validation(dict(cfg, OUTPUT_DIR=out_dir)))
         return _water_html(card, s9.water_card_lines(card, "pl"), cfg, trust_w)
 
     element("water", water_html)
