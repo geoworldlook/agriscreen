@@ -10,6 +10,8 @@ GeoWorldLook i automatyczna aktualizacja dopiero po prototypie.
 
 ## 0. Stan, cel i kolejność (porządek z 2026-10-15)
 
+> Skrót całości (co mamy, co teraz, co później): `docs/STAN_I_PLAN.md` (2026-10-19).
+
 **Cel modułu:** zwalidowana warstwa „woda w winnicy”, w której każda liczba na karcie ma albo wynik walidacji wobec
 niezależnej referencji naziemnej (z przedziałem ufności), albo napis „niezwalidowane”. Testy zapisujemy przed
 liczeniem, wyniki raportujemy niezależnie od kierunku, „przed” i „po” liczymy na tej samej referencji (D-067, D-070).

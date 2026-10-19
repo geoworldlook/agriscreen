@@ -147,6 +147,8 @@ python -m pyflakes step_0*.py step_09_panels.py          # znane: 2× undefined 
 
 ## 8. Dokumenty
 
+Orientacja w jednym miejscu: [`docs/STAN_I_PLAN.md`](STAN_I_PLAN.md) — co mamy, co wprowadzamy, co później.
+
 | Dokument | Status |
 |---|---|
 | `docs/MIGRACJA_PODSUMOWANIE.md` | stan projektu, audyt wyników, następne kroki (2026-10-10) |
