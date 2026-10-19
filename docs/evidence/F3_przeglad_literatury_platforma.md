@@ -156,7 +156,7 @@
 3. **Pojedyncza scena to za mało do alertu.** Okno 30 dni plus drugie kryterium (spadek w sezonie) to tani sposób na wysoką swoistość. To właściwy kierunek dla komunikatu „sprawdź winnicę”.
 4. **SR 2,5 m: brak dowodów, że pomaga w wykrywaniu.**
    - W literaturze nie znalazłem pracy, która pokazuje poprawę wykrywania suszy w winnicach dzięki SR S-2.
-   - Są natomiast dowody, że **usunięcie brzegu** i **czysty rdzeń działki** poprawiają NDVI winnicy (Sozzi 2020; Laroche-Pinel 2021 tylko zaleca pas ≥ 5 m, bez testu — korekta 2026-10-19).
+   - Jedyna wskazówka, że **usunięcie brzegu** poprawia NDVI winnicy, to Sozzi 2020 (fragment). Laroche-Pinel RS 2021 tylko zaleca pas ≥ 5 m, a OENO One go stosuje; żadna z tych prac nie testuje jego wpływu (korekta 2026-10-19).
    - Najbardziej prawdopodobny zysk z SR to precyzyjniejsza maska rdzenia i czytelna mapa. Pod warunkiem że pas brzegowy liczymy w metrach (wariant C testu H-SR2), a nie w pikselach.
 5. **ERA5-Land to rozsądne źródło anomalii strefy korzeni** (Núñez-Ibarra 2025; nasze R = 0,58 w Condom). Wartości bezwzględne i szybkość reakcji po pierwszym deszczu wymagają ostrożności. Nasza walidacja ma niezgodność głębokości, którą łatwo poprawić.
 6. **Komunikat „sprawdź winnicę” jest właściwy.** Literatura winiarska jest zgodna, że niedobór wody bywa celowy, a jego znaczenie zależy od fazy i stylu wina. Produkt mówi o odchyleniu od normy, nie o stresie.
@@ -168,7 +168,7 @@
 | Miejsce | Było | Jest (pełny tekst) |
 |---|---|---|
 | Źródło A1 | „do sprawdzenia: alert w EDO bez warunku SMA” | Potwierdzone (tab. 2a): alert = roślinność ≤ −1 przy deficycie opadu **albo** po dekadzie suszy; SMA nie jest konieczne |
-| Źródło W12 | pasma B4, B6, B8A, B12 | **B4, B8, B6, B11** wg OENO One; R² = 0,40, RMSE = 0,26; > 2500 pomiarów Ψstem (korekta 2026-10-19: RS 2021 podaje B4, B6, B8A, B12, > 3200 pomiarów, 349 obserwacji; R² 0,40 przy losowych podziałach) |
+| Źródło W12 | pasma B4, B6, B8A, B12 | bez zmiany pasm (B4, B6, B8A, B12 wg RS 2021, s. 13); dopisano: OENO One podaje B4, B8, B6, B11 (rozbieżność nierozstrzygnięta), > 3200 pomiarów, 349 obserwacji, R² 0,40 przy losowych podziałach (korekta 2026-10-19) |
 
 ---
 
@@ -224,7 +224,7 @@ ERA5 z dodanymi satelitami nie był lepszy od samego ERA5 (0,81 vs 0,81). Na jed
 | Gleba | Sentinel-1 change detection 50 m (mamy w `step_07`) | Nasze: R 0,34; szum plamkowy | **Nie** dla działki |
 | Gleba (optyka) | STR, OPTRAM | Sadeghi 2017 ([RSE 198:52](https://experts.umn.edu/en/publications/the-optical-trapezoid-model-a-novel-approach-to-remote-sensing-of/)): błąd ~0,04 m³/m³ w zlewniach półsuchych; wymaga kalibracji krawędzi trapezu | **Nie**: nasze R 0,35–0,39; okrywa winnicy zakłóca sygnał gleby |
 | Roślinność | **NDVI** (mamy; SR 2,5 m) | Zielona masa; w winnicy miesza rząd i międzyrzędzie (F3, 1.2) | Zostaje (Z2–Z5) |
-| Roślinność, woda | **NDMI (= NDII; nie NDWI Gao, które używa 1,24 µm — korekta 2026-10-19)** (NIR–SWIR) | Brak pracy z NDMI vs Ψstem na S-2. NDWI: R² 0,54–0,67 na datę, MSI 0,53–0,63; NDWI/EVI najlepszy w dwóch winnicach w Belgii (Delval i in., [EGU22-3908](https://meetingorganizer.copernicus.org/EGU22/EGU22-3908.html), konferencja). Model Laroche-Pinel używa SWIR (RS 2021: B12; OENO One: B11); sam NDII R² 0,09 (RS 2021, tab. 8). [snippet, niesprawdzone] NDWI reaguje szybciej niż NDVI | **Dodać jako drugi wskaźnik roślinny na karcie (Z11)**, liczony **z pasm natywnych 10/20 m** (pasma 20 m po SR nie przechodzą H-SR1). Nasze R ≈ 0,4, tak jak NDVI — do statusu tylko, jeśli test paired pokaże wartość dodaną |
+| Roślinność, woda | **NDMI (= NDII; w FORDEAD nazywany „NDWI”; nie NDWI Gao z 1,24 µm ani NDWI McFeeters z pasmem zielonym — korekta 2026-10-19)** (NIR–SWIR) | NDII (B8/B11) vs Ψstem na S-2: R² ≤ 0,09 między działkami, losowe podziały (Laroche-Pinel RS 2021, tab. 8; korekta 2026-10-19). NDWI (wzór w abstrakcie Delval niepodany — do sprawdzenia): R² 0,54–0,67 na datę, MSI 0,53–0,63; NDWI/EVI najlepszy w dwóch winnicach w Belgii (Delval i in., [EGU22-3908](https://meetingorganizer.copernicus.org/EGU22/EGU22-3908.html), konferencja). Model Laroche-Pinel używa SWIR (RS 2021: B12; OENO One: B11). [snippet, niesprawdzone] NDWI reaguje szybciej niż NDVI | **Dodać jako drugi wskaźnik roślinny na karcie (Z11)**, liczony **z pasm natywnych 10/20 m** (pasma 20 m po SR nie przechodzą H-SR1). Nasze R ≈ 0,4, tak jak NDVI — do statusu tylko, jeśli test paired pokaże wartość dodaną |
 | Roślinność | **fAPAR / LAI (S-2, SL2P)** | Zmienna EDO. SL2P (Weiss i Baret 2016) dostępny w GEE (LEAF Toolbox). Dobrze dla jednorodnych upraw; zaniża LAI w łanach niejednorodnych (brak skupienia liści w modelu) — [walidacja GBOV, Univ. Southampton](https://eprints.soton.ac.uk/503206/) | **Opcjonalnie (Z12)**: zgodność z EDO, ale winnica to łan rzędowy; zysk względem NDVI do pokazania |
 | Roślinność | NDRE, CIre (red-edge) | Reagują na chlorofil i azot, nie wprost na wodę; dłużej czułe w gęstym łanie | **Nie** do suszy; ewentualnie do wigoru |
 | Roślinność | kNDVI, NIRv | Odpowiedź na nasycenie NDVI w gęstym łanie; kNDVI zależy od parametru jądra | **Nie**: NDVI winnicy (0,4–0,6) nie jest nasycone |
@@ -269,7 +269,7 @@ Każdy nowy wskaźnik przechodzi ten sam test, zapisany przed obliczeniem:
 ## 7. Wskaźniki wilgotności roślin oddzielające tło (gleba, międzyrzędzie)
 
 **Odpowiedź w skrócie:** żaden indeks spektralny nie oddziela w pełni winorośli od gleby i trawy w pikselu 10–20 m. Wskaźniki z tej grupy **zmniejszają** wpływ tła na trzy sposoby:
-1. normalizacja jasności (SAVI, CRSWIR),
+1. normalizacja jasności (SAVI) i kontinuum NIR–SWIR (CRSWIR; zmniejszenie wpływu gleby to hipoteza bez źródła — korekta 2026-10-19),
 2. różna reakcja gleby i liści w dwóch pasmach SWIR (NMDI),
 3. dzielenie przez wskaźnik zieloności (NDWI/EVI).
 
@@ -303,7 +303,7 @@ Pełne oddzielenie dają dopiero metody modelowe (PROSAIL) i rozmieszanie piksel
 | Z14 | Dla każdej winnicy w natywnych 20 m: CRSWIR, NMDI, GVMI, NDWI/EVI (obok NDMI). Do tego **przyrost sezonowy** każdego wskaźnika: wartość minus mediana XII–II danego sezonu (tło międzyrzędzia). Wszystko jako anomalie wobec innych lat | Jedno zestawienie: R anomalii z czujnikiem 20–30 cm (paired), wartość dodana ponad ERA5, 2022 w ≥ 12 z 15 winnic, stabilność w IV–V. Do statusu wchodzi najwyżej jeden wskaźnik wody, i to tylko jeśli wygra z NDVI | 2–3 h; bez pobierania nowych danych |
 | Z15 | (później) NDVI i wskaźniki wody samego rzędu przez rozmieszanie przestrzenne z mapą rzędów | Jak Z14 | 1–2 dni + mapa rzędów |
 
-**Ocena:** najbardziej obiecujące dla nas jest połączenie **wskaźnika wody z korektą tła (NDWI/EVI lub CRSWIR)** z **odjęciem tła zimowego**. Oba sposoby są tanie i dają się sprawdzić na danych, które już mamy. Do czasu testu nie zakładam, że któryś będzie lepszy od NDVI: nasze NDMI (bez korekty) dało R ≈ 0,4, tyle co NDVI.
+**Ocena:** najbardziej obiecujące dla nas jest połączenie **wskaźnika wody z korektą tła (NDWI/EVI lub CRSWIR; dla CRSWIR korekta tła niepotwierdzona — korekta 2026-10-19)** z **odjęciem tła zimowego**. Oba sposoby są tanie i dają się sprawdzić na danych, które już mamy. Do czasu testu nie zakładam, że któryś będzie lepszy od NDVI: nasze NDMI (bez korekty) dało R ≈ 0,4, tyle co NDVI.
 
 ---
 

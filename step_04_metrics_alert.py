@@ -35,7 +35,8 @@ logger = logging.getLogger("AgriWatch_Metrics")
 S2_BANDS = ["B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12"]
 RASTER_CLOUD_BAND = 10          # indeks pasma 'cloudmask' w plikach z step_01 (1 = chmura/cień)
 INDICES = ("ndvi", "ndmi", "ndre", "crswir")
-# CRSWIR: środki pasm [nm] jak w FORDEAD (INRAE); waga kontinuum dla B11 między B8A a B12
+# CRSWIR: przybliżone środki pasm [nm]; FORDEAD (INRAE) używa 864 / 1610,4 / 2185,7 (w = 0,5647 wobec 0,5623) —
+# ujednolicić w W3b K2. Waga kontinuum dla B11 między B8A a B12.
 CRSWIR_W = (1610.0 - 865.0) / (2190.0 - 865.0)
 
 CDI_CLASSES = {0: "normal", 1: "watch", 2: "warning", 3: "alert"}
@@ -50,7 +51,7 @@ def compute_indices(arr: np.ndarray) -> Dict[str, np.ndarray]:
     """
     NDVI = (B08-B04)/(B08+B04)        — wigor / pokrycie roślinnością,
     NDMI = (B8A-B11)/(B8A+B11)        — woda w liściach (SWIR + NIR, Ceccato i in. 2001); u Laroche-Pinel i in. 2021
-                                         sam NDII R² 0,09, w modelu wielopasmowym istotne B4, B6, B8A, B12,
+                                         sam NDII (B8/B11) R² 0,09; w modelu wielopasmowym wystarczają B4, B6, B8A, B12,
     NDRE = (B8A-B05)/(B8A+B05)        — red-edge (chlorofil),
     CRSWIR = B11 / (B8A + (B12-B8A)·w) — głębokość absorpcji wody przy 1610 nm względem kontinuum B8A–B12
                                          (FORDEAD, INRAE); wyższa wartość = mniej wody. Przegląd: F3 §7, W3b (literatura).
