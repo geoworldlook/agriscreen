@@ -49,10 +49,11 @@ ACTION = {"normal": "normal", "recovery": "normal", "watch": "watch", "warning":
 def compute_indices(arr: np.ndarray) -> Dict[str, np.ndarray]:
     """
     NDVI = (B08-B04)/(B08+B04)        — wigor / pokrycie roślinnością,
-    NDMI = (B8A-B11)/(B8A+B11)        — woda w liściach (SWIR; Laroche-Pinel i in. 2021: B8A, B12 istotne),
+    NDMI = (B8A-B11)/(B8A+B11)        — woda w liściach (SWIR + NIR, Ceccato i in. 2001); u Laroche-Pinel i in. 2021
+                                         sam NDII R² 0,09, w modelu wielopasmowym istotne B4, B6, B8A, B12,
     NDRE = (B8A-B05)/(B8A+B05)        — red-edge (chlorofil),
     CRSWIR = B11 / (B8A + (B12-B8A)·w) — głębokość absorpcji wody przy 1610 nm względem kontinuum B8A–B12
-                                         (FORDEAD, INRAE); wyższa wartość = mniej wody. Przegląd: F3, sekcja 7.
+                                         (FORDEAD, INRAE); wyższa wartość = mniej wody. Przegląd: F3 §7, W3b (literatura).
     """
     b = {name: arr[i] for i, name in enumerate(S2_BANDS)}
     with np.errstate(all="ignore"):
