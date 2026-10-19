@@ -1,6 +1,6 @@
 # Plan W3b — „Moja winnica wobec jej historii” (wersja 5)
 
-Status: **PROPOSED** 2026-10-19, do akceptacji przed kodem. Wersja 5 powstała po przeczytaniu w całości 4 prac
+Status: **PROPOSED** 2026-10-19, do akceptacji przed kodem (wariant wielopasmowy §2a wybrany 2026-10-19). Wersja 5 powstała po przeczytaniu w całości 4 prac
 (Laroche-Pinel 2021, Unnisa 2025, Carletti 2025, Choi 2017) i po niezależnej weryfikacji liczb. Literatura:
 `docs/evidence/W3b_przeglad_literatury_woda_w_lisciach.md` (wersja 2). Rozwija W3b z Planu v9 §5b (D-073) i zastępuje
 tam opis obiektów, wskaźnika, klas i testu.
@@ -56,6 +56,25 @@ Karta „Moja winnica” z trzema zdaniami:
 Złożenie daje odporność, a nie nową informację, bo u nas anomalie NDMI i −CRSWIR korelowały na poziomie 0,97 (F4, do
 przeliczenia).
 
+### 2a. Wariant wielopasmowy (decyzja 2026-10-19, wariant c)
+
+Laroche-Pinel 2021 pokazali, że więcej informacji dają pasma razem niż pojedyncze wskaźniki. Wystarczyły 4 pasma:
+B4 (czerwone), B6 (red-edge), B8A (NIR), B12 (SWIR). Współczynników nie opublikowali, a uczyli je na pomiarach wody
+w winorośli, których nie mamy. Dlatego bierzemy od nich **zestaw pasm**, a **wagi** uczymy na danych, które mamy.
+
+| | Definicja (zapisana w K1 przed liczeniem) |
+|---|---|
+| Wejście | anomalie z odbicia w B4, B6, B8A, B12 wobec własnej historii działki (ta sama metoda co w §2); mediana winnic spełniających QC, bez VINEYARD_06 |
+| Cel | średnia anomalia czujnika ISMN 20–30 cm (po A4, W1) z 30 dni przed sceną, VI–IX |
+| Model | regresja liniowa: 4 wagi + wyraz wolny (jak u autorów); te same wagi dla każdej działki |
+| Uczciwa ocena | wagi uczone na latach bez roku testowego (walidacja z pominięciem roku); ocena tylko na latach niewidzianych przez model |
+| Reguła wyboru | na kartę wchodzi tylko, gdy na latach testowych jest lepszy od prostego wskaźnika: dolna granica 95% CI różnicy ρ > 0 (bootstrap po latach). Inaczej zostaje prosty wskaźnik |
+| Na karcie (jeśli wygra) | wynik modelu w działce, przeliczony na anomalię wobec jej własnej historii; klasy ±1 jak w §2 |
+
+**Granice:** model uczy się wody w glebie (czujnik pod trawą), a nie wody w winorośli. Mamy ok. 7 sezonów, więc
+różnica może wyjść nierozstrzygnięta. Wynik — wygrana albo przegrana — jest punktem odniesienia dla rozplątania
+kanałów siecią neuronową (Plan v8).
+
 ## 3. Testy: jedno zdanie, jeden test
 
 | Zdanie na karcie | Test (zapisany przed liczeniem, K1) | Dane |
@@ -105,18 +124,19 @@ W K2 dodatkowo: ujednolicić stałą CRSWIR z FORDEAD (różnica wagi 0,002, kos
 
 | Krok | Co | Sesje |
 |---|---|---|
-| **K1** | Protokół: wskaźnik (§2), T1–T3 z kryterium (§3), progi QC (§4); skrót SHA-256 przed liczeniem | 1 |
+| **K1** | Protokół: wskaźnik (§2), wariant wielopasmowy (§2a), T1–T3 z kryterium (§3), progi QC (§4); skrót SHA-256 przed liczeniem | 1 |
 | **K2** | Statystyki 15 winnic z archiwum na Dysku (414 scen, bez nowego pobierania) z regułami §4 | 1 |
-| **K3** | Anomalie + T1–T3 w Colab; przeliczone wartości „przed” z F4; notatka wyników; wiersze w karcie wyników | 1–2 |
+| **K3** | Anomalie + T1–T3 w Colab; wariant wielopasmowy z walidacją z pominięciem roku (§2a); przeliczone wartości „przed” z F4; notatka wyników; wiersze w karcie wyników | 2 |
 | **K4** | Karta „Moja winnica” w dashboardzie, biuletynie i notatniku; nagłówek gleby w 3 klasach | 1–2 |
 
-Razem 4–6 sesji. Bieżące sceny dochodzą tym samym potokiem, więc karta działa w sezonie 2027 na bieżąco.
+Razem 5–6 sesji. Bieżące sceny dochodzą tym samym potokiem, więc karta działa w sezonie 2027 na bieżąco.
 
-**Potem:** rozplątanie sygnału winnicy (Plan v8, F5), oceniane tymi samymi T1–T3 przed i po. Wniosek z Laroche-Pinel
-dla F5 (więcej informacji w kilku pasmach razem, w tym SWIR) jest zapisany w Planie v8.
+**Potem:** rozplątanie sygnału winnicy (Plan v8, moduły 2–3), oceniane tymi samymi T1–T3 przed i po. Punktem
+odniesienia są prosty wskaźnik i wariant wielopasmowy z §2a. Wniosek z Laroche-Pinel dla rozplątania (pasma razem,
+w tym SWIR) jest zapisany w Planie v8.
 
 **Świadomie poza planem:**
-- model potencjału wodnego Laroche-Pinel;
+- model potencjału wodnego Laroche-Pinel w oryginale (bez współczynników; bierzemy tylko zestaw pasm, §2a);
 - CWC z SL2P;
 - test „woda przed zielenią”;
 - kompozyty 8- i 16-dniowe;
@@ -143,6 +163,8 @@ dla F5 (więcej informacji w kilku pasmach razem, w tym SWIR) jest zapisany w Pl
   - reszta opisowo;
   - przeliczone wartości „przed” z F4;
   - zapisane i zahaszowane przed liczeniem.
+- **D-088 Wariant wielopasmowy:** 4 pasma B4, B6, B8A, B12 (Laroche-Pinel), wagi uczone na czujniku ISMN z walidacją
+  z pominięciem roku, na kartę tylko według reguły z §2a (zatwierdzone co do kierunku 2026-10-19; szczegóły w K1).
 - **D-087 Słowa:**
   - „wskaźnik wody w roślinności działki (SWIR; winorośl i międzyrzędzie)”;
   - nigdy „stres wodny winorośli” ani „wczesne ostrzeżenie”;

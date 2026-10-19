@@ -141,7 +141,8 @@ Założenie: 4–6 h tygodniowo, czyli około 0,7 dnia pracy tygodniowo.
 - D-058: Rozplątanie w F5 na reflektancji (czerwień, NIR), NDVI składowych liczone z rozplątanych pasm.
   Uwaga 2026-10-19 (Plan W3b v5, do decyzji przy F5): W3b używa pasm B8A, B11, B12, a Laroche-Pinel i in. 2021
   pokazują, że więcej informacji o wodzie winorośli dają pasma razem (wystarczą B4, B6, B8A, B12) niż pojedyncze
-  wskaźniki. Rozplątanie powinno więc objąć też pasma SWIR i red-edge; ocena tymi samymi T1–T3 co W3b.
+  wskaźniki. Rozplątanie powinno więc objąć też pasma SWIR i red-edge; ocena tymi samymi T1–T3 co W3b, a punktem
+  odniesienia są prosty wskaźnik i wariant wielopasmowy z Planu W3b §2a.
 - D-059: Przed zahashowaniem hipotez liczymy najmniejszy wykrywalny efekt i zapisujemy go w protokole.
 
 ## 9. Źródła
