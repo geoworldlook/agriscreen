@@ -1,28 +1,32 @@
 # W3b — protokół walidacji „Moja winnica” (pre-rejestracja)
 
-> **Status:** `DRAFT — do zatwierdzenia, potem SHA-256` (2026-10-19).
-> - **Po zatwierdzeniu:** status `REGISTERED` z datą i skrótem SHA-256 sekcji 0–13, liczonym poleceniem
->   `sed -n '/^## 0\./,$p' docs/evidence/W3b_protokol_walidacji.md | sha256sum`. Skrót trafia do Planu W3b §6 (D-089).
+> **Status:** `REGISTERED` 2026-10-19 (D-089) · SHA-256 sekcji 0–13: `f01b74a804b28315dea94df90b9c685b4e5c9d621211be92be5e992a542b05cf`
+> - Skrót liczy `sed -n '/^## 0\./,$p' docs/evidence/W3b_protokol_walidacji.md | sha256sum`. Ten sam skrót
+>   `task_parcel_tests` zapisuje w `w3b_tests.csv` i ostrzega, gdy treść sekcji 0–13 różni się od zarejestrowanej.
+> - Rozstrzygnięcia U1–U8 (§13) to rekomendacje przyjęte 2026-10-19 razem z poleceniem wdrożenia kodu, bez osobnej
+>   decyzji dla każdego punktu. Rejestracja jest przed pierwszym liczeniem testów na danych Sentinel-2 (testy liczy
+>   dopiero notatnik w Colab); zmiana któregoś U przed tym przebiegiem = nowa wersja protokołu i nowy skrót.
 > - **Zmiana po rejestracji:** nowa wersja protokołu, nowy skrót i opis, co i dlaczego zmieniono (jak W2+REF, D-083).
 > - **Podstawa:** Plan W3b §1–§4 (D-084–D-088); reguły czujnika A4 §3–4 (D-060–D-063). Wdrożenie:
->   `docs/plans/W3b_plan_wdrozenia.md`. Symulacje: `docs/evidence/W3b_symulacje.py` (ziarno 42).
+>   `docs/plans/W3b_plan_wdrozenia.md`, kod `step_11_parcel.py`. Symulacje: `docs/evidence/W3b_symulacje.py` (ziarno 42).
 >
 > **Oznaczenia:** [P] pełny tekst pracy; [D] nasze dane, kod albo dokument; [K] konwencja, nie optimum i nie wynik
-> z danych; [W] wiedza ogólna; **(U1–U8)** — wybór użytkownika, rekomendacja w §13.
+> z danych; [W] wiedza ogólna; **(U1–U8)** — rozstrzygnięcie w §13.
 
 ## 0. Dane, zamrożenie, przedział ufności
 
 | Dane | Zakres | Uwagi |
 |---|---|---|
 | Sentinel-2 L2A (`COPERNICUS/S2_SR_HARMONIZED`, `step_01`) | rastry na Dysku, IV–X, 2016 → `W3B_FREEZE`; 414 scen przy pisaniu protokołu | Pasma 20 m zapisane na siatce 10 m metodą najbliższego sąsiada (bloki 2×2) [D]. Kolekcja zharmonizowana, więc zmiana przetwarzania z 2022 r. nie wymaga korekty [D] |
-| Zamrożenie testów (U6) | `W3B_FREEZE` = data ostatniej sceny w `S2_DIR` po zakończeniu K2 | Testy liczymy tylko na scenach ≤ tej daty. Nowsze sceny trafiają na kartę, nie do testów. Notatka wyników podaje liczbę scen, pierwszą i ostatnią datę, SHA-256 listy plików i commit kodu |
+| Zamrożenie testów (U6) | `W3B_FREEZE` = data ostatniej sceny w `S2_DIR` przy pierwszym liczeniu testów, po statystykach działek (K2); zapis w `w3b_freeze.json` razem z SHA-256 listy plików | Testy liczymy tylko na scenach ≤ tej daty; anomalie do testów liczymy od nowa z tych scen. Nowsze sceny trafiają na kartę, nie do testów. Notatka wyników podaje liczbę scen, pierwszą i ostatnią datę, SHA-256 listy plików i commit kodu |
 | ERA5-Land, dane dobowe | 1991 → dziś | `precip_mm`; warstwa 0–100 cm = `step_04.rootzone`; percentyl wobec 1991–2020, ±15 dni, liczony tak samo jak na karcie wody |
 | SWI v4 0,1°, T = 15 | 2007 → dziś | tylko wiersz opisowy (§6) |
 | ISMN Condom 20 i 30 cm | stały okres 2016-01-01 – 2024-12-31 | reguły A4, wariant główny W1 (`step_07.a4_variants`) |
 
 **Przedział 95% — jedna metoda dla wszystkich wierszy: jackknife po latach (U8).**
 - Statystykę θ liczymy na całej próbie i G razy bez kolejnego roku: θ₋₁ … θ₋G.
-- SE = √((G−1)/G · Σ(θ₋g − θ̄₋)²); przedział θ ± t(0,975; G−1)·SE.
+- SE = √((G−1)/G · Σ(θ₋g − θ̄₋)²); przedział θ ± t(0,975; G−1)·SE, przycięty do zakresu statystyki (udział 0–1,
+  MDC ≥ 0, ρ w [−1; 1]).
 - Bez losowania, więc wynik nie zależy od ziarna.
 - Uzasadnienie [D, `W3b_symulacje.py`]: przy 7 sezonach i celu o autokorelacji jak czujnik jackknife daje 2,5% fałszywych
   zaliczeń kryterium przy ρ = 0, a bootstrap percentylowy po latach (Plan W3b v5) ok. 3,5%.
@@ -76,9 +80,10 @@
 - **Skutek na karcie:** „Na ile ufać” zawsze podaje p̂ z przedziałem. Gdy przedział nie zawiera 15,9%, karta dopisuje
   „w archiwum ta klasa wypadała częściej (rzadziej) niż 1 na 6 scen”. Metody w tej wersji nie poprawiamy; każda
   poprawka (np. norma ważona latami, Plan v7 A3) to nowa wersja protokołu.
-- **Opisowo:** udział z ≥ +1 i |z| ≥ 2; p̂ dla każdego roku; podział `n_ref_years` 1–2 / ≥ 3; NDVI osobno; p̂ w dniach
-  z glebą w normie (percentyl ERA5-Land w (30; 70), ta sama funkcja co karta). Zastrzeżenie: gleba ma normę 1991–2020,
-  a roślinność ostatnie 5 lat z suchymi 2019, 2022 i 2023, co sprzyja niskiemu p̂ w tym podzbiorze.
+- **Opisowo:** udział z ≥ +1 i |z| ≥ 2; p̂ dla każdego roku; podział `n_ref_years` 1–2 / ≥ 3; NDVI osobno; p̂ mediany
+  okolicy (zbiór T3; jej klasę pokazuje zdanie 3); p̂ w dniach z glebą w normie (percentyl ERA5-Land w (30; 70), ta sama
+  funkcja co karta). Zastrzeżenie: gleba ma normę 1991–2020, a roślinność ostatnie 5 lat z suchymi 2019, 2022 i 2023,
+  co sprzyja niskiemu p̂ w tym podzbiorze.
 - **Czułość** [D, `W3b_symulacje.py`, 9 sezonów × 25 scen × 13 winnic, wspólna składowa roku 20–60% wariancji]:
   - przy poprawnej kalibracji p̂ wypada w 4–33% (95% archiwów);
   - przedział zawiera 15,9% w 87–93% archiwów;
@@ -116,7 +121,7 @@
 
 **Próba:** dni scen VI–IX 2018–2024 z ważnym x i y. Gdy mniej niż 5 sezonów ma ≥ 5 dni: „nierozstrzygnięty”.
 
-**Miara:** ρ Spearmana łącznie dla wszystkich lat (rangi średnie, `step_10._spearman`).
+**Miara:** ρ Spearmana łącznie dla wszystkich lat (rangi średnie, jak `step_10._spearman`).
 
 **Kryterium zdania 3: dolna granica przedziału jackknife po latach (§0) > 0.**
 
@@ -190,7 +195,8 @@ z czujnika według §6 pkt 1–2:
 | c | jak b | A4 W1 | b→c: reguły czujnika |
 | d | `S2_10m_buf20` | A4 W1 | c→d: produkt (10 m, pas 20 m) |
 
-- P1, P2, P3 i P5 przeliczamy tylko w konfiguracji d: dla VINEYARD_06 i dla mediany zbioru T3.
+- P1–P5 przeliczamy też w konfiguracji d na wszystkich dniach z danymi (IV–X 2018–2024): dla VINEYARD_06 i dla mediany
+  zbioru T3.
 - Bez kryterium. Przy każdej liczbie n i lata. Dopiero te liczby są wartościami „przed”, także dla Planu v8.
 - Skrypty F4 nie odtwarzają dziś liczb F4: ich `VEG_CFG` nie ma kluczy `VEG_CAUSAL` i `VEG_REF_YEARS`, więc dziś
   dostają domyślną normę z lat wcześniejszych zamiast „pozostałych lat”. Krok a bierzemy więc z pliku CSV [D].
@@ -250,17 +256,17 @@ z czujnika według §6 pkt 1–2:
 - **Pas 20 m zakłada eksport metodą najbliższego sąsiada.** Przy innym resamplingu piksel 20 m wystaje dalej.
 - **2 z 15 winnic** (0,68 i 0,73 ha) są poza testami; mediana obejmuje 12 winnic, w części dni mniej (chmury per działka).
 
-## 13. Do zatwierdzenia (U1–U8)
+## 13. Rozstrzygnięcia (U1–U8)
 
-Po decyzji tę sekcję zastępują „Rozstrzygnięcia”, a dopiero potem liczymy SHA-256.
+Przyjęte 2026-10-19 rekomendacje, przed pierwszym liczeniem testów na danych Sentinel-2.
 
-| | Wybór | Rekomendacja | Alternatywa |
+| | Wybór | Rozstrzygnięcie | Odrzucona alternatywa |
 |---|---|---|---|
 | U1 | rola T1 | opisowo + dopisek na karcie (§4): symulacja pokazuje, że T1 nie ma mocy | kryterium „przedział zawiera 15,9%” dla zdania 2 (Plan W3b v5 §3) |
 | U2 | minimalna liczba lat w puli | bez progu (jak potok); dopisek „krótka historia” | ≥ 3 lata (Plan v7 A1): T3 traci 2018, zostaje 6 sezonów |
 | U3 | cel T3 | A4 W1, jak W2+REF; pozostałe warianty opisowo | W2: usuwa prawie wszystkie suche epizody (A4 §4) |
 | U4 | karta w IV–V i X | pokazywać z dopiskiem „poza okresem sprawdzonym” | ukryć zdanie 2 poza VI–IX |
 | U5 | drobne progi | okno [t−30, t−1] przy ≥ 20 dniach; z czujnika obcięte do [−3; 3]; opad 5 mm; ≥ 6 winnic; flaga 2/3 z ≥ 6 scen | okno [t−30, t] jak w F4 (korelacja obu wersji 0,999) |
-| U6 | zamrożenie testów | `W3B_FREEZE` = ostatnia scena w `S2_DIR` po K2, lista plików z SHA-256 | 2026-10-31, ale wtedy K3 dopiero po pobraniu scen z końca października |
+| U6 | zamrożenie testów | ostatnia scena w `S2_DIR` przy pierwszym liczeniu testów (§0), lista plików z SHA-256 | 2026-10-31, ale wtedy testy dopiero po pobraniu scen z końca października |
 | U7 | wariant wielopasmowy na karcie | A: tylko zdanie 3 (okolica), bo tylko tam jest sprawdzony | B: także zdanie 2, ale wtedy T1 i MDC95 trzeba liczyć na z_mb jako kryteria |
 | U8 | przedział dla kryteriów | jackknife po latach (§0): 2,5% fałszywych zaliczeń w symulacji, bez losowania | bootstrap percentylowy po latach (Plan W3b v5): ok. 3,5% i wynik zależny od ziarna |
