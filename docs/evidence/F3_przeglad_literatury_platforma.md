@@ -84,7 +84,7 @@
 
 **Co mówi:**
 - **Model z wcześniejszej pracy (s. 3):** ponad 2500 pomiarów Ψstem komorą ciśnieniową na 36 działkach w latach 2018–2020. Najlepszy model używa pasm **B4, B8, B6, B11**: R² = 0,40, RMSE = 0,26.
-  - Uwaga: streszczenie z wyszukiwarki w `Plan_v6` (W12) podawało B8A i B12. Pełny tekst je koryguje.
+  - Uwaga (korekta 2026-10-19, pełny tekst RS 2021 przeczytany): RS 2021 (s. 13) podaje 4 pasma **B4, B6, B8A, B12**, ponad 3200 pomiarów i 349 obserwacji; streszczenie W12 było z nim zgodne. Zapis B4, B8, B6, B11 pochodzi z OENO One i nie zgadza się z RS 2021 — rozbieżność nierozstrzygnięta. W RS 2021 sam NDII (B8/B11) ma R² 0,09 (tab. 8).
 - **Zastosowanie:**
   - 170 działek (220 ha) w 5 gospodarstwach koło Carcassonne i Béziers.
   - VI–IX 2020: około 10 użytecznych scen na działkę, czyli jedna bezchmurna scena na ~7 dni.
@@ -106,7 +106,7 @@
 2. **Maska wigoru:** działka lub piksel z niskim NDVI w lecie (wypady, młode nasadzenia) nie powinny dawać alertu z roślinności (Z5).
 3. **Ta sama sucha anomalia znaczy co innego dla różnych win.** Karta nie powinna sugerować szkody. Pole „cel produkcji” to kandydat na atrybut działki (później).
 4. **Dwa poziomy odbiorców:** winiarz (działka) i spółdzielnia (wszystkie działki). Nasze 15 winnic przy Cave de Condom pasuje do poziomu „spółdzielnia”.
-5. **Model TerraNIS używa pasm 20 m (B6, B11).** U nas pasma 20 m po SR nie przechodzą H-SR1, więc wskaźniki tego typu liczymy z 10 m, nie z SR.
+5. **Model TerraNIS używa pasm 20 m (B6, B11 wg OENO One; wg RS 2021 B6, B8A, B12 — korekta 2026-10-19).** U nas pasma 20 m po SR nie przechodzą H-SR1, więc wskaźniki tego typu liczymy z 10 m, nie z SR.
 
 ### 1.4 Núñez-Ibarra i in. 2025, *From grid to ground: How well do gridded products represent soil moisture dynamics…*, EGUsphere preprint, [DOI 10.5194/egusphere-2025-2606](https://doi.org/10.5194/egusphere-2025-2606)
 
@@ -156,7 +156,7 @@
 3. **Pojedyncza scena to za mało do alertu.** Okno 30 dni plus drugie kryterium (spadek w sezonie) to tani sposób na wysoką swoistość. To właściwy kierunek dla komunikatu „sprawdź winnicę”.
 4. **SR 2,5 m: brak dowodów, że pomaga w wykrywaniu.**
    - W literaturze nie znalazłem pracy, która pokazuje poprawę wykrywania suszy w winnicach dzięki SR S-2.
-   - Są natomiast dowody, że **usunięcie brzegu** i **czysty rdzeń działki** poprawiają NDVI winnicy (Sozzi 2020, Laroche-Pinel 2021).
+   - Są natomiast dowody, że **usunięcie brzegu** i **czysty rdzeń działki** poprawiają NDVI winnicy (Sozzi 2020; Laroche-Pinel 2021 tylko zaleca pas ≥ 5 m, bez testu — korekta 2026-10-19).
    - Najbardziej prawdopodobny zysk z SR to precyzyjniejsza maska rdzenia i czytelna mapa. Pod warunkiem że pas brzegowy liczymy w metrach (wariant C testu H-SR2), a nie w pikselach.
 5. **ERA5-Land to rozsądne źródło anomalii strefy korzeni** (Núñez-Ibarra 2025; nasze R = 0,58 w Condom). Wartości bezwzględne i szybkość reakcji po pierwszym deszczu wymagają ostrożności. Nasza walidacja ma niezgodność głębokości, którą łatwo poprawić.
 6. **Komunikat „sprawdź winnicę” jest właściwy.** Literatura winiarska jest zgodna, że niedobór wody bywa celowy, a jego znaczenie zależy od fazy i stylu wina. Produkt mówi o odchyleniu od normy, nie o stresie.
@@ -168,7 +168,7 @@
 | Miejsce | Było | Jest (pełny tekst) |
 |---|---|---|
 | Źródło A1 | „do sprawdzenia: alert w EDO bez warunku SMA” | Potwierdzone (tab. 2a): alert = roślinność ≤ −1 przy deficycie opadu **albo** po dekadzie suszy; SMA nie jest konieczne |
-| Źródło W12 | pasma B4, B6, B8A, B12 | **B4, B8, B6, B11**; R² = 0,40, RMSE = 0,26; > 2500 pomiarów Ψstem |
+| Źródło W12 | pasma B4, B6, B8A, B12 | **B4, B8, B6, B11** wg OENO One; R² = 0,40, RMSE = 0,26; > 2500 pomiarów Ψstem (korekta 2026-10-19: RS 2021 podaje B4, B6, B8A, B12, > 3200 pomiarów, 349 obserwacji; R² 0,40 przy losowych podziałach) |
 
 ---
 
@@ -224,7 +224,7 @@ ERA5 z dodanymi satelitami nie był lepszy od samego ERA5 (0,81 vs 0,81). Na jed
 | Gleba | Sentinel-1 change detection 50 m (mamy w `step_07`) | Nasze: R 0,34; szum plamkowy | **Nie** dla działki |
 | Gleba (optyka) | STR, OPTRAM | Sadeghi 2017 ([RSE 198:52](https://experts.umn.edu/en/publications/the-optical-trapezoid-model-a-novel-approach-to-remote-sensing-of/)): błąd ~0,04 m³/m³ w zlewniach półsuchych; wymaga kalibracji krawędzi trapezu | **Nie**: nasze R 0,35–0,39; okrywa winnicy zakłóca sygnał gleby |
 | Roślinność | **NDVI** (mamy; SR 2,5 m) | Zielona masa; w winnicy miesza rząd i międzyrzędzie (F3, 1.2) | Zostaje (Z2–Z5) |
-| Roślinność, woda | **NDMI / NDWI (Gao)** (NIR–SWIR) | Brak pracy z NDMI vs Ψstem na S-2. NDWI: R² 0,54–0,67 na datę, MSI 0,53–0,63; NDWI/EVI najlepszy w dwóch winnicach w Belgii (Delval i in., [EGU22-3908](https://meetingorganizer.copernicus.org/EGU22/EGU22-3908.html), konferencja). TerraNIS używa SWIR B11 (F3, 1.3). NDWI reaguje szybciej niż NDVI | **Dodać jako drugi wskaźnik roślinny na karcie (Z11)**, liczony **z pasm natywnych 10/20 m** (pasma 20 m po SR nie przechodzą H-SR1). Nasze R ≈ 0,4, tak jak NDVI — do statusu tylko, jeśli test paired pokaże wartość dodaną |
+| Roślinność, woda | **NDMI (= NDII; nie NDWI Gao, które używa 1,24 µm — korekta 2026-10-19)** (NIR–SWIR) | Brak pracy z NDMI vs Ψstem na S-2. NDWI: R² 0,54–0,67 na datę, MSI 0,53–0,63; NDWI/EVI najlepszy w dwóch winnicach w Belgii (Delval i in., [EGU22-3908](https://meetingorganizer.copernicus.org/EGU22/EGU22-3908.html), konferencja). Model Laroche-Pinel używa SWIR (RS 2021: B12; OENO One: B11); sam NDII R² 0,09 (RS 2021, tab. 8). [snippet, niesprawdzone] NDWI reaguje szybciej niż NDVI | **Dodać jako drugi wskaźnik roślinny na karcie (Z11)**, liczony **z pasm natywnych 10/20 m** (pasma 20 m po SR nie przechodzą H-SR1). Nasze R ≈ 0,4, tak jak NDVI — do statusu tylko, jeśli test paired pokaże wartość dodaną |
 | Roślinność | **fAPAR / LAI (S-2, SL2P)** | Zmienna EDO. SL2P (Weiss i Baret 2016) dostępny w GEE (LEAF Toolbox). Dobrze dla jednorodnych upraw; zaniża LAI w łanach niejednorodnych (brak skupienia liści w modelu) — [walidacja GBOV, Univ. Southampton](https://eprints.soton.ac.uk/503206/) | **Opcjonalnie (Z12)**: zgodność z EDO, ale winnica to łan rzędowy; zysk względem NDVI do pokazania |
 | Roślinność | NDRE, CIre (red-edge) | Reagują na chlorofil i azot, nie wprost na wodę; dłużej czułe w gęstym łanie | **Nie** do suszy; ewentualnie do wigoru |
 | Roślinność | kNDVI, NIRv | Odpowiedź na nasycenie NDVI w gęstym łanie; kNDVI zależy od parametru jądra | **Nie**: NDVI winnicy (0,4–0,6) nie jest nasycone |
@@ -248,7 +248,7 @@ Każdy nowy wskaźnik przechodzi ten sam test, zapisany przed obliczeniem:
 |---|---|---|---|
 | Z9 | SPEI-3 z ERA5-Land (ET0 metodą Hargreavesa z Tmin/Tmax albo FAO Penman-Monteith z promieniowania, wiatru i punktu rosy) na karcie jako przyczyna | Susze z upałem; SPI ich nie widzi | 1–2 h (dodatkowe pasma ERA5-Land w `step_01`) |
 | Z10 | CGLS SWI 1 km (T = 10–40) jako drugie źródło anomalii gleby; zgodność z ERA5 w polu `confidence` | Niezależny pomiar satelitarny; metoda z sieci SMOSMANIA | 2–3 h (dostęp GEE/CDSE do sprawdzenia) |
-| Z11 | NDMI z pasm natywnych (10/20 m) dla każdej winnicy: anomalia na karcie; test paired vs NDVI | SWIR jest czuły na wodę w liściach; TerraNIS używa B11 | 1 h (`compute_indices` już liczy NDMI) |
+| Z11 | NDMI z pasm natywnych (10/20 m) dla każdej winnicy: anomalia na karcie; test paired vs NDVI | SWIR jest czuły na wodę w liściach; model Laroche-Pinel używa pasma SWIR | 1 h (`compute_indices` już liczy NDMI) |
 | Z12 | fAPAR S-2 (SL2P) jako alternatywa NDVI w warstwie roślinności; test wg 6.2 | Zgodność z EDO | 3–4 h |
 | Z13 | Eksperyment: anomalia LST Landsat 8/9 winnicy względem mediany winnic AOI w dniu przelotu | Najbardziej bezpośredni sygnał stresu | 4–6 h |
 
@@ -281,7 +281,7 @@ Pełne oddzielenie dają dopiero metody modelowe (PROSAIL) i rozmieszanie piksel
 
 | Wskaźnik | Wzór (Sentinel-2) | Co robi z tłem | Dowody | Poziom |
 |---|---|---|---|---|
-| **CRSWIR** | B11 / [B8A + (B12 − B8A)·(λ11 − λ8A)/(λ12 − λ8A)]; λ ≈ 865, 1610, 2190 nm | Usuwa „kontinuum” między NIR a SWIR-2. Zostaje głębokość absorpcji wody przy 1610 nm, mniej zależna od jasności sceny i gleby. Wyższa wartość = mniej wody | INRAE FORDEAD: wykrywanie zamierania lasów (kornik) z szeregów S-2 od 2015 r., anomalia piksela wobec własnej sezonowości ([HAL](https://hal.inrae.fr/hal-04769547v1/document), [DRAAF](https://draaf.auvergne-rhone-alpes.agriculture.gouv.fr/IMG/pdf/241105_presentation_dsf.pdf)). Nie znalazłem zastosowań w winnicach | snippet; wzór z pamięci — sprawdzić w kodzie `fordead` |
+| **CRSWIR** | B11 / [B8A + (B12 − B8A)·(λ11 − λ8A)/(λ12 − λ8A)]; λ ≈ 865, 1610, 2190 nm | Usuwa „kontinuum” między NIR a SWIR-2. Zostaje głębokość absorpcji wody przy 1610 nm, mniej zależna od jasności sceny i gleby (hipoteza bez źródła — korekta 2026-10-19). Wyższa wartość = mniej wody | INRAE FORDEAD: wykrywanie zamierania lasów (kornik) z szeregów S-2 od 2015 r., anomalia piksela wobec własnej sezonowości ([HAL](https://hal.inrae.fr/hal-04769547v1/document), [DRAAF](https://draaf.auvergne-rhone-alpes.agriculture.gouv.fr/IMG/pdf/241105_presentation_dsf.pdf)). Nie znalazłem zastosowań w winnicach | wzór potwierdzony w kodzie FORDEAD i u Carletti i in. 2025, tab. 1 (korekta 2026-10-19); ocena: Carletti 2025 — najlepszy dla świerka (R² 0,54 w próbie), dla innych gatunków nie |
 | **NMDI** | [B8A − (B11 − B12)] / [B8A + (B11 − B12)] | Różnica B11 − B12 inaczej reaguje na wodę w glebie i w liściach. Indeks został zaprojektowany do rozróżniania wilgotności gleby i roślin | Wang i Qu 2007, GRL 34 ([DOI](https://doi.org/10.1029/2007GL031021)); wzór w dokumentacji [ESA SNAP](https://step.esa.int/main/wp-content/help/versions/13.0.0/snap-toolboxes/eu.esa.opt.opttbx.radiometric.indices.ui/nmdi/NmdiAlgorithmSpecification.html). MODIS: stabilniejszy niż NDWI w sezonowości i suszy. Interpretacja zależy od pokrycia: przy rzadkiej roślinności wskaźnik mówi o glebie, przy gęstej o liściach | snippet |
 | **GVMI** | [(B8A + 0,1) − (B11 + 0,02)] / [(B8A + 0,1) + (B11 + 0,02)] | Przesunięcia stałe zmniejszają wpływ atmosfery i gleby (Ceccato 2002) | Maffei i in. 2025 (winnice, wpływ podłoża): GVMI najskuteczniejszym i najstabilniejszym predyktorem; lepiej poza sezonem | snippet; współczynniki z pamięci |
 | **NDWI / EVI** | NDMI(B8A, B11) / EVI | Wilgotność „na jednostkę zieleni”: zmniejsza wpływ ilości liści i tła | Delval i in., 2 winnice w Belgii (trawa w międzyrzędziu): najlepszy z testowanych wskaźników S-2; R² 0,67 z Ψpd (NDWI: 0,64) ([EGU22-3908](https://meetingorganizer.copernicus.org/EGU22/EGU22-3908.html), konferencja) | snippet |

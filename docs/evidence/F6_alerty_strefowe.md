@@ -49,7 +49,7 @@ w innych uprawach spadek NDVI > 0,05 i |r| 0,8–0,9 z polem pod krzywą [F]. **
 
 - **Normalizacja do działki:** wartość piksela minus mediana działki z tego dnia (ESA openEO „variability map” [F]).
   Usuwa atmosferę, fenologię, koszenie całej działki i większość efektu orbity; usuwa też suszę całej działki — dla produktu strefowego to zaleta.
-- **Model bazowy piksela z lat wcześniejszych:** FORDEAD (harmoniczne, próg, licznik potwierdzeń +1/−1, potwierdzenie przy 3) [P];
+- **Model bazowy piksela z lat wcześniejszych:** FORDEAD (harmoniczne, próg, licznik potwierdzeń +1/−1, potwierdzenie przy 3) [P] — konwencja z kodu i dokumentacji pakietu; w przeczytanych pracach (Carletti i in. 2025) bez zmierzonej trafności tego progu (korekta 2026-10-19);
   EWMACD w GEE (`ee.Algorithms.TemporalSegmentation.Ewmacd`) [F]; BFAST, CCDC [W]. Przy trendzie międzyrzędzia lepiej modelować resztę względem działki [W].
 - **Strefy:** komponenty spójne z minimalną powierzchnią, histereza progów; Getis-Ord Gi* tylko na natywnych 10 m
   (piksele SR 2,5 m są silnie skorelowane i zawyżają istotność) [W].
