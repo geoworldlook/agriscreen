@@ -102,7 +102,7 @@ Razem ok. 8–10 sesji. Kolejność jak w tabeli.
 |---|---|---|---|---|
 | **W1b** | „Na ile ufać” na karcie wody | odczyt walidacji z `validation_weather.csv` i `validation_anomalies.csv` (liczby z potoku, nie wpisane na sztywno); niedobór w mm, miejsce wśród lat i „od kiedy” oznaczone „niezwalidowane, orientacyjnie” (D-071) | test: każda liczba karty ma opis walidacji albo napis „niezwalidowane” | 1 |
 | **W3a** | Satelitarna wilgotność gleby: CLMS Soil Water Index 1 km (radar) jako drugie, niezależne źródło (D-072); metoda: `docs/evidence/W3a_SWI_1km_satelita.md` (D-074–D-078) | pobieranie z Copernicus Data Space (kod w `legacy/step_01_ingest_v1.py`, `fetch_cdse_swi_multidepth`); wartość T dobrana z literatury przed walidacją; percentyl wobec własnej normy SWI (krótszej niż 1991–2020 — opisane); na karcie „satelita potwierdza / nie potwierdza” | po A4: walidacja wobec ISMN tym samym protokołem; w karcie wyników POD/FAR „ERA5 i SWI zgodnie” wobec samego ERA5 | 2 |
-| **W3b** | **Okolica w Sentinel-2 (10 m)**: mapa anomalii w działkach obszaru, tabela działek, zdanie na karcie (D-073; specyfikacja §5b) | rastry S-2 z Dysku (414 scen), 22 działki z `1_AOI_GBOV_CONDOM.geojson`; ta sama metoda anomalii co status (lata wcześniejsze, ten sam tor, z predykcyjne) | kalibracja z (częstość z ≤ −1 w latach bez suszy gleby) i reakcja: mediana anomalii winnic obszaru wobec anomalii gleby ERA5 z opóźnieniem 30–60 dni (okno ustalone przed liczeniem); to nie jest walidacja trafności w działce — brak prawdy terenowej, piszemy wprost | 3–4 |
+| **W3b** | **Okolica w Sentinel-2 (10 m)**: mapa anomalii w działkach obszaru, tabela działek, zdanie na karcie (D-073; specyfikacja §5b) | rastry S-2 z Dysku (414 scen), 22 działki z `1_AOI_GBOV_CONDOM.geojson`; ta sama metoda anomalii co status (lata wcześniejsze, ten sam tor, z predykcyjne) | (zastąpione przez Plan W3b v5: T1–T3, czujnik ISMN, 30 dni przed sceną) kalibracja z (częstość z ≤ −1 w latach bez suszy gleby) i reakcja: mediana anomalii winnic obszaru wobec anomalii gleby ERA5 z opóźnieniem 30–60 dni (okno ustalone przed liczeniem); to nie jest walidacja trafności w działce — brak prawdy terenowej, piszemy wprost | 3–4 |
 
 **Stan 2026-10-14:** W1 wdrożone w kodzie (`step_09.water_card`, karta na górze dashboardu, sekcja w biuletynie,
 `water_card` w `agriwatch_latest.json`, sekcja w `run_summary.md`; selftest przechodzi). Czeka na pierwszy przebieg w Colab
@@ -184,13 +184,17 @@ Kod (do napisania po akceptacji; przy zmianach pokazujemy tylko zmienione fragme
 
 ## 5b. Specyfikacja W3b — „Okolica w Sentinel-2 (10 m)” (do akceptacji przed kodem)
 
+> **2026-10-19: zastąpione przez `docs/plans/Plan_W3b_moja_winnica.md` (wersja 5)** w punktach: obiekty = 15 winnic
+> (sady i odkryta gleba poza testami), wskaźnik = średnia anomalii NDMI i −CRSWIR, klasy ±1, T3 = czujnik ISMN
+> 20–30 cm (po A4) z 30 dni przed sceną, bez napisu o opóźnieniu reakcji. Mapa pikseli działki — później.
+
 > 2026-10-18: plan wdrożenia z walidacją i kartą „Moja winnica”: `docs/plans/Plan_W3b_moja_winnica.md`.
 
 **Po co:** ERA5-Land (~9 km) i SWI (1 km) mówią o okolicy. Sentinel-2 pokazuje, **co dzieje się w poszczególnych działkach
 obszaru** (4 × 4,4 km): które winnice i sady wyglądają gorzej niż zwykle i gdzie w działce.
 
 **Co Sentinel-2 mierzy, a czego nie (napis na karcie):** reakcję roślinności — zieleń (NDVI) i wodę w liściach (NDMI)
-winorośli i międzyrzędzi razem. Nie mierzy wilgotności gleby. Reaguje z opóźnieniem ok. 1 miesiąca (F7) i na koszenie
+winorośli i międzyrzędzi razem. Nie mierzy wilgotności gleby. Reaguje z opóźnieniem ok. 1 miesiąca (F7; nieaktualne jako napis na karcie — Plan W3b v5) i na koszenie
 lub uprawę międzyrzędzi.
 
 **Obiekty:** 22 działki z `1_AOI_GBOV_CONDOM.geojson` — 15 winnic, 5 sadów jabłoni, 2 działki z odkrytą glebą

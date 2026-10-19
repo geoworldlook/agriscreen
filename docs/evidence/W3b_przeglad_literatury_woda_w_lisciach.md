@@ -30,9 +30,10 @@
      a model satelitarny 40%.
    - Choi i Unnisa liczyli korelacje na surowych seriach, w których jest fenologia.
    - Nasza anomalia (ta sama pora roku) usuwa średni cykl sezonowy. Naszych wyników z tymi liczbami nie porównujemy.
-4. **NDMI i CRSWIR niosą prawie tę samą informację.** U Carletti (rys. 4a) mają prawie identyczną skuteczność dla
-   świerka, a u nas anomalie korelowały na poziomie 0,97 (F4, z zastrzeżeniami z pkt 6). Złożenie daje odporność,
-   a nie nową informację.
+4. **U nas NDMI i CRSWIR niosły prawie tę samą informację.** Anomalie obu korelowały na poziomie 0,97 (F4,
+   z zastrzeżeniami z pkt 6). U Carletti (rys. 4a, odczyt z wykresu) oba mają zbliżoną skuteczność dla świerka, ale
+   autorzy opisują swoje wskaźniki jako słabo skorelowane (tab. A.1 poza PDF). Złożenie daje odporność, a nie nową
+   informację.
 5. **Okno 30 dni w teście T3 to ustalona z góry konwencja, a nie optimum.**
    - W F4 przewaga średniej z 30 dni nad tym samym dniem była nieistotna: +0,055 [−0,045; 0,177].
    - Choi 2017 pokazuje ten sam kierunek, także dla naszej stacji Condom (lata 2007–2009, MODIS 1 km, surowe wartości):
@@ -84,10 +85,11 @@ silniejszy niedobór” piszemy na karcie.
 | REP (pozycja red-edge) | 0,19 | 0,30 |
 | MSI = B11/B8 | 0,10 | 0,31 |
 | **NDII = (B8 − B11)/(B8 + B11)**, prawie nasze NDMI (my B8A) | **0,09** | 0,32 |
-| NDRE1 / NDRE2 / IRECI | 0,07 / 0,14 / 0,11 | 0,33 |
+| NDRE1 / NDRE2 / IRECI | 0,07 / 0,14 / 0,11 | 0,34 / 0,35 / 0,31 |
 | NDVI | 0,04 | 0,33 |
 
-- **Pasma:** eliminacja wsteczna zostawiła **B4, B6, B8A, B12** (s. 13). Te 4 pasma dają tyle co wszystkie (R² ≈ 0,40).
+- **Pasma:** wszystkie pasma były istotne (p < 0,05). Eliminacja wsteczna pokazała, że wystarczą 4: **B4, B6, B8A,
+  B12** (s. 13), które dają tyle co wszystkie (R² ≈ 0,40).
   B8 i B11 odpadły, B12 dodaje ok. 0,07 R² (odczyt z rys. 10). Przy silnie skorelowanych B11 i B12 wybór B12 może
   być przypadkowy, dlatego mówimy „SWIR”, a nie „B12”.
 - **Rola sezonu:**
@@ -136,7 +138,7 @@ cereal crop areas”, doi:10.1016/j.rsase.2025.101690.
   liczono na surowych seriach z cyklem sezonowym; p i n nie podano. W roku normalnym na Węgrzech r = 0,75–0,91, po
   części z samej zbieżności z fenologią.
 - **„CWC reaguje najwcześniej”** opiera się na jednym przypadku pszenicy: spadek zaczął się razem z początkiem suszy
-  wg ESI, w tym samym akapicie autorzy piszą też o opóźnieniu o tydzień (s. 11). CWC nie wyprzedziło ESI.
+  wg ESI, a w następnym akapicie autorzy piszą o opóźnieniu o tydzień (s. 11). CWC nie wyprzedziło ESI.
 - **Uwagi samych autorów:**
   - zaufanie do CWC z SL2P jest niskie (Djamai i in. 2019);
   - progi −1σ i −2σ są umowne;
@@ -158,7 +160,8 @@ CWC z SL2P nie dodajemy, bo bierze te same pasma SWIR, ma niską wiarygodność,
 (wersja po korekcie; załączniki A.x nie są w PDF). Wśród autorów zespół FORDEAD (Dutrieux, Féret).
 
 **Projekt badania:**
-- 742 czyste i 949 mieszanych drzewostanów z inwentaryzacji leśnej, lata 2018–2023, 1186 scen S-2 (MAJA).
+- 742 czyste i 949 mieszanych drzewostanów (inwentaryzacja leśna NFI plus 191 powierzchni dobranych celowo w rejonach
+  zamierania), lata 2018–2023, 1186 scen S-2 (MAJA).
 - Prawda terenowa: stopień zamierania drzew (posusz i defoliacja), nie woda w liściach.
 - Do oceny wybrano tylko powierzchnie bez zabiegów przez ostatnie 5 lat (s. 3).
 
@@ -185,7 +188,7 @@ CWC z SL2P nie dodajemy, bo bierze te same pasma SWIR, ma niską wiarygodność,
 - Autorzy ostrzegają, że z czasem rośnie ryzyko pomylenia sygnału ze zmianą gospodarowania (s. 11).
 
 **Dla nas:**
-- potwierdza ideę „anomalia wobec własnej historii” (D-081) i to, że NDMI ≈ CRSWIR;
+- potwierdza ideę „anomalia wobec własnej historii” (D-081) i wzór CRSWIR;
 - nie daje dowodu dla wody winorośli;
 - przejmujemy kontrolę zmian gospodarowania w latach odniesienia;
 - normę harmoniczną traktujemy tylko jako możliwą później eksplorację. Dopasowano ją dla drzew zimozielonych przez
@@ -199,20 +202,24 @@ Hur J., doi:10.3319/TAO.2016.09.13.01.
 **Projekt badania:**
 - 132 stacje, w tym 64 w uprawach (36 w australijskiej sieci OzNet, w tym 30 w uprawach).
 - Czujniki na 5–10 cm; NDVI z MODIS MOD13A2 (16-dniowe kompozyty, 1 km).
-- r Pearsona na wartościach surowych, miesiące V–IX.
+- r Pearsona na wartościach surowych, w sezonie wegetacji: V–IX, a dla OzNet (Australia) XI–III.
 - 16-dniowe okna gleby przesuwane o 0–30 dni co 5 dni, więc sąsiednie okna mają wspólne 11 z 16 dni.
 
 **Wyniki:**
 - „25 dni dla upraw, 10 dla lasów i łąk” to jakościowe podsumowanie autorów („Generally”, s. 450). Nasze przeliczenie
   tab. S2: w uprawach mediana optimum to 20 dni; średnie r jest prawie płaskie między 10 a 30 dniami, a zysk wobec
   0 dni to ok. +0,08.
-- **Nasza stacja Condom jest w próbie** (COND, tab. S1: czujnik 10 cm, lata 2007–2009, ok. 28 par).
+- **Nasza stacja Condom jest w próbie** (COND, tab. S1: uprawy; tab. 1: SMOSMANIA, czujnik 10 cm, lata 2007–2009;
+  ok. 27–28 kompozytów 16-dniowych — nasze oszacowanie).
   - r przy przesunięciach 0/5/10/15/20/25/30 dni: 0,64/0,70/0,75/0,76/0,79/0,76/0,78 (tab. S2).
-  - Przedziały ufności się nakładają ([0,34; 0,82] dla 0,64 i [0,59; 0,90] dla 0,79). Testu różnic nie ma.
-- Inne stacje SMOSMANIA w okolicy: optimum przy 20–30 dniach; LAH ma słaby związek.
-- W wilgotnych uprawach w płd.-wsch. USA r ≈ 0 lub ujemne. To zgodne z tezą, że związek widać tam, gdzie brakuje
-  wody (nasza interpretacja).
-- Opóźnienie to głównie efekt sezonu (fenologia), a nie reakcja anomalii (autorzy, s. 450).
+  - Przedziały ufności się nakładają ([0,34; 0,82] dla 0,64 i [0,59; 0,90] dla 0,79; nasze przeliczenie, Fisher z,
+    n ≈ 27). Testu różnic w pracy nie ma.
+- Stacje SMOSMANIA w Gers i okolicach Tuluzy (PEY, SAV, MON, SFL): optimum przy 20–30 dniach; LAH ma słaby związek.
+  Stacje z płd.-wsch. Francji (BER, CAB) mają optimum przy 10 dniach.
+- W części wilgotnych upraw płd.-wsch. USA (AAM, EAF, PER, SAR, NOI) r ≈ 0 lub ujemne, ale inne stacje z tego regionu
+  mają r 0,5–0,65 (HAR, SCO). Wzorzec nie jest jednolity (nasza interpretacja).
+- Autorzy tłumaczą opóźnienie cyklem sezonowym: wiosenny wzrost, jesienne zasychanie (s. 450). Wniosek, że nie jest
+  to reakcja anomalii, jest nasz, bo korelacje liczono na surowych seriach.
 
 **Dla nas:**
 - Choi pokazuje ten sam kierunek co nasz T3: gleba z poprzednich 2–4 tygodni wiąże się z roślinnością co najmniej tak
@@ -226,14 +233,14 @@ Hur J., doi:10.3319/TAO.2016.09.13.01.
 | korelacja anomalii NDMI i −CRSWIR | 0,97 (VI–IX 0,968) | SR 2,5 m; norma z pozostałych lat; bez rozdziału torów orbity (wspólne przesunięcie torów, ok. 0,4 z, może zawyżać korelację) | przeliczyć w K3 na natywnych 20 m, z normą z lat wcześniejszych i z rozdziałem torów |
 | korelacja anomalii NDMI i NDVI | 0,94 | jw. | jw. |
 | NDMI wobec ISMN w tym samym dniu | R 0,41 | jw. + ISMN sprzed A4 | przeliczyć w K3 po A4 |
-| NDMI wobec średniej gleby z 30 dni | R 0,47; zysk wobec tego samego dnia +0,055 [−0,045; 0,177] | jw.; wynik 9/9 lat tylko dla NDMI (NDVI 8/9) | okno 30 dni jako konwencja ustalona z góry |
+| NDMI wobec średniej gleby z 30 dni | R 0,47; zysk wobec tego samego dnia +0,055 [−0,045; 0,177] | jw.; walidacja z pominięciem roku wybrała okno 30 dni w 9/9 lat dla NDMI i złożenia, w 8/9 dla NDVI | okno 30 dni jako konwencja ustalona z góry |
 | związek wewnątrz roku i między latami | NDMI: wewnątrz roku 0,30 [0,02; 0,52], średnie roczne 0,55 (n = 9) | jw. | w T3 raportować ρ łączne i wewnątrz roku |
 
 ## 7. Składniki wskaźnika
 
 | Wskaźnik | Wzór w potoku (`step_04.compute_indices`) | Źródło wzoru i dowody | Rola |
 |---|---|---|---|
-| **NDMI** (NDII z B8A) | (B8A − B11)/(B8A + B11) | ten sam wzór w Carletti 2025 (tab. 1) i jako „NDWI” w kodzie FORDEAD; w winnicach NDII (z B8) R² 0,09 wobec potencjału wodnego (Laroche-Pinel 2021, porównanie między działkami) | składnik 1 |
+| **NDMI** (NDII z B8A) | (B8A − B11)/(B8A + B11) | ten sam wzór w Carletti 2025 (tab. 1) i jako „NDWI” w kodzie FORDEAD (nie mylić z NDWI Gao ani NDWI McFeeters z pasmem zielonym, którego używa Carletti); w winnicach NDII (z B8) R² 0,09 wobec potencjału wodnego (Laroche-Pinel 2021, porównanie między działkami) | składnik 1 |
 | **CRSWIR** | B11 / [B8A + (B12 − B8A)·w], w = (1610 − 865)/(2190 − 865) = 0,5623; wyższy = mniej wody (w złożeniu ze znakiem −) | kod FORDEAD (`fordead/preprocess.py`): `B11/(B8A+((B12-B8A)/(2185.7-864))*(1610.4-864))`, w = 0,5647 (różnica pomijalna, ujednolicić w K2); budowa wzoru jak w Carletti (tab. 1). Teza „CRSWIR mniej zależny od jasności tła” to nasza hipoteza, bez źródła | składnik 2 |
 | NDVI | (B08 − B04)/(B08 + B04) | ilość zieleni; Laroche-Pinel: R² 0,04 wobec potencjału wodnego | szczegół |
 | NDRE | (B8A − B05)/(B8A + B05) | chlorofil; najbliższy wskaźnikom red-edge, które u Laroche-Pinel wypadły najlepiej z pojedynczych (REP 0,19) | szczegół |
