@@ -41,7 +41,7 @@ Na karcie pojawią się 3 zdania:
 
 | Krok | Co | Wynik |
 |---|---|---|
-| K1 | zapisanie testów i reguł przed liczeniem (skrót SHA-256) | protokół |
+| K1 | zapisanie testów i reguł przed liczeniem (skrót SHA-256); szkic gotowy, czeka na wybory U1–U8 | protokół |
 | K2 | statystyki 15 winnic z archiwum (pas 20 m od brzegu, min. 40 pikseli — spełnia 13 z 15) | dane działek |
 | K3 | anomalie i testy: T1 kalibracja, T2 szum, T3 zgodność z czujnikiem w gruncie; poprawione liczby „przed”; **wariant wielopasmowy** (4 pasma z pracy Laroche-Pinel, wagi uczone na czujniku, ocena na latach niewidzianych przez model) | notatka wyników |
 | K4 | karta w dashboardzie, biuletynie i notatniku | karta „Moja winnica” |
@@ -49,7 +49,10 @@ Na karcie pojawią się 3 zdania:
 **Reguła dla wariantu wielopasmowego:** zastępuje prosty wskaźnik tylko wtedy, gdy jest pewnie lepszy na latach
 testowych. Jeśli nie, zostaje prosty wskaźnik, a wynik i tak służy jako punkt odniesienia dla sieci neuronowej.
 
-**Do zatwierdzenia:** decyzje D-084–D-088 (Plan W3b §6).
+**Spodziewany wynik:** test T3 (zdanie 3) najpewniej wyjdzie nierozstrzygnięty, bo mamy ok. 7 sezonów; symulacja daje
+ok. 1 szansę na 4 przy umiarkowanym związku. Zdania 1 i 2 działają niezależnie od tego.
+
+**Do zatwierdzenia:** decyzje D-084–D-089 (Plan W3b §6) i wybory U1–U8 (protokół §13).
 
 **Drobne dokończenia warstwy gleby** (Plan v9, robione przy okazji):
 - test „ERA5 i SWI zgodnie suche”;
@@ -80,6 +83,8 @@ testowych. Jeśli nie, zostaje prosty wskaźnik, a wynik i tak służy jako punk
 | Temat | Dokument |
 |---|---|
 | Plan „Moja winnica” | `docs/plans/Plan_W3b_moja_winnica.md` |
+| Plan wdrożenia K1–K4 (kod, testy, sesje) | `docs/plans/W3b_plan_wdrozenia.md` |
+| Protokół walidacji W3b (szkic do zatwierdzenia) i symulacje | `docs/evidence/W3b_protokol_walidacji.md`, `docs/evidence/W3b_symulacje.py` |
 | Literatura do W3b | `docs/evidence/W3b_przeglad_literatury_woda_w_lisciach.md` |
 | Wyniki walidacji gleby (3 stacje) | `docs/evidence/W2_REF_wyniki.md`, `docs/evidence/karta_wynikow.md` |
 | Plan modułu „Woda w winnicy” (W1–W7) | `docs/plans/Plan_v9_woda_w_winnicy.md` |
