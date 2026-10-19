@@ -1,6 +1,15 @@
-# Plan W3b — „Moja winnica wobec jej historii” (wersja 5)
+# Plan W3b — „Moja winnica wobec jej historii” (wersja 6)
 
-Status: **PROPOSED** 2026-10-19, do akceptacji przed kodem (wariant wielopasmowy §2a wybrany 2026-10-19). Wersja 5 powstała po przeczytaniu w całości 4 prac
+Status: **PROPOSED** 2026-10-19, do akceptacji przed kodem (wariant wielopasmowy §2a wybrany 2026-10-19).
+
+**Wersja 6 (2026-10-19):** szczegóły w dwóch nowych dokumentach — protokół walidacji
+`docs/evidence/W3b_protokol_walidacji.md` (DRAFT, wybory U1–U8) i plan wdrożenia `docs/plans/W3b_plan_wdrozenia.md`
+(K1–K4 funkcja po funkcji). Zmiany względem v5 po recenzji statystycznej i symulacji (`docs/evidence/W3b_symulacje.py`):
+- kryteria liczone przedziałem jackknife po latach zamiast bootstrapu (mniej fałszywych zaliczeń, bez losowania);
+- T1 opisowo z dopiskiem na karcie, bo przy 9 sezonach nie wykrywa umiarkowanego rozkalibrowania;
+- wariant wielopasmowy, jeśli wygra, zmienia tylko zdanie 3 (okolica), bo tylko tam jest sprawdzany.
+
+Wersja 5 powstała po przeczytaniu w całości 4 prac
 (Laroche-Pinel 2021, Unnisa 2025, Carletti 2025, Choi 2017) i po niezależnej weryfikacji liczb. Literatura:
 `docs/evidence/W3b_przeglad_literatury_woda_w_lisciach.md` (wersja 2). Rozwija W3b z Planu v9 §5b (D-073) i zastępuje
 tam opis obiektów, wskaźnika, klas i testu.
@@ -68,8 +77,8 @@ w winorośli, których nie mamy. Dlatego bierzemy od nich **zestaw pasm**, a **w
 | Cel | średnia anomalia czujnika ISMN 20–30 cm (po A4, W1) z 30 dni przed sceną, VI–IX |
 | Model | regresja liniowa: 4 wagi + wyraz wolny (jak u autorów); te same wagi dla każdej działki |
 | Uczciwa ocena | wagi uczone na latach bez roku testowego (walidacja z pominięciem roku); ocena tylko na latach niewidzianych przez model |
-| Reguła wyboru | na kartę wchodzi tylko, gdy na latach testowych jest lepszy od prostego wskaźnika: dolna granica 95% CI różnicy ρ > 0 (bootstrap po latach). Inaczej zostaje prosty wskaźnik |
-| Na karcie (jeśli wygra) | wynik modelu w działce, przeliczony na anomalię wobec jej własnej historii; klasy ±1 jak w §2 |
+| Reguła wyboru | na kartę wchodzi tylko, gdy na latach testowych jest lepszy od prostego wskaźnika: dolna granica 95% przedziału różnicy ρ > 0 (jackknife po latach, protokół §7). Inaczej zostaje prosty wskaźnik |
+| Na karcie (jeśli wygra) | wynik okolicy z zamrożonych wag w zdaniu 3; zdanie 2 zostaje przy prostym wskaźniku, bo działki pojedynczo nie sprawdzamy (protokół §7, wybór U7) |
 
 **Granice:** model uczy się wody w glebie (czujnik pod trawą), a nie wody w winorośli. Mamy ok. 7 sezonów, więc
 różnica może wyjść nierozstrzygnięta. Wynik — wygrana albo przegrana — jest punktem odniesienia dla rozplątania
@@ -80,13 +89,14 @@ kanałów siecią neuronową (Plan v8).
 | Zdanie na karcie | Test (zapisany przed liczeniem, K1) | Dane |
 |---|---|---|
 | 1. Gleba w okolicy | zrobione (W2 + REF) | ERA5, SWI, ISMN, ICOS |
-| 2. „Działka poniżej swojej normy” | **T1 kalibracja:** w całym archiwum (VI–IX) z_woda ≤ −1 w ok. 15,9% scen; tolerancja w K1. Wariant „gdy gleba w normie” tylko jednostronnie: nie częściej niż 15,9% | archiwum S-2 na Dysku (2016–2026), ERA5 |
+| 2. „Działka poniżej swojej normy” | **T1 kalibracja (opisowo):** w archiwum (VI–IX) z_woda ≤ −1 powinno wypadać w ok. 15,9% scen. Karta zawsze podaje wynik z przedziałem, a gdy przedział nie obejmuje 15,9%, dopisuje to (protokół §4) | archiwum S-2 na Dysku (2016–2026), ERA5 |
 | 2. „Zmiana od poprzedniej sceny” | **T2 szum:** najmniejsza wykrywalna zmiana osobno dla par „ten sam tor, 5 dni” i „różne tory, 1–3 dni”; pary z opadem między scenami oznaczone | archiwum S-2 na Dysku, opad ERA5 |
-| 3. „Okolica: roślinność a gleba” | **T3:** ρ Spearmana między medianą anomalii winnic spełniających QC (bez VINEYARD_06, bo na niej w F4 wybierano okno) a średnią anomalią czujnika ISMN 20–30 cm z 30 dni przed sceną; VI–IX; czujnik po kontroli A4 (W1). **Kryterium zdania 3: dolna granica 95% CI ρ > 0** (bootstrap blokowy po latach) | archiwum S-2, ISMN 2016–2024 |
+| 3. „Okolica: roślinność a gleba” | **T3:** ρ Spearmana między medianą anomalii winnic spełniających QC (bez VINEYARD_06, bo na niej w F4 wybierano okno) a średnią anomalią czujnika ISMN 20–30 cm z 30 dni przed sceną; VI–IX; czujnik po kontroli A4 (W1). **Kryterium zdania 3: dolna granica 95% przedziału ρ > 0** (jackknife po latach, protokół §6) | archiwum S-2, ISMN 2016–2024 |
 
 **Zapisujemy też w K1:**
-1. **Okno 30 dni i progi są stałe, bez zmian po wyniku.** Okno to konwencja z F4 (przewaga nad tym samym dniem była
-   nieistotna).
+1. **Okno 30 dni i progi są stałe, bez zmian po wyniku.** Okno wybrano w F4 spośród 5 wariantów (przewaga nad tym
+   samym dniem była nieistotna). T3 liczymy na czujniku i latach oglądanych już w F4, więc to sprawdzenie spójności,
+   a nie test na nowych danych.
 2. **Opisowo, w tej samej tabeli:**
    - ρ wewnątrz roku (w F4 związek był głównie między latami);
    - warianty A4 W2 i W3;
@@ -96,7 +106,9 @@ kanałów siecią neuronową (Plan v8).
      tylko, czy wyniki są podobne.
 3. **Liczba scen odniesienia i rodzaj normy** (ten sam tor lub awaryjnie wszystkie tory) przy każdej scenie.
 4. **Mała próba.** T3 ma w pełni sezony 2019–2024, a 2018 tylko częściowo (ok. połowa scen, norma ze wszystkich
-   torów). Przedziały ufności są więc orientacyjne.
+   torów). Przedziały ufności są więc orientacyjne. Symulacja z celem o autokorelacji jak czujnik (protokół §12): przy
+   prawdziwym ρ = 0,3 kryterium przechodzi w ok. 1 na 4 przypadki, więc **„nierozstrzygnięty” to najbardziej
+   prawdopodobny wynik**.
 5. **Naszego ρ nie zestawiamy z R² ani r z literatury.**
 6. **Słaby T3 nie przekreśla potoku.** Możliwe przyczyny:
    - nieznany status nawadniania;
@@ -124,12 +136,13 @@ W K2 dodatkowo: ujednolicić stałą CRSWIR z FORDEAD (różnica wagi 0,002, kos
 
 | Krok | Co | Sesje |
 |---|---|---|
-| **K1** | Protokół: wskaźnik (§2), wariant wielopasmowy (§2a), T1–T3 z kryterium (§3), progi QC (§4); skrót SHA-256 przed liczeniem | 1 |
+| **K1** | Protokół (`docs/evidence/W3b_protokol_walidacji.md`): wskaźnik (§2), wariant wielopasmowy (§2a), T1–T3 z kryterium (§3), progi QC (§4); wybory U1–U8; skrót SHA-256 przed liczeniem | 1 |
 | **K2** | Statystyki 15 winnic z archiwum na Dysku (414 scen, bez nowego pobierania) z regułami §4 | 1 |
 | **K3** | Anomalie + T1–T3 w Colab; wariant wielopasmowy z walidacją z pominięciem roku (§2a); przeliczone wartości „przed” z F4; notatka wyników; wiersze w karcie wyników | 2 |
 | **K4** | Karta „Moja winnica” w dashboardzie, biuletynie i notatniku; nagłówek gleby w 3 klasach | 1–2 |
 
-Razem 5–6 sesji. Bieżące sceny dochodzą tym samym potokiem, więc karta działa w sezonie 2027 na bieżąco.
+Razem 5–6 sesji. Bieżące sceny dochodzą tym samym potokiem, więc karta działa w sezonie 2027 na bieżąco. Zmiany
+w kodzie, testy i kryteria odbioru każdego kroku: `docs/plans/W3b_plan_wdrozenia.md`.
 
 **Potem:** rozplątanie sygnału winnicy (Plan v8, moduły 2–3), oceniane tymi samymi T1–T3 przed i po. Punktem
 odniesienia są prosty wskaźnik i wariant wielopasmowy z §2a. Wniosek z Laroche-Pinel dla rozplątania (pasma razem,
@@ -159,7 +172,7 @@ w tym SWIR) jest zapisany w Planie v8.
   - flaga możliwej zmiany gospodarowania.
 - **D-086 Walidacja:** T1–T3 jak w §3:
   - czujnik po A4;
-  - jedno kryterium zdania 3 (dolna granica 95% CI ρ > 0);
+  - jedno kryterium zdania 3 (dolna granica 95% przedziału ρ > 0, jackknife po latach);
   - reszta opisowo;
   - przeliczone wartości „przed” z F4;
   - zapisane i zahaszowane przed liczeniem.
@@ -170,6 +183,8 @@ w tym SWIR) jest zapisany w Planie v8.
   - nigdy „stres wodny winorośli” ani „wczesne ostrzeżenie”;
   - zdanie 3 tylko na poziomie okolicy;
   - nagłówek gleby w 3 klasach.
+- **D-089 Protokół W3b:** `docs/evidence/W3b_protokol_walidacji.md` z rozstrzygniętymi U1–U8, zarejestrowany skrótem
+  SHA-256 przed pierwszym commitem kodu K2 (skrót wpisujemy tutaj po zatwierdzeniu).
 
 ## 7. Źródła
 
