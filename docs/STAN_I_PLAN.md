@@ -67,6 +67,13 @@ testowych. Jeśli nie, zostaje prosty wskaźnik, a wynik i tak służy jako punk
 - ponowne oszacowanie prawdopodobieństwa na karcie (A5);
 - sekcja „Jak to liczymy”.
 
+## 2b. Pokazanie na blogu (2026-10-20)
+
+- **Panel AgriScreen** (EN): 15 winnic, wybór warstwy i daty, karta winnicy, sezon, gleba, „How far to trust it” —
+  `docs/showcase/agriscreen_panel.html`, w Colab sekcja 6b.
+- **Notatnik-opowieść** (EN) z wynikami i zapisanymi wykresami — `notebooks/AgriScreen_story.ipynb`.
+- Instrukcja publikacji: `docs/showcase/README.md`.
+
 ## 3. Później (osobne decyzje)
 
 | Co | Po czym | Uwagi |

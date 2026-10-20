@@ -1229,6 +1229,14 @@ def task_dashboard(rt: Dict[str, Any], cfg: Dict[str, Any], forecast: bool = Tru
     return {"message": os.path.relpath(path, cfg["PROJECT_DIR"])}
 
 
+def task_panel(rt: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """Panel AgriScreen do publikacji (step_12, EN): 15 winnic, wybór warstwy i daty, karta winnicy, sezon, gleba,
+    „How far to trust it”. Pliki: panel.html (samodzielny, także na blog) i panel_data.json (dane notatnika na blog)."""
+    import step_12_panel as s12
+    path = s12.build_panel(cfg["OUTPUT_DIR"], cfg)
+    return {"message": f"{os.path.relpath(path, cfg['PROJECT_DIR'])} ({os.path.getsize(path) // 1024} kB)"}
+
+
 def task_summary(rt: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[str, Any]:
     """
     Raport z uruchomienia do analizy po fakcie: run_summary.md (do wklejenia) i run_summary.json w OUTPUT_DIR.
@@ -1440,6 +1448,7 @@ def run_monitoring(rt: Dict[str, Any], cfg: Optional[Dict[str, Any]] = None, ing
     run_task(rt, "weather", task_weather, rt, cfg, fetch=ingest)
     run_task(rt, "bulletin", task_bulletin, rt, cfg)
     run_task(rt, "dashboard", task_dashboard, rt, cfg)
+    run_task(rt, "panel", task_panel, rt, cfg)
     run_task(rt, "summary", task_summary, rt, cfg)
 
 
@@ -1655,7 +1664,7 @@ def _selftest(out_dir: str) -> None:
                          ("parcel_tests", task_parcel_tests), ("parcel_anomalies", task_parcel_anomalies),
                          ("bulletin", task_bulletin),
                          ("dashboard", lambda r, c: task_dashboard(r, c, forecast=False)),
-                         ("summary", task_summary)):
+                         ("panel", task_panel), ("summary", task_summary)):
             run_task(rt, name, fn, rt, cfg, raise_errors=True)
         res = run_task(rt, "scene_stats_repeat", task_scene_stats, rt, cfg, raise_errors=True)
         res_p = run_task(rt, "parcel_stats_repeat", task_parcel_stats, rt, cfg, raise_errors=True)
@@ -1834,6 +1843,11 @@ def _selftest_w3b(rt: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     for txt in (dash, bmd, smd):
         low = txt.lower()
         assert "stres wodny" not in low and "wczesne ostrzeżenie" not in low and "early warning" not in low
+    panel = open(os.path.join(out, "panel.html"), encoding="utf-8").read()
+    pdata = json.load(open(os.path.join(out, "panel_data.json"), encoding="utf-8"))
+    assert "How far to trust it" in panel and len(pdata["map"]["shapes"]) == 15 and len(pdata["cards"]) == 15, \
+        "panel AgriScreen: 15 winnic, karty i tabela walidacji"
+    assert set(pdata["layers"]) == {"water", "ndvi", "ndre", "ndmi", "crswir"} and pdata["dates"], pdata["layers"].keys()
     s9._selftest_parcel(cfg)
     s11._selftest(cfg)
     t3 = tests.set_index("key").loc["t3_main"]

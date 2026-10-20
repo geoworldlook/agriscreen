@@ -57,7 +57,7 @@ print('Projekt:', PROJECT_DIR)"""),
     ("code", """from step_05_colab_run import (setup_runtime, monitor_config, run_task, run_history, registry_summary,
                                task_ingest_s2, task_ingest_era5, task_ingest_swi, task_scene_stats, task_anomalies,
                                task_validate, task_weather, task_ref_validate, task_bulletin, task_dashboard,
-                               task_summary, task_parcel_stats, task_parcel_tests, task_parcel_anomalies)
+                               task_summary, task_parcel_stats, task_parcel_tests, task_parcel_anomalies, task_panel)
 from step_06_dashboard import show_dashboard
 rt = setup_runtime(PROJECT_DIR, gee_project='ee-geoworldlook', pull=False)
 cfg = monitor_config(rt)   # zmiany: monitor_config(rt, {'VINEYARDS': {'VINEYARD_06': 6, 'VINEYARD_07': 7}})"""),
@@ -115,6 +115,15 @@ if os.path.exists(p):
     show_dashboard(p)
 else:
     print('Dashboard nie powstał — sprawdź komunikat zadania powyżej.')"""),
+    ("md", """## 6b. Panel AgriScreen — 15 winnic (po angielsku, do publikacji na blogu)
+Wybór winnicy (klik na mapie), warstwy (woda w roślinności SWIR, NDVI, NDRE, NDMI, CRSWIR) i daty sceny; karta winnicy,
+przebieg sezonu na tle pozostałych winnic, wilgotność gleby i tabela „How far to trust it”. Plik `panel.html` jest
+samodzielny (bez bibliotek i kafli mapy) — ten sam trafia na blog GeoWorldLook; `panel_data.json` czyta notatnik
+`notebooks/AgriScreen_story.ipynb`."""),
+    ("code", """run_task(rt, 'panel', task_panel, rt, cfg)
+p = os.path.join(cfg['OUTPUT_DIR'], 'panel.html')
+if os.path.exists(p):
+    show_dashboard(p, height=2700)"""),
     ("md", """## 7. Raport z uruchomienia (do analizy)
 `run_summary.md` — wersje, konfiguracja, pokrycie danych, kontrola SR, **karty „Woda w glebie” i „Moja winnica”
 z „Na ile ufać”, testy W3b**, status per rok, walidacja, pogoda, błędy.
