@@ -314,6 +314,32 @@ def soil_pct(era5: pd.DataFrame, cfg: Dict[str, Any]) -> pd.Series:
     return metrics.clim_anomaly(metrics.rootzone(e), cfg["CLIM_REF"], int(cfg["CLIM_HALF_WINDOW_DAYS"]))["percentile"]
 
 
+def t1_by_soil(pa: pd.DataFrame, soil_pct: pd.Series, cfg: Dict[str, Any], until: Optional[str] = None) -> pd.DataFrame:
+    """
+    Analiza dodatkowa, po teście i poza protokołem (do opisu na blogu, bez wpływu na kartę): udział „poniżej swojej
+    normy” (z_woda ≤ −1) w scenach VI–IX winnic z QC według klasy gleby w dniu sceny — percentyl ERA5-Land 0–100 cm
+    ≤ SWI_DRY_PCT sucho, ≥ WATER_WET_PCT wilgotno, pomiędzy w normie (jak karta). Wybór scen jak T1 (§4); `until` =
+    data zamrożenia. Przedział: jackknife po latach (§0). Kolumny: soil, share, ci_low, ci_high, n, years.
+    """
+    w = pa[(pa["index"] == "water") & pa["site_id"].isin(qc_sites(pa))].dropna(subset=["z"])
+    w = w[_in_months(w["time"], cfg["PARCEL_TEST_MONTHS"])]
+    if until:
+        w = w[pd.to_datetime(w["time"]).dt.normalize() <= pd.Timestamp(until)]
+    day = pd.to_datetime(w["time"]).dt.normalize()
+    p = pd.Series(soil_pct, dtype=float)
+    p.index = pd.DatetimeIndex(p.index).normalize()
+    pct = p[~p.index.duplicated(keep="last")].reindex(day).to_numpy()
+    dry, wet = float(cfg["SWI_DRY_PCT"]), float(cfg["WATER_WET_PCT"])
+    w = w.assign(year=day.dt.year.to_numpy(), soil=np.where(pct <= dry, "dry", np.where(
+        pct >= wet, "wet", np.where(np.isfinite(pct), "normal", ""))))
+    rows = []
+    for cls in ("dry", "normal", "wet"):
+        g = w[w["soil"] == cls]
+        v, lo, hi, _ = jackknife_ci(g, lambda d: float((d["z"] <= -1).mean()) if len(d) else np.nan, bounds=(0, 1))
+        rows.append({"soil": cls, "share": v, "ci_low": lo, "ci_high": hi, "n": len(g), "years": g["year"].nunique()})
+    return pd.DataFrame(rows)
+
+
 def t1_rows(pa: pd.DataFrame, sites: List[str], cfg: Dict[str, Any], soil: Optional[pd.Series] = None,
             area: Optional[pd.DataFrame] = None) -> List[Dict[str, Any]]:
     """T1 (opisowo, reguła karty): udział z_woda ≤ −1 w VI–IX łącznie dla winnic z QC; oczekiwane 15,9% (§4)."""

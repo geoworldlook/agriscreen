@@ -374,9 +374,22 @@ def panel_data(out_dir: str, cfg: Dict[str, Any], forecast: Any = "fetch") -> Di
             "layers": layers, "layer_info": [{"key": k, "label": lab, "about": about} for k, lab, _, about in LAYERS],
             "soil": {"dates": [d.strftime("%Y-%m-%d") for d in soil_pct.index],
                      "pct": [int(round(v)) for v in soil_pct.to_numpy()]},
-            "cards": cards, "trust": trust_rows(out_dir, cfg, summ, tests),
+            "cards": cards, "trust": trust_rows(out_dir, cfg, summ, tests), "explore": _explore(pa, e, summ, cfg),
             "inner_m": int(cfg.get("PARCEL_INNER_M", 20)), "min_px": int(cfg.get("PARCEL_MIN_PX", 40)),
             "main_site": cfg.get("MAIN_SITE", "VINEYARD_06")}
+
+
+def _explore(pa: pd.DataFrame, era: Optional[pd.DataFrame], summ: Optional[Dict[str, Any]],
+             cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """Analizy dodatkowe (po testach, poza protokołem) dla notatnika na blog; panel ich nie pokazuje."""
+    from agriscreen import parcel
+    if era is None or ("ERA5L_SM_RZ", "percentile") not in era:
+        return {}
+    t = parcel.t1_by_soil(pa, era[("ERA5L_SM_RZ", "percentile")].dropna(), cfg, (summ or {}).get("freeze"))
+    return {"t1_by_soil": {"note": "exploratory, computed after the pre-registered tests; share of June–September "
+                                   "scenes with z ≤ −1 by soil class on the scene day (ERA5-Land 0–100 cm percentile)",
+                           "rows": [{k: (_r(v, 4) if isinstance(v, float) else v) for k, v in r.items()}
+                                    for r in t.to_dict("records")]}}
 
 
 def trust_rows(out_dir: str, cfg: Dict[str, Any], summ: Optional[Dict[str, Any]],
@@ -436,7 +449,7 @@ def trust_rows(out_dir: str, cfg: Dict[str, Any], summ: Optional[Dict[str, Any]]
                       & tests["subset"].astype(str).str.fullmatch(r"rok \d{4}")]
             if len(y):
                 lo, hi = y.loc[y["value"].idxmin()], y.loc[y["value"].idxmax()]
-                years = (f" from {100 * lo['value']:.0f}% ({str(lo['subset'])[4:]}) to {100 * hi['value']:.0f}% "
+                years = (f", from {100 * lo['value']:.0f}% ({str(lo['subset'])[4:]}) to {100 * hi['value']:.0f}% "
                          f"({str(hi['subset'])[4:]})")
         rows.append({"what": "Parcel index: how often “below its own normal” appears",
                      "against": "all scenes June–September, 13 vineyards (expected 16%, 1 in 6)",

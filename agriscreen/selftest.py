@@ -332,6 +332,8 @@ def check_panel(cfg: Dict[str, Any], with_experiments: bool = True) -> None:
     else:
         assert not w3c and not w3d, (w3c, w3d)
     assert status["Vine water stress"] == "not validated" and pdata["cards"][cfg["MAIN_SITE"]]["sentences"]
+    ex = pdata["explore"]["t1_by_soil"]["rows"]
+    assert [r["soil"] for r in ex] == ["dry", "normal", "wet"] and sum(r["n"] for r in ex) > 0, ex
     for txt in (html, json.dumps(pdata, ensure_ascii=False), open(_out(cfg, "run_summary.md"), encoding="utf-8").read()):
         low = txt.lower()
         assert not any(w in low for w in FORBIDDEN), [w for w in FORBIDDEN if w in low]
