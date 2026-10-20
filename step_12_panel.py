@@ -46,6 +46,14 @@ WATER_RAMP = ("#8b5a2b", "#d6b98a", "#efe9d6", "#8fc1dc", "#2f75b5", "#173f7a")
 PIXEL_LAYERS = (("ndvi", "Greenness (NDVI)", 0.10, 0.80, VEG_RAMP, "bare soil", "dense leaves"),
                 ("ndre", "Chlorophyll (NDRE)", 0.05, 0.45, VEG_RAMP, "low", "high"),
                 ("ndmi", "Water in vegetation (NDMI)", -0.20, 0.40, WATER_RAMP, "dry", "moist"))
+# Strefy w działce (wariant A): piksel minus mediana tej samej działki w tym samym dniu. Bez normy i bez przesunięć
+# między latami. Skala ± REL_RANGE; pierścień przy brzegu (środek piksela < REL_EDGE_M od brzegu) pominięty, bo piksele
+# mieszają się tam z drogą i sąsiednią uprawą i wyglądałyby jak słabe miejsca.
+REL_RANGE = {"ndvi": 0.15, "ndre": 0.10, "ndmi": 0.10}
+REL_RAMP = {"ndvi": ("#8b3a12", "#d08a4a", "#f4efe2", "#7dbf5a", "#1f7a33"),
+            "ndre": ("#8b3a12", "#d08a4a", "#f4efe2", "#7dbf5a", "#1f7a33"),
+            "ndmi": ("#8b3a12", "#d08a4a", "#f4efe2", "#6fa9d6", "#1f4f8f")}
+REL_EDGE_M = 10.0
 PIXEL_UPSCALE = 3            # obraz 10 m rysowany w siatce ~3,3 m (najbliższy sąsiad) — ostre brzegi działek
 CLUSTER_MARGIN_M = 600       # obraz w barwach naturalnych sięga 600 m poza skupisko winnic
 
@@ -119,6 +127,8 @@ def pixel_maps(cfg: Dict[str, Any], n_dates: Optional[int] = None) -> Dict[str, 
     w S2_DIR (≥ VEG_MIN_CLEAR_FRAC pikseli winnic bez chmur, jedna scena na dzień) i obraz w barwach naturalnych
     z najnowszej z nich. Statystyki działki (średnia, 10. i 90. percentyl, liczba pikseli) liczone jak produkt
     S2_10m_buf20: piksele bezchmurne w pasie PARCEL_INNER_M od brzegu. Mapa pokazuje całą działkę.
+    Strefy (klucz `<indeks>_rel`): piksel minus mediana działki w tym dniu, liczone na pikselach, których środek leży
+    ≥ REL_EDGE_M od brzegu; statystyki [mediana, p10 − mediana, p90 − mediana, n].
     """
     import rasterio
     from rasterio.features import rasterize
@@ -127,8 +137,8 @@ def pixel_maps(cfg: Dict[str, Any], n_dates: Optional[int] = None) -> Dict[str, 
     from rasterio.windows import from_bounds
 
     import step_04_metrics_alert as s4
-    layers = [{"key": k, "label": lab, "lo": lo, "hi": hi, "ramp": list(ramp), "low": low, "high": high}
-              for k, lab, lo, hi, ramp, low, high in PIXEL_LAYERS]
+    layers = [{"key": k, "label": lab, "lo": lo, "hi": hi, "ramp": list(ramp), "low": low, "high": high,
+               "rel": REL_RANGE[k], "rel_ramp": list(REL_RAMP[k])} for k, lab, lo, hi, ramp, low, high in PIXEL_LAYERS]
     res: Dict[str, Any] = {"dates": [], "rgb": None, "layers": layers, "bounds": None}
     scenes = sorted(glob.glob(os.path.join(cfg["S2_DIR"], "S2_L2A_*.tif")))
     if not scenes:
@@ -177,26 +187,41 @@ def pixel_maps(cfg: Dict[str, Any], n_dates: Optional[int] = None) -> Dict[str, 
         seen.add(t.normalize())
         idx = s4.compute_indices(data[:10])
         stats: Dict[str, Dict[str, Any]] = {}
+        rel = {lay["key"]: np.full(cloud.shape, np.nan, "float32") for lay in layers}
+
+        def mask(g):
+            return (rasterize([(g, 1)], out_shape=cloud.shape, transform=tr, fill=0).astype(bool)
+                    if not g.is_empty else np.zeros(cloud.shape, bool)) & clear
         for r in geo.itertuples():
-            g = r.geometry.buffer(-inner_m)
-            inner = (rasterize([(g, 1)], out_shape=cloud.shape, transform=tr, fill=0).astype(bool)
-                     if not g.is_empty else np.zeros(cloud.shape, bool)) & clear
+            inner, core = mask(r.geometry.buffer(-inner_m)), mask(r.geometry.buffer(-REL_EDGE_M))
             stats[r.site_id] = {}
             for lay in layers:
-                v = idx[lay["key"]][inner]
+                k = lay["key"]
+                v = idx[k][inner]
                 v = v[np.isfinite(v)]
-                stats[r.site_id][lay["key"]] = ([_r(v.mean(), 3), _r(np.percentile(v, 10), 3),
-                                                 _r(np.percentile(v, 90), 3), int(v.size)] if v.size else None)
+                stats[r.site_id][k] = ([_r(v.mean(), 3), _r(np.percentile(v, 10), 3),
+                                        _r(np.percentile(v, 90), 3), int(v.size)] if v.size else None)
+                c = core & np.isfinite(idx[k])
+                if c.any():
+                    med = float(np.median(idx[k][c]))
+                    rel[k][c] = idx[k][c] - med
+                    d = rel[k][c]
+                    stats[r.site_id][k + "_rel"] = [_r(med, 3), _r(np.percentile(d, 10), 3),
+                                                    _r(np.percentile(d, 90), 3), int(c.sum())]
+                else:
+                    stats[r.site_id][k + "_rel"] = None
         pngs = {}
         for lay in layers:
-            a = np.where(clear, idx[lay["key"]], np.nan).astype("float32")
-            dst = np.full(px_shape, np.nan, "float32")
-            reproject(a, dst, src_transform=tr, src_crs=crs, dst_transform=px_t, dst_crs="EPSG:4326",
-                      resampling=Resampling.nearest, src_nodata=np.nan, dst_nodata=np.nan)
-            rgba = np.zeros(px_shape + (4,), np.uint8)
-            rgba[..., :3] = _ramp(lay["ramp"], (dst - lay["lo"]) / (lay["hi"] - lay["lo"]))
-            rgba[..., 3] = np.where(px_mask & np.isfinite(dst), 255, 0)
-            pngs[lay["key"]] = _b64_image(rgba)
+            for name, a, lo, hi, ramp in (
+                    (lay["key"], np.where(clear, idx[lay["key"]], np.nan), lay["lo"], lay["hi"], lay["ramp"]),
+                    (lay["key"] + "_rel", rel[lay["key"]], -lay["rel"], lay["rel"], lay["rel_ramp"])):
+                dst = np.full(px_shape, np.nan, "float32")
+                reproject(a.astype("float32"), dst, src_transform=tr, src_crs=crs, dst_transform=px_t,
+                          dst_crs="EPSG:4326", resampling=Resampling.nearest, src_nodata=np.nan, dst_nodata=np.nan)
+                rgba = np.zeros(px_shape + (4,), np.uint8)
+                rgba[..., :3] = _ramp(ramp, (dst - lo) / (hi - lo))
+                rgba[..., 3] = np.where(px_mask & np.isfinite(dst), 255, 0)
+                pngs[name] = _b64_image(rgba)
         res["dates"].append({"date": t.strftime("%Y-%m-%d"), "clear": _r(clear[whole].mean(), 2), "png": pngs,
                              "stats": stats})
         if res["rgb"] is None:                       # najnowsza scena: barwy naturalne (B04, B03, B02) pod mapą
@@ -553,8 +578,12 @@ let S = {site: 'ALL', layer: PX.dates.length ? 'px:ndvi' : 'z:water', pi: 0, di:
 try { const m = JSON.parse(localStorage.getItem('agriscreen-v2') || '{}');
   if (m.site && (m.site === 'ALL' || SH[m.site])) S.site = m.site;
   if (m.layer && (m.layer.startsWith('z:') || PX.dates.length)) S.layer = m.layer; } catch (e) {}
+if (!/^(px|rel|z):/.test(S.layer)) S.layer = PX.dates.length ? 'px:ndvi' : 'z:water';
 const mode = () => S.layer.split(':')[0], key = () => S.layer.split(':')[1];
-const curDate = () => mode() === 'px' ? PX.dates[S.pi].date : D.dates[S.di];
+const isPx = () => mode() !== 'z';                       // 'px' value, 'rel' vs parcel median: pixel-map dates
+const pk = () => mode() === 'rel' ? key() + '_rel' : key();
+const curDate = () => isPx() ? PX.dates[S.pi].date : D.dates[S.di];
+const sgn = (v, nd) => v == null ? '—' : (v > 0 ? '+' : '') + num(v, nd);
 
 // latest state of each vineyard (card: latest scene; water index against its own history)
 function stateOf(id) {
@@ -601,8 +630,8 @@ if (window.L) {
 function drawMap() {
   if (!map) return;
   if (ov) { map.removeLayer(ov); ov = null; }
-  if (mode() === 'px' && PX.dates[S.pi])
-    ov = L.imageOverlay('data:image/png;base64,' + PX.dates[S.pi].png[key()], PX.bounds,
+  if (isPx() && PX.dates[S.pi] && PX.dates[S.pi].png[pk()])
+    ov = L.imageOverlay('data:image/png;base64,' + PX.dates[S.pi].png[pk()], PX.bounds,
       {pane: 'pixels', opacity: S.op, className: 'pxl'}).addTo(map);
   styleParcels();
   esri.setOpacity(S.base === 'esri' ? 1 : 0);
@@ -617,7 +646,12 @@ function styleParcels() {
 }
 function legend() {
   let h;
-  if (mode() === 'px') {
+  if (mode() === 'rel') {
+    const l = PXL[key()], r = l.rel_ramp;
+    h = `<b>${esc(l.label)} vs parcel median</b><div class="ramp" style="background:linear-gradient(90deg,${r.join(',')})"></div>` +
+      `<div class="rl"><span>${sgn(-l.rel, 2)} weaker</span><span>median</span><span>stronger ${sgn(l.rel, 2)}</span></div>` +
+      `<div class="rl"><span>same day · ${fmt(curDate())} · 10 m edge ring left out</span></div>`;
+  } else if (mode() === 'px') {
     const l = PXL[key()];
     h = `<b>${esc(l.label)}</b><div class="ramp" style="background:linear-gradient(90deg,${l.ramp.join(',')})"></div>` +
       `<div class="rl"><span>${num(l.lo, 2)} ${esc(l.low)}</span><span>${esc(l.high)} ${num(l.hi, 2)}</span></div>` +
@@ -634,15 +668,18 @@ function legend() {
 function fillLayers() {
   const og = (label, items) => `<optgroup label="${label}">` + items.map(([v, t]) => `<option value="${v}">${esc(t)}</option>`).join('') + '</optgroup>';
   let h = '';
-  if (PX.dates.length) h += og('Inside the parcel · 10 m pixels', PX.layers.map(l => ['px:' + l.key, l.label]));
+  if (PX.dates.length) {
+    h += og('Inside the parcel · 10 m pixels', PX.layers.map(l => ['px:' + l.key, l.label]));
+    h += og('Zones · pixel vs the rest of the parcel, same day', PX.layers.map(l => ['rel:' + l.key, l.label + ' — vs parcel median']));
+  }
   h += og('Against its own history · whole parcel', D.layer_info.map(l => ['z:' + l.key, l.label + ' — anomaly']));
   $('layer').innerHTML = h;
 }
 function fillDates() {
-  const list = mode() === 'px' ? PX.dates.map(p => p.date) : D.dates;
-  const cur = mode() === 'px' ? S.pi : S.di;
+  const list = isPx() ? PX.dates.map(p => p.date) : D.dates;
+  const cur = isPx() ? S.pi : S.di;
   const idx = list.map((d, i) => i);
-  const order = mode() === 'px' ? idx : idx.slice().reverse();
+  const order = isPx() ? idx : idx.slice().reverse();
   $('date').innerHTML = order.map(i => `<option value="${i}"${i === cur ? ' selected' : ''}>${fmt(list[i])}</option>`).join('');
 }
 function nearest(list, d) {
@@ -652,12 +689,12 @@ function nearest(list, d) {
 }
 $('layer').addEventListener('change', e => {
   const before = curDate(); S.layer = e.target.value;
-  if (mode() === 'px') S.pi = nearest(PX.dates.map(p => p.date), before); else S.di = nearest(D.dates, before);
+  if (isPx()) S.pi = nearest(PX.dates.map(p => p.date), before); else S.di = nearest(D.dates, before);
   render(true);
 });
-$('date').addEventListener('change', e => { if (mode() === 'px') S.pi = +e.target.value; else S.di = +e.target.value; render(true); });
+$('date').addEventListener('change', e => { if (isPx()) S.pi = +e.target.value; else S.di = +e.target.value; render(true); });
 function step(k) {   // k = +1 newer, −1 older
-  if (mode() === 'px') S.pi = Math.min(PX.dates.length - 1, Math.max(0, S.pi - k));
+  if (isPx()) S.pi = Math.min(PX.dates.length - 1, Math.max(0, S.pi - k));
   else S.di = Math.min(D.dates.length - 1, Math.max(0, S.di + k));
   render(true);
 }
@@ -680,7 +717,16 @@ function stats() {
   let h = '';
   if (S.site !== 'ALL') {
     const id = S.site;
-    if (mode() === 'px') {
+    if (mode() === 'rel') {
+      const st = ((PX.dates[S.pi].stats || {})[id] || {})[pk()], l = PXL[key()];
+      h += `<h3>${esc(l.label)} zones inside ${vname(id)} · ${fmt(d)}</h3>`;
+      h += st ? `<div class="tiles"><div class="tile"><span>Parcel median</span><b>${num(st[0], 2)}</b><small>reference for the colours</small></div>` +
+        `<div class="tile"><span>Weakest 10%</span><b>${sgn(st[1], 2)}</b><small>below the median by at least this</small></div>` +
+        `<div class="tile"><span>Strongest 10%</span><b>${sgn(st[2], 2)}</b><small>above the median by at least this</small></div>` +
+        `<div class="tile"><span>Pixels</span><b>${st[3]}</b><small>cloud-free, centre ≥ 10 m from the edge</small></div></div>`
+        : `<p class="small">No cloud-free pixels left after removing the 10 m edge ring.</p>`;
+      h += `<p class="note">Brown: weaker${key() === 'ndmi' ? ' or drier' : ''} than the rest of this parcel on the same day; green${key() === 'ndmi' ? '/blue: wetter' : ': stronger'}. A zone that keeps the same colour on several dates is more likely to be real.</p>`;
+    } else if (mode() === 'px') {
       const st = ((PX.dates[S.pi].stats || {})[id] || {})[key()], l = PXL[key()];
       h += `<h3>${esc(l.label)} inside ${vname(id)} · ${fmt(d)}</h3>`;
       h += st ? `<div class="tiles"><div class="tile"><span>Mean</span><b>${num(st[0], 2)}</b><small>pixels ≥ ${D.inner_m} m from the edge</small></div>` +
@@ -700,10 +746,11 @@ function stats() {
     }
   } else {
     const rows = D.map.shapes.map(s => {
-      const z = zAt('water', s.id, di), st = mode() === 'px' ? ((PX.dates[S.pi].stats || {})[s.id] || {})[key()] : null;
+      const z = zAt('water', s.id, di), st = isPx() ? ((PX.dates[S.pi].stats || {})[s.id] || {})[pk()] : null;
       const zk = mode() === 'z' ? zAt(key(), s.id, S.di) : null;
       return `<tr class="pick" data-site="${s.id}"><td>${vname(s.id)}</td><td class="num">${s.area_ha.toFixed(2)}</td>` +
-        (mode() === 'px' ? `<td class="num">${st ? num(st[0], 2) : '—'}</td><td class="num">${st ? num(st[1], 2) + ' – ' + num(st[2], 2) : '—'}</td>`
+        (mode() === 'rel' ? `<td class="num">${st ? num(st[0], 2) : '—'}</td><td class="num">${st ? sgn(st[1], 2) + ' / ' + sgn(st[2], 2) : '—'}</td>`
+         : mode() === 'px' ? `<td class="num">${st ? num(st[0], 2) : '—'}</td><td class="num">${st ? num(st[1], 2) + ' – ' + num(st[2], 2) : '—'}</td>`
                          : `<td class="num">${num(zk, 1)}</td><td>${qc(s.id) ? CLS_TXT[cls(zk)] : 'too small'}</td>`) +
         `<td class="num" style="color:${qc(s.id) && z != null && z <= -1 ? 'var(--wb)' : 'inherit'}">${qc(s.id) ? num(z, 1) : '—'}</td></tr>`;
     }).join('');
@@ -714,7 +761,8 @@ function stats() {
       `<div class="tile"><span>Vineyards</span><b>${D.map.shapes.length}</b><small>${Object.values(D.sites).filter(s => s.qc_ok).length} large enough for an anomaly</small></div>` +
       `<div class="tile"><span>Area</span><b>${D.map.shapes.reduce((a, s) => a + s.area_ha, 0).toFixed(1)}</b><small>hectares</small></div></div>`;
     h += `<div class="tbl"><table><thead><tr><th>Vineyard</th><th>ha</th>` +
-      (mode() === 'px' ? `<th>${esc(PXL[key()].label)} mean</th><th>10–90%</th>` : `<th>z ${esc(ZL[key()].label)}</th><th>class</th>`) +
+      (mode() === 'rel' ? `<th>${esc(PXL[key()].label)} median</th><th>weakest / strongest 10% vs median</th>`
+       : mode() === 'px' ? `<th>${esc(PXL[key()].label)} mean</th><th>10–90%</th>` : `<th>z ${esc(ZL[key()].label)}</th><th>class</th>`) +
       `<th>z water</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
   $('stats').innerHTML = h;
@@ -876,9 +924,10 @@ function render(mapOnly) {
   const m = mode();
   $('layer').value = S.layer;
   fillDates();
-  $('older').disabled = m === 'px' ? S.pi >= PX.dates.length - 1 : S.di <= 0;
-  $('newer').disabled = m === 'px' ? S.pi <= 0 : S.di >= D.dates.length - 1;
+  $('older').disabled = isPx() ? S.pi >= PX.dates.length - 1 : S.di <= 0;
+  $('newer').disabled = isPx() ? S.pi <= 0 : S.di >= D.dates.length - 1;
   $('pxnote').hidden = m !== 'px';
+  $('relnote').hidden = m !== 'rel';
   $('znote').hidden = m !== 'z';
   $('mtitle').innerHTML = S.site === 'ALL' ? `All vineyards <span class="ha">${esc(D.region)}</span>`
     : `${vname(S.site)} <span class="ha">${SH[S.site].area_ha.toFixed(2)} ha</span>`;
@@ -934,6 +983,9 @@ or no clear scene.</p></aside>
 <div id="lmap"><div class="legend-box" id="legend"></div></div>
 <p class="note" id="pxnote">Pixel maps show where the parcel is greener, weaker, wetter or drier on that day. They describe the
 parcel; they are not compared with a normal and are not validated. Inter-rows and soil count too.</p>
+<p class="note" id="relnote">Zones: each pixel minus the median of the same parcel on the same day. This shows weaker and
+stronger parts of the parcel without comparing years, so small shifts of the satellite image between years do not matter.
+Pixels within 10 m of the edge are left out (they mix with roads and neighbouring fields). Descriptive, not validated.</p>
 <p class="note" id="znote">Whole-parcel value against the same parcel in the previous five years (same time of year, same
 orbit), as a z-score: −1 means clearly below its own normal.</p>
 <div id="stats"></div>

@@ -14,7 +14,12 @@ Pliki do publikacji (dane z przebiegu 2026-10-20, testy zamrożone 2026-10-18):
 - mapa Leaflet na zdjęciu satelitarnym Esri World Imagery z półprzezroczystą warstwą (suwak „Opacity”):
   - *Inside the parcel · 10 m pixels*: NDVI, NDRE, NDMI z 16 ostatnich bezchmurnych scen — gdzie w działce jest
     zieleniej, słabiej, wilgotniej; opis, bez normy i bez walidacji,
-  - *Against its own history · whole parcel*: z całej działki wobec tej samej działki w 5 poprzednich latach,
+  - *Zones · pixel vs the rest of the parcel, same day*: piksel minus mediana tej samej działki w tym samym dniu
+    (NDVI, NDRE, NDMI) — słabsze i mocniejsze strefy działki bez porównywania lat, więc przesunięcia zdjęć między
+    latami nie mają znaczenia; pierścień 10 m przy brzegu pominięty (mieszane piksele); opis, bez walidacji,
+  - *Against its own history · whole parcel*: z całej działki wobec tej samej działki w 5 poprzednich latach
+    (tylko dla całej działki — to jest wielkość sprawdzona w protokole W3b; anomalia pojedynczego piksela byłaby
+    zbyt zaszumiona: przesunięcia zdjęć o ok. piksel, pasma 20 m, mało scen w normie),
 - pod mapą statystyki (średnia, 10. i 90. percentyl, rozrzut, liczba pikseli w pasie 20 m od brzegu) albo tabela
   wszystkich winnic,
 - po prawej: stan działki, gleba w okolicy (wskaźnik, ERA5-Land), pogoda (prognoza 7 dni Open-Meteo, ostatnie
