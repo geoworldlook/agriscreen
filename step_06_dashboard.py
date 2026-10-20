@@ -4,6 +4,8 @@ AgriWatch - KROK 6: DASHBOARD WINNICY (wzór: panel Wago, projekt ESA WineEO)
 ================================================================================
 Jeden samodzielny plik HTML dla jednej winnicy, wyświetlany w Colab i zapisywany obok biuletynu:
 
+  0. Moja winnica (W3b): 3 zdania — gleba w okolicy, wskaźnik wody w roślinności działki wobec jej własnej historii,
+     okolica (tylko po spełnionym kryterium testu T3); pasek sezonu, „Na ile ufać” (testy zamrożone, w3b_tests.csv).
   1. Woda w glebie — okolica winnicy (Plan v9 W1): kategoria suszy z percentyla (US Drought Monitor), niedobór w mm,
      miejsce wśród lat, od kiedy, opad 30/90 dni jako % normy, prawdopodobieństwo z ISMN, skala i opóźnienie danych.
   2. Sezon na tle lat poprzednich (NDVI 5 lat, gleba na tle normy 1991–2020).
@@ -233,9 +235,11 @@ def _png_file_b64(path: str, colors: int = 64) -> str:
     return base64.b64encode(data).decode()
 
 
-def _spark_svg(vals: List[float], dates: List[str], thr: float = -1.0, w: int = 160, h: int = 44) -> str:
+def _spark_svg(vals: List[float], dates: List[str], thr: float = -1.0, w: int = 160, h: int = 44,
+               thr_hi: Optional[float] = None) -> str:
     """Mini-wykres z ostatnich dni ze sceną: oś z obejmuje dane, 0 i próg (co najmniej od −2,5 do 1),
-    linia 0 i przerywana linia progu (−1). Kolory punktów = klasy z roślinności (step_09.VEG_Z_COLORS)."""
+    linia 0 i przerywana linia progu (−1; thr_hi — druga linia, np. +1 na pasku sezonu karty „Moja winnica”).
+    Kolory punktów = klasy z roślinności (step_09.VEG_Z_COLORS)."""
     import step_09_panels as s9
     fin = [z for z in vals if np.isfinite(z)]
     if not fin:
@@ -253,7 +257,9 @@ def _spark_svg(vals: List[float], dates: List[str], thr: float = -1.0, w: int = 
             f'<line x1="0" x2="{w}" y1="{y(0):.1f}" y2="{y(0):.1f}" stroke="#ddd"/>'
             f'<line x1="0" x2="{w}" y1="{y(thr):.1f}" y2="{y(thr):.1f}" stroke="{s9.VEG_Z_COLORS["below"]}" '
             f'stroke-dasharray="3,2"/>'
-            f'<polyline points="{line}" fill="none" stroke="#666" stroke-width="1.2"/>{dots}</svg>')
+            + (f'<line x1="0" x2="{w}" y1="{y(thr_hi):.1f}" y2="{y(thr_hi):.1f}" stroke="{s9.VEG_Z_COLORS["above"]}" '
+               f'stroke-dasharray="3,2"/>' if thr_hi is not None else "")
+            + f'<polyline points="{line}" fill="none" stroke="#666" stroke-width="1.2"/>{dots}</svg>')
 
 
 def _condition_html(cond: List[Dict[str, Any]], cfg: Dict[str, Any], status_date: Optional[str]) -> str:
@@ -349,6 +355,33 @@ def _water_html(card: Dict[str, Any], txt: Dict[str, Any], cfg: Dict[str, Any],
                f'<ul style="font-size:12px;color:#444;margin-top:2px">'
                f'{"".join(f"<li>{esc(x)}</li>" for x in trust)}</ul>' if trust else "")
             + f'<div class="src">{esc(txt["footer"])}</div></div>')
+
+
+def _parcel_html(card: Dict[str, Any], lines: Dict[str, Any], cfg: Dict[str, Any]) -> str:
+    """Karta „Moja winnica” (W3b; dane: step_09.parcel_card, zdania: parcel_card_lines): 3 zdania, pasek sezonu
+    z liniami ±1, dopiski, stałe uwagi, „Na ile ufać” i szczegół (niezwalidowane)."""
+    import step_09_panels as s9
+    esc = html.escape
+    color = {"below": s9.VEG_Z_COLORS["below"], "normal": "#333333", "above": s9.VEG_Z_COLORS["above"]}.get(
+        card.get("cls"), "#888888")
+    season = card.get("season") or []
+    spark = _spark_svg([x["z"] for x in season], [x["date"] for x in season], -1.0, 560, 70, thr_hi=1.0) if season else ""
+
+    def ul(items, size=12, color_="#444"):
+        return (f'<ul style="font-size:{size}px;color:{color_};margin-top:2px">'
+                + "".join(f"<li>{esc(x)}</li>" for x in items) + "</ul>") if items else ""
+    return (f'<div style="border-left:6px solid {color};padding-left:12px"><h3>{esc(lines["title"])}</h3>'
+            f'<ol style="font-size:15px;line-height:1.5;padding-left:20px">'
+            + "".join(f"<li>{esc(x)}</li>" for x in lines["sentences"]) + "</ol>"
+            + (f'<div class="src">Wskaźnik wody w roślinności działki w sezonie {pd.Timestamp(card["date"]).year} '
+               f'(z; linie przerywane: −1 i +1)</div>{spark}' if spark else "")
+            + ul(lines["notes"], 13, "#b35c00") + ul(lines["fixed"], 12, "#555")
+            + ('<div style="font-size:12px;font-weight:600;color:#555;margin-top:6px">Na ile ufać</div>'
+               + ul(lines["trust"]) if lines["trust"] else "")
+            + (f'<div class="src">{esc(lines["detail"])}</div>' if lines["detail"] else "")
+            + f'<div class="src">Sentinel-2, 10 m, pas {int(cfg["PARCEL_INNER_M"])} m od brzegu odcięty; norma: '
+              f'{int(cfg.get("VEG_REF_YEARS") or 5)} poprzednich lat tej działki, zwykle ten sam tor orbity. '
+              f'Protokół: docs/evidence/W3b_protokol_walidacji.md.</div></div>')
 
 
 def _weather_info(out_dir: str, cfg: Dict[str, Any]) -> Dict[str, Any]:
@@ -538,6 +571,12 @@ def build_dashboard(rt: Dict[str, Any], cfg: Dict[str, Any], forecast: bool = Tr
                                  ref_val=s9.read_ref_validation(dict(cfg, OUTPUT_DIR=out_dir)))
         return _water_html(card, s9.water_card_lines(card, "pl"), cfg, trust_w)
 
+    def parcel_html():
+        import step_09_panels as s9
+        card = s9.parcel_card_from_outputs(dict(cfg, OUTPUT_DIR=out_dir), era5, status, sid)
+        return _parcel_html(card, s9.parcel_card_lines(card, "pl"), cfg)
+
+    element("parcel", parcel_html)
     element("water", water_html)
     element("condition", condition_html)
     element("season", season_html)
@@ -684,6 +723,7 @@ ul{{padding-left:18px;font-size:12px;margin:4px 0}} .full{{grid-column:1/4}}
 </style></head><body>
 <div class="top">AgriWatch · monitoring anomalii wilgotności <small>{esc(p['generated'])}</small></div>
 <div class="grid">
+ <div class="card full">{panels.get("parcel", na)}</div>
  <div class="card full">{panels.get("water", na)}</div>
  <div class="card full"><h3>{esc(panels.get("traj_title", "Sezon na tle lat poprzednich"))}</h3>{panels.get("season", na)}</div>
  <div class="card"><h3>Pogoda: ostatnie dni (ERA5-Land)</h3>
@@ -695,7 +735,7 @@ ul{{padding-left:18px;font-size:12px;margin:4px 0}} .full{{grid-column:1/4}}
   <div style="font-size:16px;font-weight:600">{esc(p['site']['name'])}</div>
   <div class="drv"><span>Uprawa</span><b>winorośl</b></div>
   <div class="drv"><span>Powierzchnia</span><b>{_fmt(p['site']['area_ha'], 2)} ha</b></div>
-  <div class="drv"><span>Nawadnianie</span><b>nie</b></div>
+  <div class="drv"><span>Nawadnianie</span><b>nieznane</b></div>
   <div class="drv"><span>Stacja ISMN</span><b>136 m</b></div>
   <h3 style="margin-top:14px">Dane</h3>
   <ul><li>Opad, gleba: ERA5-Land (~9 km)</li><li>Roślinność: Sentinel-2, {"SEN2SR 2,5 m" if cfg['VEG_PRODUCT'] == 'S2SR_2.5m' else "10 m"}</li>

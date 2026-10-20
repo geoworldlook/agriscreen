@@ -1,8 +1,24 @@
 # W3b — plan wdrożenia K1–K4 („Moja winnica”)
 
-> **Status:** PROPOSED 2026-10-19. Rozwija Plan W3b (`docs/plans/Plan_W3b_moja_winnica.md`, decyzje D-084–D-088).
-> Definicje, liczby i kryteria są w protokole `docs/evidence/W3b_protokol_walidacji.md`, dalej **P§n**. Ten plan mówi
-> tylko, co zmienić w kodzie, co uruchomić i kiedy krok jest skończony.
+> **Status:** WDROŻONY W KODZIE 2026-10-19 (K1–K4; selftest offline przechodzi). Do zrobienia: przebieg w Colab
+> i notatka wyników (K3b). Rozwija Plan W3b (`docs/plans/Plan_W3b_moja_winnica.md`, decyzje D-084–D-089). Definicje,
+> liczby i kryteria są w protokole `docs/evidence/W3b_protokol_walidacji.md` (REGISTERED, SHA-256 `f01b74a804b28315…`),
+> dalej **P§n**.
+
+## Stan wdrożenia (2026-10-19)
+
+- **Zrobione:** K1 (rejestracja protokołu) i cały kod K2–K4 naraz, zamiast w 4 sesjach. Selftest
+  `python step_05_colab_run.py --selftest` przechodzi razem z nowymi testami W3b.
+- **Uproszczenia względem opisu niżej** (metoda bez zmian):
+  - `_veg_anomalies` zostaje nietknięta; anomalie działek liczy osobna funkcja `step_11.parcel_anomalies` (ta sama
+    `scene_anomaly`), więc status i stare pliki nie mogą się zmienić;
+  - zamiast bootstrapu po latach jest `jackknife_ci` (P§0, U8), bez losowania;
+  - szczegół karty (NDMI, −CRSWIR, NDVI, NDRE) to jedna linia „niezwalidowane”, bez przeróbki `condition_panel`;
+  - `W3B_FREEZE` ustala się samo przy pierwszym liczeniu testów (`w3b_freeze.json`, P§0, U6);
+  - `parcel_tests` jest też w `run_monitoring`: liczy raz na commit kodu (nowy commit, np. poprawka błędu wg P§11,
+    liczy od nowa na tych samych zamrożonych scenach), poza tym zwraca „skipped”; commit jest zapisany w `w3b_tests.csv`.
+- **Następny krok (Ty, Colab):** otwórz notatnik z GitHub, „Uruchom wszystko”, prześlij komunikat `parcel_tests`,
+  `w3b_tests.csv`, `parcel_qc.csv` i `run_summary.md`. Na ich podstawie powstaje `docs/evidence/W3b_wyniki.md` (K3b).
 
 ## Wynik w skrócie
 

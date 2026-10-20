@@ -11,6 +11,9 @@ Architektura: kod na GitHub -> obliczenia w Colab -> Dysk Google jako baza danyc
         task_scene_stats     indeksy obiektów: 10 m oraz SEN2SR 2,5 m z kontrolą H-SR0/H-SR1 (step_03, step_04)
         task_anomalies       anomalie ERA5 (SMA, SPI) i roślinności (klimatologia przyczynowa) + status dekadowy
                              z prawdopodobieństwem suszy gleby (step_04)
+        task_parcel_stats    Moja winnica (W3b): statystyki 15 winnic z pasem 20 m, produkt S2_10m_buf20 (step_04)
+        task_parcel_tests    W3b: testy zamrożone T1–T3, wariant wielopasmowy, wartości „przed” (step_11)
+        task_parcel_anomalies W3b: anomalie działek do karty, mediana okolicy, flaga gospodarowania (step_11)
         task_validate        błąd anomalii na profilu ISMN Condom (step_07)
         task_weather         przymrozki i upały + walidacja ERA5-Land na stacjach Météo-France (step_08)
         task_bulletin        raport, wykresy i JSON dla geoworldlook.vercel.app (step_04) + panele v1.2 (step_09)
@@ -287,9 +290,9 @@ def run_task(
     try:
         result = fn(*args, **kwargs)
         if isinstance(result, dict):
+            message = str(result.get("message", ""))       # komunikat zadania widać w wydruku i w gwl_runs
             if result.get("skipped"):
                 status = "skipped"
-                message = str(result.get("message", ""))
             parts = []
             for table, df in (result.get("registry") or {}).items():
                 df = df.copy()
@@ -415,6 +418,27 @@ MONITOR_CONFIG: Dict[str, Any] = {
     # Stacje referencyjne (Plan v9 W2 + REF; protokół docs/evidence/W2_REF_protokol_walidacji.md, D-082, D-083)
     "REF_DIR": "data/09_Reference_Stations",
     "REF_SITES": ("FR-Aur", "FR-Lus"),
+    # Moja winnica (W3b): 15 winnic wobec własnej historii. Definicje i kryteria: protokół W3B_PROTOCOL (§n w komentarzach),
+    # kod: step_11_parcel.py. Osobny produkt, więc status EDO i produkty S2_10m / S2SR_2.5m zostają bez zmian.
+    "PARCEL_PRODUCT": "S2_10m_buf20",
+    "PARCEL_TYPE": "winnice",             # wszystkie winnice z pliku działek (fid 6–18, 21, 22)
+    "PARCEL_INNER_M": 20,                 # pas wewnętrzny 20 m (§1)
+    "PARCEL_BANDS": ("B04", "B06", "B8A", "B12"),   # pasma wariantu wielopasmowego (§7; Laroche-Pinel 2021, s. 13)
+    "PARCEL_MIN_PX": 40,                  # min. pikseli 10 m w zwężonym obrysie; mniejsza działka bez klasy (§1)
+    "PARCEL_ANOM_INDICES": ("ndmi", "crswir", "ndvi", "ndre", "b04", "b06", "b8a", "b12"),
+    "PARCEL_TEST_MONTHS": (6, 9),         # testy w VI–IX, karta w IV–X (§1)
+    "PARCEL_MIN_AREA": 6,                 # min. winnic w dniu dla mediany okolicy i flagi (§6, §8)
+    "PARCEL_T3_EXCLUDE": ("VINEYARD_06",),  # na VINEYARD_06 w F4 wybierano okno (§1)
+    "PARCEL_T3_YEARS": (2018, 2024),      # T3 i §7: sezony z anomalią roślinności i danymi ISMN (§6)
+    "PARCEL_ISMN_PERIOD": ("2016-01-01", "2024-12-31"),   # stały okres czujnika (§0)
+    "PARCEL_T3_DAYS": 30,                 # cel T3: średnia z dni [t−30, t−1] (§6, U5)
+    "PARCEL_T3_MIN_DAYS": 20,
+    "PARCEL_T3_CLIP": 3.0,                # dzienne z czujnika obcięte do [−3; 3] (§6)
+    "PARCEL_RAIN_MM": 5.0,                # para scen „z opadem” (§5)
+    "PARCEL_FLAG_MIN_SCENES": 6,          # flaga zmiany gospodarowania (§8)
+    "PARCEL_FLAG_SHARE": 2 / 3,
+    "W3B_FREEZE": None,                   # None = ostatnia scena przy pierwszym liczeniu testów (w3b_freeze.json, U6)
+    "W3B_PROTOCOL": "docs/evidence/W3b_protokol_walidacji.md",
     # Progi statusu (EDO CDI)
     "THR_SPI1": -2.0, "THR_SPI3": -1.0, "THR_SMA": -1.0, "THR_VEG": -1.0,
     "STATUS_START": "2016-01-01",
@@ -450,10 +474,13 @@ MONITOR_CONFIG: Dict[str, Any] = {
     "DASHBOARD_YEARS": 5,                 # okno wykresów i historii na dashboardzie (od dziś wstecz)
     "OUTPUT_DIR": "data/05_Final_Outputs/agriwatch",
     "BOOTSTRAP_N": 1000,
+    "BOOTSTRAP_BLOCK_DAYS": 30,           # te same wartości co STATION_CONFIG (step_07): R z CI blokowym (W3b §9)
+    "RANDOM_SEED": 42,
+    "MIN_N_METRICS": 10,
 }
 
 _PATH_KEYS = ("PARCELS_PATH", "AOI_PATH", "ISMN_DIR", "S2_DIR", "S2_MANIFEST", "ERA5_DIR", "SR_MODEL_DIR", "MF_DIR",
-              "SR_DIR", "OUTPUT_DIR", "SECRETS_DIR", "SWI_DIR", "REF_DIR")
+              "SR_DIR", "OUTPUT_DIR", "SECRETS_DIR", "SWI_DIR", "REF_DIR", "W3B_PROTOCOL")
 
 
 def monitor_config(rt: Dict[str, Any], overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -737,6 +764,157 @@ def task_scene_stats(rt: Dict[str, Any], cfg: Dict[str, Any], use_sr: Optional[b
     return {"skipped": n10 + nsr == 0, "message": msg, "registry": reg}
 
 
+def task_parcel_stats(rt: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Moja winnica (W3b): średnie wskaźników i pasm PARCEL_BANDS dla wszystkich winnic z pliku działek, z pasem
+    wewnętrznym PARCEL_INNER_M (protokół §1), jako produkt PARCEL_PRODUCT w gwl_observations. Z archiwum S2_DIR
+    (bez pobierania i GPU) i przyrostowo dla nowych scen. „Zrobione” = para (działka, scena), więc nowa działka dostaje
+    całą historię. Zapis co 25 scen (przerwana sesja wznawia się sama). Raport: parcel_qc.csv.
+    """
+    import step_01_ingest as s1
+    import step_04_metrics_alert as s4
+    prod = cfg["PARCEL_PRODUCT"]
+    tag = f"parcel_stats_{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}"
+    variables = s4.INDICES + tuple(b.lower() for b in cfg["PARCEL_BANDS"]) + ("clear_frac",)
+    scenes = sorted(glob.glob(os.path.join(cfg["S2_DIR"], "S2_L2A_*.tif")))
+    obs = registry_read(rt, "gwl_observations")
+    o = obs[obs["product"] == prod]
+    done = set(zip(o["site_id"].astype(str), o["time_utc"].astype(str)))
+    parcels, geo = s4.load_parcels(cfg, cfg["EPSG"]), None
+    buf: List[Dict[str, Any]] = []
+    n_new = 0
+    for path in reversed(scenes):
+        t = s4.scene_time(path)
+        tkey = t.strftime("%Y-%m-%dT%H:%M:%SZ")
+        todo = [sid for sid in parcels["site_id"] if (sid, tkey) not in done]
+        if not todo:
+            continue
+        data, prof = s1.read_geotiff_to_numpy(path)
+        geo = parcels.to_crs(prof["crs"]) if geo is None else geo
+        buf.extend(s4.site_stats(data[:10], np.nan_to_num(data[s4.RASTER_CLOUD_BAND], nan=1.0), prof,
+                                 geo[geo["site_id"].isin(todo)], prod, t, inner_m=cfg["PARCEL_INNER_M"],
+                                 bands=cfg["PARCEL_BANDS"], crswir_w=s4.CRSWIR_W_FORDEAD, all_touched_fallback=False))
+        n_new += 1
+        if n_new % 25 == 0:
+            registry_upsert(rt, "gwl_observations", _stats_to_obs(buf, tag, variables))
+            buf.clear()
+    if buf:
+        registry_upsert(rt, "gwl_observations", _stats_to_obs(buf, tag, variables))
+    obs = registry_read(rt, "gwl_observations")
+    cf = obs[(obs["product"] == prod) & (obs["variable"] == "clear_frac")]
+    g = cf.groupby("site_id")
+    qc = parcels[["site_id", "fid", "area_ha"]].set_index("site_id").join(pd.DataFrame({
+        "n_pixels": pd.to_numeric(cf["n_pixels"], errors="coerce").groupby(cf["site_id"]).max(), "n_scenes": g.size(),
+        "n_clear": (pd.to_numeric(cf["value"], errors="coerce") >= cfg["VEG_MIN_CLEAR_FRAC"]).groupby(cf["site_id"]).sum()}))
+    qc["qc_ok"] = qc["n_pixels"] >= cfg["PARCEL_MIN_PX"]
+    os.makedirs(cfg["OUTPUT_DIR"], exist_ok=True)
+    qc.reset_index().to_csv(os.path.join(cfg["OUTPUT_DIR"], "parcel_qc.csv"), index=False)
+    small = ", ".join(f"{sid} ({int(r.n_pixels) if np.isfinite(r.n_pixels) else 0} px)"
+                      for sid, r in qc[~qc["qc_ok"]].iterrows())
+    last = f"{s4.scene_time(scenes[-1]):%Y-%m-%d}" if scenes else "—"
+    msg = (f"{n_new} scen przeliczonych; {len(scenes)} scen w S2_DIR (ostatnia {last}); winnice z QC "
+           f"(≥ {cfg['PARCEL_MIN_PX']} pikseli 10 m po pasie {cfg['PARCEL_INNER_M']} m): {int(qc['qc_ok'].sum())}/{len(qc)}"
+           + (f"; poniżej progu: {small}" if small else ""))
+    return {"skipped": n_new == 0, "message": msg}
+
+
+def _parcel_obs(rt: Dict[str, Any], cfg: Dict[str, Any], until: Optional[str] = None) -> pd.DataFrame:
+    import step_11_parcel as s11
+    return s11.parcel_wide(registry_read(rt, "gwl_observations"), cfg["PARCEL_PRODUCT"], until)
+
+
+def _read_tests(cfg: Dict[str, Any]) -> Optional[pd.DataFrame]:
+    p = os.path.join(cfg["OUTPUT_DIR"], "w3b_tests.csv")
+    return pd.read_csv(p) if os.path.exists(p) and os.path.getsize(p) > 1 else None
+
+
+def task_parcel_anomalies(rt: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Moja winnica (W3b), karta bieżąca: anomalie wszystkich winnic (step_11.parcel_anomalies), mediana okolicy
+    (zbiór T3; przy przyjętym wariancie wielopasmowym także jego wynik okolicy) i flaga zmiany gospodarowania.
+    Pliki: parcel_anomalies.csv, parcel_area.csv, parcel_flags.csv. Status EDO i gwl_anomalies bez zmian.
+    """
+    import step_11_parcel as s11
+    w = _parcel_obs(rt, cfg)
+    if w.empty:
+        return {"skipped": True, "message": "brak statystyk działek — uruchom task_parcel_stats"}
+    pa, n_dup = s11.parcel_anomalies(w, cfg)
+    ok, t3s = s11.qc_sites(pa), s11.t3_sites(pa, cfg)
+    mn = int(cfg["PARCEL_MIN_AREA"])
+    area = s11.area_series(pa, "water", t3s, mn).assign(index="water")
+    summ = s11.tests_summary(_read_tests(cfg))
+    mb = s11.multiband_area(s11.band_features(pa, t3s, tuple(b.lower() for b in cfg["PARCEL_BANDS"]), mn), summ)
+    if len(mb):
+        area = pd.concat([area, pd.DataFrame({"z_med": mb, "n_parcels": np.nan, "index": "water_mb"})])
+    flags = s11.management_flags(pa, ok, cfg)
+    out = cfg["OUTPUT_DIR"]
+    os.makedirs(out, exist_ok=True)
+    pa.to_csv(os.path.join(out, "parcel_anomalies.csv"), index=False)
+    area.rename_axis("day").reset_index().to_csv(os.path.join(out, "parcel_area.csv"), index=False)
+    flags.to_csv(os.path.join(out, "parcel_flags.csv"), index=False)
+    cur = pa[(pa["site_id"] == cfg["MAIN_SITE"]) & (pa["index"] == "water")].dropna(subset=["z"])
+    last = (f"; {cfg['MAIN_SITE']} {pd.Timestamp(cur['time'].iat[-1]):%Y-%m-%d}: z_woda {cur['z'].iat[-1]:+.2f}"
+            if len(cur) else "")
+    nflag = int(flags["flag"].astype(str).isin(["-", "+"]).sum()) if len(flags) else 0
+    return {"message": f"{pa['site_id'].nunique()} winnic ({len(ok)} z QC), {int((pa['index'] == 'water').sum())} scen "
+                       f"z z_woda, dni z 2 scenami: {n_dup}, sezony z flagą: {nflag}{last}"}
+
+
+def task_parcel_tests(rt: Dict[str, Any], cfg: Dict[str, Any], force: bool = False) -> Dict[str, Any]:
+    """
+    Moja winnica (W3b), testy zamrożone (protokół §0–§11): T1, T2, T3, wariant wielopasmowy, wartości „przed” i QC
+    na scenach ≤ W3B_FREEZE (anomalie liczone od nowa z tych scen, więc nowsze sceny nie zmieniają toru ani normy).
+    Wynik: w3b_tests.csv (z SHA-256 protokołu, zamrożeniem, wersją i commitem kodu) i wiersze gwl_validation_metrics.
+    Ponowne uruchomienie z tym samym protokołem, zamrożeniem i commitem kodu = „skipped” (chyba że force=True); nowy
+    commit (np. poprawka błędu, protokół §11 pkt 4) liczy testy od nowa na tych samych zamrożonych danych.
+    """
+    import step_09_panels as s9
+    import step_11_parcel as s11
+    out = cfg["OUTPUT_DIR"]
+    proto = s11.protocol_sha(cfg["W3B_PROTOCOL"])
+    fz = s11.freeze_info(cfg, out)
+    commit = str(rt.get("GIT_COMMIT", ""))
+    warn = "; UWAGA: lista scen ≤ zamrożenia zmieniła się od pierwszego liczenia" \
+        if fz["scenes_sha256"] != fz["scenes_sha256_at_freeze"] else ""
+    old = _read_tests(cfg)
+    if old is not None and not force and len(old) and {"protocol_sha256", "freeze", "code_commit"} <= set(old) and \
+            str(old["protocol_sha256"].iat[0]) == proto["sha256"] and str(old["freeze"].iat[0]) == fz["freeze"] \
+            and str(old["code_commit"].iat[0]) == commit:
+        return {"skipped": True, "message": f"testy W3b już policzone (zamrożenie {fz['freeze']}, protokół "
+                                            f"{proto['sha256'][:12]}…, kod {commit}); force=True liczy ponownie{warn}"}
+    w = _parcel_obs(rt, cfg, until=fz["freeze"])
+    if w.empty:
+        return {"skipped": True, "message": "brak statystyk działek — uruchom task_parcel_stats"}
+    n_min = int(w.groupby("site_id")["time_utc"].nunique().min())
+    if n_min < fz["n_scenes"]:                     # testy liczymy tylko na pełnym archiwum do daty zamrożenia
+        return {"skipped": True, "message": f"statystyki działek niepełne ({n_min} z {fz['n_scenes']} scen ≤ "
+                                            f"{fz['freeze']}) — dokończ task_parcel_stats (sekcja 4b)"}
+    pa, n_dup = s11.parcel_anomalies(w, cfg)
+    counts = pd.DataFrame({"n_scenes": w.groupby("site_id").size(), "n_clear": (pd.to_numeric(
+        w["clear_frac"], errors="coerce") >= cfg["VEG_MIN_CLEAR_FRAC"]).groupby(w["site_id"]).sum()})
+    era5 = pd.read_csv(_era5_csv(cfg), parse_dates=["time"])
+    vpath = os.path.join(out, "veg_anomalies.csv")
+    veg = pd.read_csv(vpath, parse_dates=["time"]) if os.path.exists(vpath) else None
+    f4p = os.path.join(cfg["PROJECT_DIR"], "docs", "evidence", "F4_eksperymenty", "A_roslinnosc", "a2_variant_series.csv")
+    f4 = pd.read_csv(f4p) if os.path.exists(f4p) else None
+    tests = s11.run_tests(pa, n_dup, s11.sensor_daily(cfg), era5, s9.read_swi(cfg), veg, f4, cfg, counts)
+    tests = tests.assign(protocol_sha256=proto["sha256"], protocol_status=proto["status"],
+                         protocol_registered=proto["registered"], freeze=fz["freeze"], scenes=fz["n_scenes"],
+                         scenes_sha256=fz["scenes_sha256"], code_version=s11.CODE_VERSION, code_commit=commit)
+    os.makedirs(out, exist_ok=True)
+    tests.to_csv(os.path.join(out, "w3b_tests.csv"), index=False)
+    summ = s11.tests_summary(tests)
+    t3, p7 = summ["t3"], summ["p7"]
+    msg = (f"zamrożenie {fz['freeze']} ({fz['n_scenes']} scen, {fz['source']}); "
+           f"T3 ρ = {t3['value']:.2f} [{t3['lo']:.2f}; {t3['hi']:.2f}] — {t3['verdict']}; "
+           f"wariant wielopasmowy: {p7['delta']['verdict'] if p7['delta'] else '—'}; "
+           f"T1 {100 * summ['t1']['value']:.1f}% [{100 * summ['t1']['lo']:.1f}; {100 * summ['t1']['hi']:.1f}] — "
+           f"{summ['t1']['verdict']}")
+    if proto["status"] != "REGISTERED" or proto["registered"] != proto["sha256"]:
+        msg += f"; UWAGA: protokół {proto['status'] or 'bez statusu'}, skrót niezgodny z zarejestrowanym"
+    return {"message": msg + warn, "registry": {"gwl_validation_metrics": tests[s11.METRIC_COLS]}}
+
+
 def _veg_anomalies(rt: Dict[str, Any], cfg: Dict[str, Any]) -> pd.DataFrame:
     """
     Anomalie wskaźników VEG_ANOM_INDICES (NDVI, NDRE, NDMI, CRSWIR) dla każdego obiektu i produktu (10 m, SR 2,5 m)
@@ -1003,6 +1181,24 @@ def task_bulletin(rt: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[str, Any]:
         logger.warning(f"Biuletyn: karta „Woda w winnicy” niedostępna: {e}")
     try:
         import step_09_panels as s9
+        pc = s9.parcel_card_from_outputs(cfg, pd.read_csv(_era5_csv(cfg), parse_dates=["time"]), status,
+                                         cfg["MAIN_SITE"])
+        with open(paths["json"], encoding="utf-8") as f:
+            payload = json.load(f)
+        payload["parcel_card"] = s9.parcel_card_json(pc)
+        with open(paths["json"], "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=1, ensure_ascii=False)
+        pl_ = s9.parcel_card_lines(pc, "en")
+        extra.insert(0, "## My vineyard (parcel vs its own history)\n\n"
+                     + "\n".join(f"{i}. {x}" for i, x in enumerate(pl_["sentences"], 1)) + "\n\n"
+                     + "\n".join(f"- {x}" for x in pl_["notes"] + pl_["fixed"]) + "\n\n**How far to trust it**\n\n"
+                     + "\n".join(f"- {x}" for x in pl_["trust"]) + (f"\n\n_{pl_['detail']}_" if pl_["detail"] else "")
+                     + "\n")
+    except Exception as e:
+        warn += f"; karta „Moja winnica” niedostępna: {type(e).__name__}: {e}"
+        logger.warning(f"Biuletyn: karta „Moja winnica” niedostępna: {e}")
+    try:
+        import step_09_panels as s9
         traj = s9.season_trajectory(veg, pd.read_csv(_era5_csv(cfg), parse_dates=["time"]), cfg, cfg["MAIN_SITE"])
         paths["png_trajectory"] = s9.plot_season_trajectory(traj, cfg, os.path.join(out, "season_trajectory.png"))
         extra.append(f"## Season {traj['year']} against previous years\n\n_{s9.season_summary(traj)}_ (PL)\n\n"
@@ -1135,6 +1331,31 @@ def task_summary(rt: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[str, Any]:
                     + "\n\nNa ile ufać:\n" + "\n".join(f"- {x}" for x in trust_pl))
     except Exception as e:
         water_md = f"(niedostępna: {type(e).__name__}: {e})"
+    parcel_md, w3b_md = "(brak)", "(nie uruchomiono task_parcel_tests)"
+    try:
+        import step_09_panels as s9
+        pc = s9.parcel_card_from_outputs(cfg, pd.read_csv(era5_path, parse_dates=["time"]),
+                                         pd.read_csv(st_path) if os.path.exists(st_path) else None, cfg["MAIN_SITE"])
+        pl_ = s9.parcel_card_lines(pc, "pl")
+        parcel_md = ("\n".join(f"{i}. {x}" for i, x in enumerate(pl_["sentences"], 1))
+                     + "".join(f"\n- {x}" for x in pl_["notes"]) + "\n\nNa ile ufać:\n"
+                     + "\n".join(f"- {x}" for x in pl_["trust"]) + (f"\n\n{pl_['detail']}" if pl_["detail"] else ""))
+        summary["parcel_card"] = s9.parcel_card_json(pc)
+        with open(js, "w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=1, ensure_ascii=False, default=str)
+    except Exception as e:
+        parcel_md = f"(niedostępna: {type(e).__name__}: {e})"
+    tests = _read_tests(cfg)
+    if tests is not None:
+        t0 = tests.iloc[0]
+        key = tests[tests["key"].fillna("").astype(str) != ""]
+        w3b_md = (f"Protokół SHA-256 `{str(t0['protocol_sha256'])[:16]}…` ({t0['protocol_status']}), zamrożenie "
+                  f"{t0['freeze']} ({t0['scenes']} scen), testy policzone kodem {t0.get('code_commit', '—')} "
+                  f"(wersja {t0['code_version']}). Kryteria: T3 i wariant wielopasmowy (criterion = True); reszta "
+                  f"opisowo.\n\n"
+                  + table(key[["segment", "subset", "metric", "value", "ci_low", "ci_high", "n", "period", "criterion",
+                               "verdict"]].round(3))
+                  + f"\n\nPełna tabela: w3b_tests.csv ({len(tests)} wierszy).")
     ref_md = "(nie uruchomiono task_ref_validate)"
     rpath = os.path.join(cfg["OUTPUT_DIR"], "validation_reference.csv")
     if os.path.exists(rpath):
@@ -1165,6 +1386,12 @@ Commit `{summary['git_commit']}` · urządzenie: {gpu} · sen2sr {summary['versi
 
 ## Woda w glebie (karta W1)
 {water_md}
+
+## Moja winnica (W3b)
+{parcel_md}
+
+## W3b: testy (zamrożone)
+{w3b_md}
 
 ## Status bieżący
 {json.dumps(current, ensure_ascii=False, default=str)}
@@ -1205,7 +1432,10 @@ def run_monitoring(rt: Dict[str, Any], cfg: Optional[Dict[str, Any]] = None, ing
         run_task(rt, "ingest_s2", task_ingest_s2, rt, cfg)
         run_task(rt, "ingest_era5", task_ingest_era5, rt, cfg)
     run_task(rt, "scene_stats", task_scene_stats, rt, cfg)
+    run_task(rt, "parcel_stats", task_parcel_stats, rt, cfg)
     run_task(rt, "anomalies", task_anomalies, rt, cfg)
+    run_task(rt, "parcel_tests", task_parcel_tests, rt, cfg)        # raz po zamrożeniu; potem „skipped”
+    run_task(rt, "parcel_anomalies", task_parcel_anomalies, rt, cfg)
     run_task(rt, "validate", task_validate, rt, cfg)
     run_task(rt, "weather", task_weather, rt, cfg, fetch=ingest)
     run_task(rt, "bulletin", task_bulletin, rt, cfg)
@@ -1344,6 +1574,10 @@ def _selftest(out_dir: str) -> None:
     prof = {"driver": "GTiff", "crs": f"EPSG:{cfg['EPSG']}", "transform": from_origin(x0, y1, 10, 10),
             "width": w, "height": h, "count": 12, "dtype": "float32"}
     os.makedirs(cfg["S2_DIR"], exist_ok=True)
+    # W3b: sygnał między działkami (rastry syntetyczne są jednorodne): B11 +0,10 wewnątrz winnicy fid 7 tylko w 2024
+    from rasterio.features import geometry_mask
+    m7 = geometry_mask([parcels.loc[parcels["fid"] == 7].geometry.iloc[0]], out_shape=(h, w),
+                       transform=prof["transform"], invert=True)
     for year in range(2016, 2025):
         for month in range(4, 11):
             for day in (5, 20):
@@ -1355,6 +1589,8 @@ def _selftest(out_dir: str) -> None:
                 arr = np.stack([red * 0.8, red * 0.9, red, red * 1.5, nir * 0.7, nir * 0.9, nir, nir,
                                 np.full((h, w), 0.25 - anom), np.full((h, w), 0.18 - anom),
                                 np.zeros((h, w)), np.full((h, w), 4.0)]).astype("float32")
+                if year == 2024:
+                    arr[8][m7] += 0.10
                 s1.write_geotiff(arr, prof, os.path.join(cfg["S2_DIR"], f"S2_L2A_{t:%Y%m%d_%H%M%S}.tif"))
 
     # Kontrola SR bez modelu: interpolacja ma być odrzucona (H-SR0), SR ze szczegółem i spójny — przyjęty
@@ -1410,20 +1646,25 @@ def _selftest(out_dir: str) -> None:
     s3.super_resolve = fake_super_resolve
     try:
         for name, fn in (("ingest_swi", lambda r, c: task_ingest_swi(r, c, session=FakeCdse())),
-                         ("scene_stats", task_scene_stats), ("anomalies", task_anomalies),
-                         ("validate", task_validate),
+                         ("scene_stats", task_scene_stats), ("parcel_stats", task_parcel_stats),
+                         ("anomalies", task_anomalies), ("validate", task_validate),
                          ("weather", lambda r, c: task_weather(r, c, fetch=False)),
                          ("ref_validate", lambda r, c: task_ref_validate(r, c, cdse_session=FakeCdse(),
                                                                          icos_session=FakeIcos(),
                                                                          era5_fetch=lambda *a, **k: era5)),
+                         ("parcel_tests", task_parcel_tests), ("parcel_anomalies", task_parcel_anomalies),
                          ("bulletin", task_bulletin),
                          ("dashboard", lambda r, c: task_dashboard(r, c, forecast=False)),
                          ("summary", task_summary)):
             run_task(rt, name, fn, rt, cfg, raise_errors=True)
         res = run_task(rt, "scene_stats_repeat", task_scene_stats, rt, cfg, raise_errors=True)
+        res_p = run_task(rt, "parcel_stats_repeat", task_parcel_stats, rt, cfg, raise_errors=True)
+        res_t = run_task(rt, "parcel_tests_repeat", task_parcel_tests, rt, cfg, raise_errors=True)
     finally:
         s3.load_sen2sr, s3.super_resolve = real_load, real_sr
     assert res["skipped"], "Drugie uruchomienie nie powinno przetwarzać scen ponownie (także odrzuconych przez SR)"
+    assert res_p["skipped"] and res_t["skipped"], (res_p, res_t)
+    _selftest_w3b(rt, cfg)
     cov = sr_coverage(rt, cfg)
     assert cov["remaining"] == 0 and cov["sr_ok"] == cov["scenes"] - 1, cov
     st_main = registry_read(rt, "gwl_status")
@@ -1525,10 +1766,80 @@ def _selftest(out_dir: str) -> None:
     for name in ("bulletin.md", "agriwatch_latest.json", "dashboard.html"):
         assert os.path.exists(os.path.join(deg["OUTPUT_DIR"], name)), name
     d2 = open(os.path.join(deg["OUTPUT_DIR"], "dashboard.html"), encoding="utf-8").read()
-    assert "niedostępna" in msg_b and d2.count("Element niedostępny") == 4 and "Ryzyko suszy" in d2, msg_b
-    print("[OK] Bez modułu step_09: biuletyn, agriwatch_latest.json i dashboard powstają (4 karty „Element niedostępny”).")
+    assert "niedostępna" in msg_b and d2.count("Element niedostępny") == 5 and "Ryzyko suszy" in d2, msg_b
+    print("[OK] Bez modułu step_09: biuletyn, agriwatch_latest.json i dashboard powstają (5 kart „Element niedostępny”).")
     print("[OK] Selftest monitoringu. Status:", js["current"]["date"], js["current"]["cdi_class"])
-    print(val[["product", "reference", "segment", "subset", "metric", "value", "n"]].round(3).to_string(index=False))
+    v_old = val[~val["segment"].isin(["T1", "T2", "T3", "P7", "P9", "QC"])]          # bez wierszy W3b (osobny test)
+    print(v_old[["product", "reference", "segment", "subset", "metric", "value", "n"]].round(3).to_string(index=False))
+
+
+def _selftest_w3b(rt: Dict[str, Any], cfg: Dict[str, Any]) -> None:
+    """
+    Moja winnica (W3b) w selftescie: 15 winnic z pasem 20 m, QC 13 z 15, stare produkty bez zmian (n_pixels i metoda
+    pikseli = wzorzec sprzed zmiany site_stats), anomalie i wskaźnik wody, flaga z wstrzykniętego sygnału (fid 7, 2024),
+    testy zamrożone z kryteriami, karta w dashboardzie, biuletynie, JSON i raporcie; testy jednostkowe step_09 i step_11.
+    """
+    import step_09_panels as s9
+    import step_11_parcel as s11
+    out = cfg["OUTPUT_DIR"]
+    obs = registry_read(rt, "gwl_observations")
+    pobs = obs[obs["product"] == cfg["PARCEL_PRODUCT"]]
+    assert pobs["site_id"].nunique() == 15 and set(pobs["variable"]) == {"ndvi", "ndmi", "ndre", "crswir", "b04", "b06",
+                                                                       "b8a", "b12", "clear_frac"}, set(pobs["variable"])
+    # regresja: obiekty S2_10m i S2SR_2.5m mają te same liczby pikseli i metodę co przed zmianą site_stats
+    pattern = {("VINEYARD_06", "S2_10m"): 213, ("SMOSMANIA_Condom_poly", "S2_10m"): 2, ("SMOSMANIA_Condom", "S2_10m"): 79,
+               ("VINEYARD_06", "S2SR_2.5m"): 4330, ("SMOSMANIA_Condom_poly", "S2SR_2.5m"): 34,
+               ("SMOSMANIA_Condom", "S2SR_2.5m"): 1256}
+    old = obs[obs["product"].isin(["S2_10m", "S2SR_2.5m"])]
+    got = {k: int(pd.to_numeric(g["n_pixels"]).max()) for k, g in old.groupby(["site_id", "product"])}
+    assert got == pattern and set(old["qc_flags"].astype(str)) == {"centre"}, got
+    qc = pd.read_csv(os.path.join(out, "parcel_qc.csv")).set_index("site_id")
+    assert set(qc.index[~qc["qc_ok"]]) == {"VINEYARD_16", "VINEYARD_18"} and 134 <= qc.loc["VINEYARD_06", "n_pixels"] <= 142
+    pa = pd.read_csv(os.path.join(out, "parcel_anomalies.csv"), parse_dates=["time"])
+    assert pa["site_id"].nunique() == 15 and (pa["index"] == "water").any() and "n_ref_years" in pa, pa.columns
+    for name in ("veg_anomalies.csv", "validation_anomalies.csv"):
+        d = pd.read_csv(os.path.join(out, name))
+        assert not d["product"].astype(str).str.startswith(cfg["PARCEL_PRODUCT"]).any(), name
+    fl = pd.read_csv(os.path.join(out, "parcel_flags.csv"))
+    f7 = fl[(fl["site_id"] == "VINEYARD_07") & (fl["year"] == 2024)]
+    assert len(f7) and f7["flag"].iat[0] == "-" and f7["d_median"].iat[0] < -1, f7
+    assert not fl[fl["site_id"] == "VINEYARD_06"]["flag"].astype(str).isin(["-", "+"]).any(), fl
+    tests = pd.read_csv(os.path.join(out, "w3b_tests.csv"))
+    keys = set(tests["key"].dropna())
+    assert {"t1_main", "t2_g5", "t2_g13", "t3_main", "p7_accept"} <= keys, keys
+    assert set(tests.loc[tests["criterion"], "key"]) == {"t3_main", "p7_accept"}, tests[tests["criterion"]]
+    t2 = tests.set_index("key").loc[["t2_g5", "t2_g13"]]
+    assert (t2["verdict"] == "za mało par").all(), t2       # sceny syntetyczne co 15–16 dni: brak par G5 / G13
+    assert tests["protocol_sha256"].iat[0] == s11.protocol_sha(cfg["W3B_PROTOCOL"])["sha256"]
+    assert tests["freeze"].iat[0] == "2024-10-20" and int(tests["scenes"].iat[0]) == 126, tests[["freeze", "scenes"]].iloc[0]
+    assert (tests["subset"] == "P4 krok d: S2_10m_buf20, czujnik po A4").any(), "brak drabinki wartości „przed”"
+    assert tests["code_commit"].iat[0] == rt["GIT_COMMIT"], tests["code_commit"].iat[0]
+    n_main = int(tests.set_index("key").loc["t3_main", "n"])
+    same = tests[tests["subset"].isin(["ERA5-Land 0–100 cm zamiast czujnika", "SWI zamiast czujnika"])]
+    assert len(same) == 2 and (same["n"] == n_main).all(), (n_main, same[["subset", "n"]])   # te same dni co T3 (§6)
+    pv = tests.set_index("key").loc["p7_rho_multi", "verdict"]
+    assert pv == "zdanie 3: nie" or tests.set_index("key").loc["p7_accept", "verdict"] == "przyjęty", pv
+    reg = registry_read(rt, "gwl_validation_metrics")
+    assert (reg["segment"] == "T3").any() and (reg["site_id"] == s11.AREA).any()
+    dash = open(os.path.join(out, "dashboard.html"), encoding="utf-8").read()
+    assert "Moja winnica — działka wobec własnej historii" in dash and \
+        dash.index("Moja winnica") < dash.index("Woda w glebie — okolica winnicy"), "karta „Moja winnica” w dashboardzie"
+    assert "Nawadnianie</span><b>nieznane" in dash and "Gleba w okolicy (~10 km" in dash
+    bmd = open(os.path.join(out, "bulletin.md"), encoding="utf-8").read()
+    js = json.load(open(os.path.join(out, "agriwatch_latest.json"), encoding="utf-8"))
+    assert "My vineyard (parcel vs its own history)" in bmd and js["parcel_card"]["site_id"] == cfg["MAIN_SITE"]
+    assert js["water_card"]["soil_class"] in ("dry", "normal", "wet"), js["water_card"].get("soil_class")
+    smd = open(os.path.join(out, "run_summary.md"), encoding="utf-8").read()
+    assert "## Moja winnica (W3b)" in smd and "## W3b: testy (zamrożone)" in smd and "t3_main" not in smd, smd[-2000:]
+    for txt in (dash, bmd, smd):
+        low = txt.lower()
+        assert "stres wodny" not in low and "wczesne ostrzeżenie" not in low and "early warning" not in low
+    s9._selftest_parcel(cfg)
+    s11._selftest(cfg)
+    t3 = tests.set_index("key").loc["t3_main"]
+    print(f"[OK] W3b: 15 winnic (QC 13), flaga VINEYARD_07 2024 „−”, stare produkty bez zmian, testy zamrożone "
+          f"({len(tests)} wierszy; T3 na danych syntetycznych: ρ = {t3['value']:.2f}, {t3['verdict']}); karta w "
+          f"dashboardzie, biuletynie, JSON i raporcie.")
 
 
 if __name__ == "__main__":

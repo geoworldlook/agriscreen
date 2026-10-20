@@ -58,9 +58,9 @@ INDEX_PL: Dict[str, Dict[str, str]] = {
              "drop_hint": "liście bledsze lub starsze niż zwykle (niedobór wody lub azotu, choroby, wcześniejsze "
                           "przebarwienie), ale też koszenie lub uprawa międzyrzędzi; na tej działce NDRE zmienia się "
                           "prawie tak samo jak NDVI"},
-    "ndmi": {"label": "NDMI — woda w liściach",
-             "meaning": "zawartość wody w liściach (podczerwień krótkofalowa SWIR)",
-             "drop_hint": "mniej wody w liściach lub mniej liści; reaguje też na suchą okrywę międzyrzędzi"},
+    "ndmi": {"label": "NDMI — woda w roślinności (SWIR)",
+             "meaning": "woda w roślinności całej działki: winorośl i międzyrzędzie (podczerwień krótkofalowa SWIR)",
+             "drop_hint": "mniej wody w roślinności lub mniej liści; reaguje też na suchą okrywę międzyrzędzi"},
 }
 
 # Klasy z roślinności dla kafelków, mini-wykresu i krzywej sezonu (stałe a priori, zgodne z THR_VEG = −1 i klasami
@@ -93,7 +93,7 @@ MATRIX_ROWS = (
     ("et_stress", "Stres parowania (ERA5-Land)", None, 1),
     ("ndvi", "NDVI — wigor", "veg", 1),
     ("ndre", "NDRE — chlorofil", "veg", 1),
-    ("ndmi", "NDMI — woda w liściach", "veg", 1),
+    ("ndmi", "NDMI — woda w roślinności", "veg", 1),
     ("s1", "Radar S-1 (VV)", None, 1),
     ("s3_lst", "Temperatura S-3 (LST)", None, -1),
 )
@@ -1117,7 +1117,7 @@ def water_card(era5: pd.DataFrame, status: Optional[pd.DataFrame], cfg: Dict[str
             "drier_years": drier, "wetter_years": wetter,
             "since": since, "since_dekads": len(run), "since_pct": thr, "rain": rain,
             "p_soil": p_soil, "p_soil_dekad": p_date, "p_under_review": bool(cfg.get("WATER_P_UNDER_REVIEW", True)),
-            "clim_ref": (str(r0)[:4], str(r1)[:4]), "half_window": hw,
+            "clim_ref": (str(r0)[:4], str(r1)[:4]), "half_window": hw, "soil_class": _swi_class(pct, cfg),
             "satellite": water_satellite(rz, swi, cfg) if swi is not None else None}
 
 
@@ -1149,9 +1149,10 @@ def water_card_lines(card: Dict[str, Any], lang: str = "pl") -> Dict[str, Any]:
     day = (f"{t.day} {MONTHS_GEN_PL[t.month - 1]}" if pl else f"{t.day} {MONTHS_EN[t.month - 1]}")
     num = (lambda x, nd=0: _num(x, nd)) if pl else (lambda x, nd=0: "—" if not np.isfinite(_float(x)) else f"{x:.{nd}f}")
     # Nagłówek: kategoria i jak często taki stan zdarza się o tej porze
+    # Nagłówek zaczyna się od jednej z 3 klas (sucho / w normie / wilgotno, D-087); kategoria USDM jest szczegółem
     if code.startswith("D"):
-        head = (f"{card['category']['label'].capitalize()} w glebie" if pl
-                else f"{WATER_LABEL_EN[code].capitalize()} in the soil")
+        head = (f"Sucho w glebie okolicy — {card['category']['label']} ({code} wg US Drought Monitor)" if pl
+                else f"Dry soil in the area — {WATER_LABEL_EN[code]} ({code}, US Drought Monitor)")
         if pct > 0:
             # Częstość tylko w zasięgu długości normy (D-079): „raz na 58 lat” z normy 30-letniej to ekstrapolacja
             # i przeczyłaby miejscu wśród lat; rzadsze stany opisuje sam percentyl i ranking poniżej
@@ -1164,7 +1165,8 @@ def water_card_lines(card: Dict[str, Any], lang: str = "pl") -> Dict[str, Any]:
         else:
             head += (f" — suszej niż w każdym roku normy {c0}–{c1}" if pl else f" — drier than any year of {c0}–{c1}")
     elif code == "W":
-        head = "Gleba wilgotniejsza niż zwykle o tej porze" if pl else "Soil wetter than usual for this time of year"
+        head = ("Wilgotno — gleba wilgotniejsza niż zwykle o tej porze" if pl
+                else "Wet — soil wetter than usual for this time of year")
     elif code == "N":
         head = "Wilgotność gleby w normie dla tej pory roku" if pl else "Soil moisture near normal for this time of year"
     else:
@@ -1403,6 +1405,338 @@ def water_trust(val: Optional[pd.DataFrame], wval: Optional[pd.DataFrame], thr: 
     return out
 
 
+# ==============================================================================
+# III b. KARTA „MOJA WINNICA” (W3b: działka wobec własnej historii)
+# ==============================================================================
+# Trzy zdania (protokół W3b §10, docs/evidence/W3b_protokol_walidacji.md): 1 — gleba w okolicy (3 klasy z karty wody),
+# 2 — wskaźnik wody w roślinności działki (SWIR) wobec jej własnej historii, z „k z N winnic” i zmianą od poprzedniej
+# sceny, 3 — okolica: tylko gdy test T3 (albo przyjęty wariant wielopasmowy, §7) spełnił kryterium. Słowa wg D-087:
+# karta nie mówi o stresie wodnym winorośli ani o wczesnym ostrzeżeniu. Liczby testów z w3b_tests.csv (zamrożone).
+
+PARCEL_CLASS_PL = {"below": "poniżej swojej normy", "normal": "w normie", "above": "powyżej swojej normy"}
+PARCEL_CLASS_EN = {"below": "below its own normal", "normal": "within its own normal range",
+                   "above": "above its own normal"}
+PARCEL_DETAIL = (("ndmi", "NDMI", 1.0), ("crswir", "−CRSWIR", -1.0), ("ndvi", "NDVI", 1.0), ("ndre", "NDRE", 1.0))
+PARCEL_NOTES = {
+    "pl": ("Wskaźnik widzi całą działkę: winorośl, międzyrzędzie i glebę. Zmienia się zwykle razem z zielenią.",
+           "Spadek wody w roślinności widać raczej przy silniejszym niedoborze (wniosek z badań na poziomie liścia, "
+           "Ceccato i in. 2001)."),
+    "en": ("The index sees the whole parcel: vines, inter-rows and soil. It usually moves together with greenness.",
+           "A drop in vegetation water tends to show only under stronger water deficits (leaf-level studies, "
+           "Ceccato et al. 2001)."),
+}
+
+
+def parcel_class(z: Any) -> Optional[str]:
+    """Klasa z_woda (protokół W3b §3): ≤ −1 poniżej, ≥ +1 powyżej, pomiędzy w normie; None bez z."""
+    z = _float(z)
+    if not np.isfinite(z):
+        return None
+    return "below" if z <= -1 else ("above" if z >= 1 else "normal")
+
+
+def parcel_card(pa: pd.DataFrame, area: Optional[pd.DataFrame], flags: Optional[pd.DataFrame],
+                summ: Optional[Dict[str, Any]], soil: Optional[Dict[str, Any]], cfg: Dict[str, Any], site_id: str,
+                precip: Optional[pd.Series] = None, today: Optional[Any] = None) -> Dict[str, Any]:
+    """
+    Dane karty „Moja winnica” dla jednej działki (słownik zwykłych typów Pythona i pd.Timestamp):
+      state     — "ok" | "stale" (scena starsza niż VEG_MAX_AGE_DAYS) | "small" (< PARCEL_MIN_PX pikseli) | "none",
+      z, cls    — z_woda najnowszej sceny i klasa; k z N winnic z QC w tej samej klasie w tym dniu,
+      change    — poprzednia scena, Δz, grupa pary (G5 / G13), próg MDC95 z testu T2, opad między scenami,
+      flag_years, n_ref_years, off_season — dopiski (§8, U2, U4); detail — z NDMI, −CRSWIR, NDVI, NDRE (niezwalidowane),
+      soil      — klasa gleby z karty wody (zdanie 1); area, sentence3 — zdanie 3 (§6 albo §7); tests — podsumowanie testów.
+    """
+    today = pd.Timestamp(today if today is not None else pd.Timestamp.now()).normalize()
+    m0, m1 = cfg["PARCEL_TEST_MONTHS"]
+    pa = pa.copy()
+    pa["time"] = pd.to_datetime(pa["time"])
+    site = pa[pa["site_id"] == site_id]
+    n_px = _float(pd.to_numeric(site["n_pixels"], errors="coerce").max()) if len(site) else np.nan
+    me = site[site["index"] == "water"].dropna(subset=["z"]).sort_values("time")
+    card: Dict[str, Any] = {
+        "site_id": site_id, "n_pixels": n_px, "min_px": int(cfg["PARCEL_MIN_PX"]),
+        "qc_ok": bool(np.isfinite(n_px) and n_px >= cfg["PARCEL_MIN_PX"]), "state": "none", "date": None,
+        "age_days": None, "z": np.nan, "cls": None, "k": None, "N": None, "change": None, "flag_years": [],
+        "n_ref_years": None, "off_season": False, "detail": {}, "season": [], "soil": None, "area": None,
+        "sentence3": False, "tests": summ}
+    if soil:
+        card["soil"] = {"class": soil.get("soil_class"), "percentile": _float(soil.get("percentile")),
+                        "code": soil["category"]["code"], "label": soil["category"]["label"], "date": soil.get("date"),
+                        "clim_ref": soil.get("clim_ref")}
+    if not card["qc_ok"]:
+        card["state"] = "small"
+    elif len(me):
+        last = me.iloc[-1]
+        day = last["time"].normalize()
+        nry = _float(last.get("n_ref_years"))
+        card.update(date=last["time"], age_days=int((today - day).days), z=_float(last["z"]),
+                    n_ref_years=int(nry) if np.isfinite(nry) else None, off_season=not (m0 <= day.month <= m1),
+                    state="stale" if (today - day).days > cfg["VEG_MAX_AGE_DAYS"] else "ok")
+        card["season"] = [{"date": t.strftime("%d.%m.%Y"), "z": float(z)}
+                          for t, z in zip(me["time"], me["z"]) if t.year == day.year]
+        for idx, label, sign in PARCEL_DETAIL:
+            r = site[(site["index"] == idx) & (site["time"] == last["time"])].dropna(subset=["z"])
+            if len(r):
+                card["detail"][label] = sign * float(r["z"].iat[0])
+        if card["state"] == "ok":
+            card["cls"] = parcel_class(card["z"])
+            ok = pa[(pa["index"] == "water") & (pa["time"].dt.normalize() == day)].dropna(subset=["z"])
+            ok = ok[ok["qc_ok"].map(lambda v: str(v).strip().lower() in ("true", "1", "1.0"))]
+            cls = ok["z"].map(parcel_class)
+            card["N"], card["k"] = int(ok["site_id"].nunique()), int(ok.loc[cls == card["cls"], "site_id"].nunique())
+            if len(me) >= 2:
+                p = me.iloc[-2]
+                pday = p["time"].normalize()
+                dt = int((day - pday).days)
+                same = _float(p["track"]) == _float(last["track"])
+                grp = "G5" if same and 4 <= dt <= 6 else ("G13" if not same and 1 <= dt <= 3 else None)
+                mdc = ((summ or {}).get("mdc") or {}).get(grp) if grp else None
+                rain = float(pd.Series(precip).loc[pday:day].sum()) if precip is not None and len(precip) else np.nan
+                card["change"] = {"date_prev": p["time"], "z_prev": _float(p["z"]), "dt": dt,
+                                  "dz": card["z"] - _float(p["z"]), "group": grp,
+                                  "mdc": _float(mdc["value"]) if mdc else np.nan, "rain_mm": rain}
+    year = card["date"].year if card["date"] is not None else today.year
+    if flags is not None and len(flags):
+        f = flags[(flags["site_id"] == site_id) & flags["year"].between(year - int(cfg.get("VEG_REF_YEARS") or 5), year)]
+        card["flag_years"] = sorted(int(y) for y in f.loc[f["flag"].astype(str).isin(["-", "+"]), "year"])
+    p7 = (summ or {}).get("p7") or {}
+    use_mb = bool(p7.get("accepted"))
+    if area is not None and len(area):
+        a = area[area["index"] == ("water_mb" if use_mb else "water")].copy()
+        a["day"] = pd.to_datetime(a["day"])
+        a = a.dropna(subset=["z_med"]).sort_values("day")
+        if len(a):
+            r = a.iloc[-1]
+            n = _float(r.get("n_parcels"))
+            card["area"] = {"date": r["day"], "z": _float(r["z_med"]), "cls": parcel_class(r["z_med"]),
+                            "n": int(n) if np.isfinite(n) else None, "source": "water_mb" if use_mb else "water",
+                            "age_days": int((today - r["day"].normalize()).days)}
+    t3 = (summ or {}).get("t3") or {}
+    passed = p7.get("passed_multi") if use_mb else t3.get("passed")
+    card["sentence3"] = bool(passed and card["area"] and card["area"]["age_days"] <= cfg["VEG_MAX_AGE_DAYS"])
+    return card
+
+
+def parcel_card_lines(card: Dict[str, Any], lang: str = "pl") -> Dict[str, Any]:
+    """Zdania karty „Moja winnica”: tytuł, 3 zdania (trzecie tylko po spełnionym kryterium), dopiski, stałe uwagi,
+    „Na ile ufać” i szczegół (niezwalidowane). lang = "pl" (dashboard, raport) lub "en" (biuletyn)."""
+    pl = lang == "pl"
+
+    def num(x, nd=1):
+        x = _float(x)
+        return _num(x, nd) if pl else ("—" if not np.isfinite(x) else f"{x:.{nd}f}")
+
+    def date(t):
+        return pd.Timestamp(t).strftime("%d.%m.%Y" if pl else "%Y-%m-%d")
+
+    def per(x):
+        return str((x or {}).get("period", "")).replace("-", "–")
+    cls_txt = PARCEL_CLASS_PL if pl else PARCEL_CLASS_EN
+    out: Dict[str, Any] = {"title": "Moja winnica — działka wobec własnej historii" if pl else
+                           "My vineyard — the parcel against its own history", "sentences": [], "notes": [],
+                           "trust": [], "detail": "", "fixed": list(PARCEL_NOTES["pl" if pl else "en"])}
+    soil = card.get("soil")
+    if soil and soil.get("class"):
+        c0, c1 = soil.get("clim_ref") or ("1991", "2020")
+        word = (SWI_CLASS_PL if pl else SWI_CLASS_EN)[soil["class"]]
+        usdm = (f" ({soil['code']} wg US Drought Monitor)" if pl else f" ({soil['code']}, US Drought Monitor)") \
+            if soil.get("code") else ""
+        out["sentences"].append(
+            f"Gleba w okolicy (~10 km, model ERA5-Land): {word} — percentyl {num(soil['percentile'], 0)} wobec "
+            f"{c0}–{c1}{usdm}, stan na {date(soil['date'])}." if pl else
+            f"Soil in the area (~10 km, ERA5-Land model): {word} — percentile {num(soil['percentile'], 0)} vs "
+            f"{c0}–{c1}{usdm}, as of {date(soil['date'])}.")
+    st = card["state"]
+    if st == "small":
+        out["sentences"].append(
+            f"Twoja działka: za mała na wiarygodną anomalię ({num(card['n_pixels'], 0)} pikseli 10 m po odcięciu pasa "
+            f"przy brzegu; potrzeba co najmniej {card['min_px']})." if pl else
+            f"Your parcel: too small for a reliable anomaly ({num(card['n_pixels'], 0)} 10 m pixels after removing the "
+            f"edge strip; at least {card['min_px']} needed).")
+    elif st == "none":
+        out["sentences"].append("Twoja działka: brak sceny z oceną wobec historii." if pl else
+                                "Your parcel: no scene with an anomaly yet.")
+    elif st == "stale":
+        out["sentences"].append(f"Twoja działka: brak aktualnej sceny (ostatnia {date(card['date'])}, "
+                                f"{days_ago_pl(card['age_days'])})." if pl else
+                                f"Your parcel: no recent scene (last one {date(card['date'])}, "
+                                f"{card['age_days']} days ago).")
+    else:
+        txt = (f"Twoja działka — wskaźnik wody w roślinności (SWIR): {cls_txt[card['cls']]} (z = {num(card['z'])}), "
+               f"scena {date(card['date'])}; tak samo {card['k']} z {card['N']} winnic w okolicy." if pl else
+               f"Your parcel — vegetation water index (SWIR): {cls_txt[card['cls']]} (z = {num(card['z'])}), scene "
+               f"{date(card['date'])}; {card['k']} of {card['N']} vineyards in the area are in the same class.")
+        ch = card.get("change")
+        if ch:
+            prev = f"{date(ch['date_prev'])}, z = {num(ch['z_prev'])}"
+            if ch["dt"] > 6:
+                txt += f" Poprzednia scena: {prev}." if pl else f" Previous scene: {prev}."
+            elif ch["group"] is None or not np.isfinite(_float(ch["mdc"])):
+                txt += (f" Poprzednia scena: {prev} (zmiany nie oceniamy: brak progu dla tej pary scen)." if pl else
+                        f" Previous scene: {prev} (change not assessed: no threshold for this pair of scenes).")
+            elif abs(ch["dz"]) >= ch["mdc"]:
+                txt += (f" Wyraźna zmiana od poprzedniej sceny ({prev}): {num(ch['dz'])} przy progu {num(ch['mdc'])}."
+                        if pl else f" Clear change since the previous scene ({prev}): {num(ch['dz'])} vs threshold "
+                                   f"{num(ch['mdc'])}.")
+            else:
+                txt += (f" Bez wyraźnej zmiany od poprzedniej sceny ({prev}; różnica {num(ch['dz'])} poniżej progu "
+                        f"{num(ch['mdc'])})." if pl else f" No clear change since the previous scene ({prev}; "
+                                                         f"difference {num(ch['dz'])} below threshold {num(ch['mdc'])}).")
+            if ch["dt"] <= 6 and np.isfinite(_float(ch["rain_mm"])) and ch["rain_mm"] >= 5:
+                txt += (f" Między scenami padało ({num(ch['rain_mm'], 0)} mm)." if pl else
+                        f" It rained between the scenes ({num(ch['rain_mm'], 0)} mm).")
+        out["sentences"].append(txt)
+    summ = card.get("tests") or {}
+    t3 = summ.get("t3") or {}
+    if card.get("sentence3") and card.get("area"):
+        a = card["area"]
+        p7 = summ.get("p7") or {}
+        r = p7.get("rho_multi") if a["source"] == "water_mb" else t3
+        src = (" (model 4 pasm)" if pl else " (4-band model)") if a["source"] == "water_mb" else ""
+        out["sentences"].append(
+            f"Okolica: roślinność winnic {cls_txt[a['cls']]}{src}, scena {date(a['date'])}. W latach {per(r)} "
+            f"szła w parze z wodą w glebie z 30 dni przed sceną (ρ = {num(r['value'], 2)} [{num(r['lo'], 2)}; "
+            f"{num(r['hi'], 2)}], czujnik ISMN w Condom). Dla pojedynczej działki tego nie sprawdzaliśmy." if pl else
+            f"Area: vineyard vegetation {cls_txt[a['cls']]}{src}, scene {date(a['date'])}. In {per(r)} it moved "
+            f"together with soil water of the previous 30 days (ρ = {num(r['value'], 2)} [{num(r['lo'], 2)}; "
+            f"{num(r['hi'], 2)}], ISMN sensor at Condom). Not checked for a single parcel.")
+    if card["flag_years"]:
+        ys = ", ".join(map(str, card["flag_years"]))
+        out["notes"].append(f"Porównanie z historią mniej pewne: w sezonie {ys} działka wyraźnie odbiegała od sąsiednich "
+                            f"winnic (możliwa zmiana gospodarowania)." if pl else
+                            f"Comparison with history less certain: in {ys} the parcel departed clearly from the "
+                            f"neighbouring vineyards (possible change in management).")
+    if st in ("ok", "stale") and card.get("n_ref_years") is not None and card["n_ref_years"] < 3:
+        n = card["n_ref_years"]
+        out["notes"].append(f"Krótka historia ({n} {plural_pl(n, 'rok', 'lata', 'lat')} w normie)." if pl else
+                            f"Short history ({n} years in the baseline).")
+    if st in ("ok", "stale") and card.get("off_season"):
+        out["notes"].append("Poza okresem sprawdzonym (VI–IX)." if pl else "Outside the tested period (June–September).")
+    t1 = summ.get("t1")
+    if t1 and np.isfinite(_float(t1["value"])):
+        out["trust"].append(
+            f"W archiwum (VI–IX, {per(t1)}) klasa „poniżej swojej normy” wypadła w {num(100 * t1['value'])}% scen "
+            f"[{num(100 * t1['lo'])}; {num(100 * t1['hi'])}]; zakładane ok. 16% (1 na 6) — {t1['verdict']}." if pl else
+            f"In the archive (June–September, {per(t1)}) the class “below its own normal” occurred in "
+            f"{num(100 * t1['value'])}% of scenes [{num(100 * t1['lo'])}; {num(100 * t1['hi'])}]; expected about 16%.")
+        from step_11_parcel import P_BELOW
+        lo, hi = _float(t1["lo"]), _float(t1["hi"])
+        if np.isfinite(lo) and not lo <= P_BELOW <= hi:
+            out["notes"].append(f"W archiwum ta klasa wypadała {'częściej' if lo > P_BELOW else 'rzadziej'} niż 1 na 6 scen."
+                                if pl else f"In the archive this class occurred {'more' if lo > P_BELOW else 'less'} "
+                                           f"often than 1 in 6 scenes.")
+    mdc = summ.get("mdc") or {}
+    if mdc:
+        parts = []
+        for g, lab_pl, lab_en in (("G5", "ten sam tor, 4–6 dni", "same orbit track, 4–6 days"),
+                                  ("G13", "różne tory, 1–3 dni", "different tracks, 1–3 days")):
+            m = mdc.get(g)
+            v = _float(m["value"]) if m else np.nan
+            parts.append(f"{num(v)} ({lab_pl})" if pl and np.isfinite(v) else
+                         f"za mało par ({lab_pl})" if pl else
+                         f"{num(v)} ({lab_en})" if np.isfinite(v) else f"too few pairs ({lab_en})")
+        out["trust"].append(("Najmniejsza wyraźna zmiana z między scenami: " if pl else
+                             "Smallest clear change of z between scenes: ") + "; ".join(parts) + ".")
+    if t3:
+        ok3 = t3.get("passed")
+        out["trust"].append(
+            f"Roślinność okolicy a czujnik w gruncie (T3, VI–IX {per(t3)}): ρ = {num(t3['value'], 2)} "
+            f"[{num(t3['lo'], 2)}; {num(t3['hi'], 2)}]" + ("" if ok3 else " — niepotwierdzone") + "." if pl else
+            f"Area vegetation vs in situ sensor (T3, June–September {per(t3)}): ρ = {num(t3['value'], 2)} "
+            f"[{num(t3['lo'], 2)}; {num(t3['hi'], 2)}]" + ("" if ok3 else " — not confirmed") + ".")
+    if not summ:
+        out["trust"].append("Testy W3b jeszcze nie policzone (notatnik, sekcja 5c)." if pl else
+                            "W3b tests not computed yet.")
+    if card["detail"]:
+        out["detail"] = (("Szczegół (niezwalidowane): " if pl else "Detail (not validated): ")
+                         + ", ".join(f"{k} z = {num(v)}" for k, v in card["detail"].items()) + ".")
+    return out
+
+
+parcel_card_json = water_card_json        # ta sama konwersja do JSON (daty ISO, NaN -> None)
+
+
+def parcel_card_from_outputs(cfg: Dict[str, Any], era5: pd.DataFrame, status: Optional[pd.DataFrame], site_id: str,
+                             today: Optional[Any] = None) -> Dict[str, Any]:
+    """Karta „Moja winnica” z plików task_parcel_anomalies / task_parcel_tests w OUTPUT_DIR i z karty wody (zdanie 1)."""
+    import step_11_parcel as s11
+    out = cfg["OUTPUT_DIR"]
+    pa = pd.read_csv(os.path.join(out, "parcel_anomalies.csv"), parse_dates=["time"])
+
+    def opt(name):
+        p = os.path.join(out, name)
+        return pd.read_csv(p) if os.path.exists(p) and os.path.getsize(p) > 1 else None
+    soil = water_card(era5, status, cfg, site_id, swi=read_swi(cfg))
+    e = era5.set_index(pd.to_datetime(era5["time"]).dt.floor("D")).sort_index()
+    precip = e["precip_mm"] if "precip_mm" in e else None
+    return parcel_card(pa, opt("parcel_area.csv"), opt("parcel_flags.csv"), s11.tests_summary(opt("w3b_tests.csv")),
+                       soil, cfg, site_id, precip=precip, today=today)
+
+
+def _selftest_parcel(cfg: Dict[str, Any]) -> None:
+    """Karta „Moja winnica” na ręcznie zbudowanych danych: klasy, mała działka, flaga, wyraźna zmiana i opad,
+    zdanie 3 tylko po kryterium, słowa zakazane (D-087), JSON, znak CRSWIR w szczególe."""
+    import json
+    assert [parcel_class(z) for z in (-1.0, -0.99, 0.0, 0.99, 1.0, np.nan)] == \
+        ["below", "normal", "normal", "normal", "above", None]
+    t = pd.to_datetime(["2026-08-02 10:59", "2026-08-07 10:59", "2026-08-07 10:59", "2026-08-07 10:59"])
+    base = {"product": "S2_10m_buf20", "value": np.nan, "n_ref": 20, "n_ref_years": 5, "ref_mode": "same_track",
+            "n_pixels": 141, "qc_ok": True}
+    rows = [dict(base, site_id="VINEYARD_06", index="water", time=t[0], z=0.2, track=0),
+            dict(base, site_id="VINEYARD_06", index="water", time=t[1], z=-1.4, track=0),
+            dict(base, site_id="VINEYARD_06", index="crswir", time=t[1], z=1.6, track=0),
+            dict(base, site_id="VINEYARD_06", index="ndmi", time=t[1], z=-1.2, track=0)]
+    rows += [dict(base, site_id=f"VINEYARD_{i:02d}", index="water", time=t[1], z=z, track=0)
+             for i, z in zip((7, 8, 9, 10), (-1.1, -0.5, -2.0, 0.3))]
+    rows += [dict(base, site_id="VINEYARD_16", index="water", time=t[1], z=-3.0, track=0, n_pixels=19, qc_ok=False)]
+    pa = pd.DataFrame(rows)
+    summ = {"t1": {"value": 0.17, "lo": 0.14, "hi": 0.20, "period": "2018-2026", "verdict": "nie wykryto grubego "
+                   "rozkalibrowania", "n": 900},
+            "mdc": {"G5": {"value": 1.2, "lo": 1.0, "hi": 1.4, "period": "2018-2026", "verdict": "", "n": 300},
+                    "G13": None},
+            "t3": {"value": 0.31, "lo": 0.05, "hi": 0.57, "period": "2018-2024", "verdict": "spełnione", "n": 110,
+                   "passed": True},
+            "p7": {"accepted": False}}
+    area = pd.DataFrame({"day": [pd.Timestamp("2026-08-07")], "index": ["water"], "z_med": [-1.05], "n_parcels": [9]})
+    flags = pd.DataFrame({"site_id": ["VINEYARD_06"], "year": [2023], "flag": ["+"]})
+    precip = pd.Series(3.0, index=pd.date_range("2026-07-01", "2026-08-31"))
+    soil = {"soil_class": "dry", "percentile": 12.0, "category": {"code": "D1", "label": "umiarkowana susza"},
+            "date": pd.Timestamp("2026-08-05"), "clim_ref": ("1991", "2020")}
+    today = pd.Timestamp("2026-08-10")
+    card = parcel_card(pa, area, flags, summ, soil, cfg, "VINEYARD_06", precip=precip, today=today)
+    assert card["state"] == "ok" and card["cls"] == "below" and (card["k"], card["N"]) == (3, 5), card
+    assert card["change"]["group"] == "G5" and card["detail"]["−CRSWIR"] == -1.6 and card["sentence3"], card
+    pl, en = parcel_card_lines(card), parcel_card_lines(card, "en")
+    s = " ".join(pl["sentences"] + pl["notes"] + pl["trust"])
+    assert pl["sentences"][0].startswith("Gleba w okolicy (~10 km, model ERA5-Land): sucho") and len(pl["sentences"]) == 3
+    assert "(D1 wg US Drought Monitor)" in pl["sentences"][0], pl["sentences"][0]
+    assert "poniżej swojej normy (z = −1,4)" in s and "tak samo 3 z 5 winnic" in s, s
+    assert "Wyraźna zmiana od poprzedniej sceny" in s and "Między scenami padało (18 mm)" in s, s
+    assert "Porównanie z historią mniej pewne" in s and "2023" in s and "Dla pojedynczej działki" in s, s
+    assert "za mało par (różne tory, 1–3 dni)" in s and "−CRSWIR z = −1,6" in pl["detail"], (s, pl["detail"])
+    nopass = parcel_card(pa, area, flags, dict(summ, t3=dict(summ["t3"], passed=False)), soil, cfg, "VINEYARD_06",
+                         precip=precip, today=today)
+    lp = parcel_card_lines(nopass)
+    assert not nopass["sentence3"] and len(lp["sentences"]) == 2 and "niepotwierdzone" in " ".join(lp["trust"]), lp
+    small = parcel_card(pa, area, flags, summ, soil, cfg, "VINEYARD_16", precip=precip, today=today)
+    assert small["state"] == "small" and "za mała na wiarygodną anomalię" in parcel_card_lines(small)["sentences"][1]
+    old = parcel_card(pa, area, None, summ, soil, cfg, "VINEYARD_06", today=pd.Timestamp("2026-10-01"))
+    assert old["state"] == "stale" and not old["sentence3"] and "brak aktualnej sceny" in parcel_card_lines(old)["sentences"][1]
+    small_dz = pa.copy()
+    small_dz.loc[(small_dz["index"] == "water") & (small_dz["site_id"] == "VINEYARD_06") & (small_dz["time"] == t[0]),
+                 "z"] = -1.0
+    c2 = parcel_card(small_dz, area, None, summ, soil, cfg, "VINEYARD_06", precip=precip * 0, today=today)
+    l2 = " ".join(parcel_card_lines(c2)["sentences"])
+    assert "Bez wyraźnej zmiany" in l2 and "padało" not in l2, l2
+    for lines in (pl, en, lp, parcel_card_lines(small, "en")):
+        txt = " ".join([lines["title"], lines["detail"]] + lines["sentences"] + lines["notes"] + lines["trust"]
+                       + lines["fixed"]).lower()
+        for bad in ("stres wodny", "wczesne ostrzeżenie", "water stress", "early warning"):
+            assert bad not in txt, bad
+    json.dumps(water_card_json(card))
+    print(f"[OK] Karta „Moja winnica”: {pl['sentences'][1][:110]}…")
+
+
 def _selftest_water(cfg: Dict[str, Any]) -> None:
     """
     Karta „Woda w winnicy” na syntetycznym ERA5 1991–2026 (cykl roczny, bez szumu w normie) z ostatnimi 100 dniami
@@ -1426,10 +1760,15 @@ def _selftest_water(cfg: Dict[str, Any]) -> None:
     ref = s4.clim_anomaly(rz, cfg["CLIM_REF"], cfg["CLIM_HALF_WINDOW_DAYS"])["percentile"].iat[-1]
     assert abs(card["percentile"] - ref) < 1e-9 and card["rain"][30]["pct"] == 0.0, (card["percentile"], ref)
     txt = water_card_lines(card)
-    assert "Wyjątkowa susza w glebie" in txt["headline"] and txt["lines"][0].startswith("Brakuje ok."), txt
+    assert txt["headline"].startswith("Sucho w glebie okolicy — wyjątkowa susza (D4") and \
+        txt["lines"][0].startswith("Brakuje ok.") and card["soil_class"] == "dry", txt
     assert "w rewizji" not in " ".join(txt["lines"])                       # bez statusu nie ma prawdopodobieństwa
     en = water_card_lines(card, "en")
-    assert en["headline"].startswith("Exceptional drought") and "missing" in en["lines"][0], en
+    assert en["headline"].startswith("Dry soil in the area — exceptional drought") and "missing" in en["lines"][0], en
+    # 3 klasy nagłówka zgodne z kategoriami USDM: D* ⇔ sucho (≤ 30), W ⇔ wilgotno (≥ 70)
+    for p_ in np.arange(0, 100.5, 0.5):
+        code_, cls_ = water_category(p_, cfg)[0], _swi_class(float(p_), cfg)
+        assert code_.startswith("D") == (cls_ == "dry") and (code_ == "W") == (cls_ == "wet"), (p_, code_, cls_)
     # Częstość tylko w zasięgu normy 30 lat (D-079): percentyl 1,7 → bez „raz na 59 lat”; percentyl 10 → „raz na 10 lat”
     h_rare = water_card_lines(dict(card, percentile=1.7))["headline"]
     d2 = dict(card, percentile=10.0, category=dict(card["category"], code="D2", label="silna susza"))
@@ -1475,7 +1814,8 @@ def _selftest_water(cfg: Dict[str, Any]) -> None:
         wet.loc[dry, c] += 0.24
     cw = water_card(wet, None, cfg, "X")
     lw = water_card_lines(cw)
-    assert cw["category"]["code"] == "W" and cw["since"] is None and cw["deficit_mm"] < 0, cw
+    assert cw["category"]["code"] == "W" and cw["since"] is None and cw["deficit_mm"] < 0 and cw["soil_class"] == "wet", cw
+    assert lw["headline"].startswith("Wilgotno — "), lw["headline"]
     assert not any(x.startswith("Brakuje") for x in lw["lines"]) and "najwilgotniejszy" in " ".join(lw["lines"]).lower(), lw
     assert [plural_pl(k, "rok", "lata", "lat") for k in (1, 2, 5, 12, 22, 34, 36)] == \
         ["rok", "lata", "lat", "lat", "lata", "lata", "lat"]
