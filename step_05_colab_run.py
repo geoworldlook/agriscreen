@@ -1853,10 +1853,12 @@ def _selftest_w3b(rt: Dict[str, Any], cfg: Dict[str, Any]) -> None:
         "panel AgriScreen: 15 winnic, karty i tabela walidacji"
     assert set(pdata["layers"]) == {"water", "ndvi", "ndre", "ndmi", "crswir"} and pdata["dates"], pdata["layers"].keys()
     px = pdata["pixels"]
-    assert px["dates"] and set(px["dates"][0]["png"]) == {"ndvi", "ndre", "ndmi"} and px["rgb"] and px["bounds"], \
-        "panel: mapy pikseli 10 m i obraz w barwach naturalnych z S2_DIR"
+    assert px["dates"] and set(px["dates"][0]["png"]) == {"ndvi", "ndre", "ndmi", "ndvi_rel", "ndre_rel", "ndmi_rel"} \
+        and px["rgb"] and px["bounds"], "panel: mapy pikseli 10 m, strefy wobec mediany działki i barwy naturalne"
     st6 = px["dates"][0]["stats"]["VINEYARD_06"]["ndvi"]
     assert st6 is not None and st6[1] <= st6[0] <= st6[2] and st6[3] > 0, st6
+    rel6 = px["dates"][0]["stats"]["VINEYARD_06"]["ndvi_rel"]      # strefy: p10 ≤ 0 ≤ p90 wokół mediany działki
+    assert rel6 is not None and rel6[1] <= 0 <= rel6[2] and rel6[3] > 0, rel6
     assert pdata["weather"].get("last10") and "forecast" not in pdata["weather"] and pdata["soil_now"], pdata["weather"]
     assert "unpkg.com/leaflet@1.9.4" in panel and ".leaflet-pane" in panel and "World_Imagery" in panel
     s9._selftest_parcel(cfg)

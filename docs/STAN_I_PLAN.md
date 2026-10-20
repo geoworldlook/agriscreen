@@ -70,8 +70,9 @@ testowych. Jeśli nie, zostaje prosty wskaźnik, a wynik i tak służy jako punk
 ## 2b. Pokazanie na blogu (2026-10-20)
 
 - **Panel AgriScreen** (EN, układ jak Wago z projektu ESA WineEO): lista winnic, mapa na zdjęciu satelitarnym Esri
-  z półprzezroczystą warstwą — piksele 10 m wewnątrz winnic (NDVI, NDRE, NDMI; 16 ostatnich bezchmurnych scen) albo
-  z całej działki wobec własnej historii — statystyki działki, stan, gleba w okolicy (wskaźnik), pogoda (prognoza
+  z półprzezroczystą warstwą — piksele 10 m wewnątrz winnic (NDVI, NDRE, NDMI; 16 ostatnich bezchmurnych scen),
+  strefy (piksel minus mediana działki tego samego dnia, bez pierścienia 10 m przy brzegu) albo z całej działki wobec
+  własnej historii (anomalia tylko dla całej działki, jak w protokole W3b) — statystyki działki, stan, gleba w okolicy (wskaźnik), pogoda (prognoza
   7 dni, ostatnie 10 dni, opad 30/90 dni, przymrozki i upały), karta, sezon, „How far to trust it” —
   `docs/showcase/agriscreen_panel.html`, w Colab sekcja 6b. Mapy pikseli opisują działkę, nie są porównywane z normą
   ani walidowane.
