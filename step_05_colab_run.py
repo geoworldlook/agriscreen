@@ -437,6 +437,8 @@ MONITOR_CONFIG: Dict[str, Any] = {
     "PARCEL_RAIN_MM": 5.0,                # para scen „z opadem” (§5)
     "PARCEL_FLAG_MIN_SCENES": 6,          # flaga zmiany gospodarowania (§8)
     "PARCEL_FLAG_SHARE": 2 / 3,
+    "PANEL_PIXEL_DATES": 16,              # panel (step_12): mapy pikseli 10 m z tylu ostatnich bezchmurnych scen sezonu
+    "PANEL_REGION": "Condom · Gers, France",
     "W3B_FREEZE": None,                   # None = ostatnia scena przy pierwszym liczeniu testów (w3b_freeze.json, U6)
     "W3B_PROTOCOL": "docs/evidence/W3b_protokol_walidacji.md",
     # Progi statusu (EDO CDI)
@@ -1229,11 +1231,13 @@ def task_dashboard(rt: Dict[str, Any], cfg: Dict[str, Any], forecast: bool = Tru
     return {"message": os.path.relpath(path, cfg["PROJECT_DIR"])}
 
 
-def task_panel(rt: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[str, Any]:
-    """Panel AgriScreen do publikacji (step_12, EN): 15 winnic, wybór warstwy i daty, karta winnicy, sezon, gleba,
-    „How far to trust it”. Pliki: panel.html (samodzielny, także na blog) i panel_data.json (dane notatnika na blog)."""
+def task_panel(rt: Dict[str, Any], cfg: Dict[str, Any], forecast: bool = True) -> Dict[str, Any]:
+    """Panel AgriScreen do publikacji (step_12, EN, układ jak Wago): 15 winnic na zdjęciu satelitarnym, mapy pikseli
+    10 m z ostatnich bezchmurnych scen S2_DIR, warstwy „wobec własnej historii”, statystyki, gleba, pogoda (prognoza
+    Open-Meteo, ostatnie 10 dni, przymrozki i upały), karta winnicy, sezon, „How far to trust it”. Pliki: panel.html
+    (samodzielny, także na blog) i panel_data.json (dane notatnika na blog)."""
     import step_12_panel as s12
-    path = s12.build_panel(cfg["OUTPUT_DIR"], cfg)
+    path = s12.build_panel(cfg["OUTPUT_DIR"], cfg, forecast="fetch" if forecast else None)
     return {"message": f"{os.path.relpath(path, cfg['PROJECT_DIR'])} ({os.path.getsize(path) // 1024} kB)"}
 
 
@@ -1664,7 +1668,7 @@ def _selftest(out_dir: str) -> None:
                          ("parcel_tests", task_parcel_tests), ("parcel_anomalies", task_parcel_anomalies),
                          ("bulletin", task_bulletin),
                          ("dashboard", lambda r, c: task_dashboard(r, c, forecast=False)),
-                         ("panel", task_panel), ("summary", task_summary)):
+                         ("panel", lambda r, c: task_panel(r, c, forecast=False)), ("summary", task_summary)):
             run_task(rt, name, fn, rt, cfg, raise_errors=True)
         res = run_task(rt, "scene_stats_repeat", task_scene_stats, rt, cfg, raise_errors=True)
         res_p = run_task(rt, "parcel_stats_repeat", task_parcel_stats, rt, cfg, raise_errors=True)
@@ -1848,6 +1852,13 @@ def _selftest_w3b(rt: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     assert "How far to trust it" in panel and len(pdata["map"]["shapes"]) == 15 and len(pdata["cards"]) == 15, \
         "panel AgriScreen: 15 winnic, karty i tabela walidacji"
     assert set(pdata["layers"]) == {"water", "ndvi", "ndre", "ndmi", "crswir"} and pdata["dates"], pdata["layers"].keys()
+    px = pdata["pixels"]
+    assert px["dates"] and set(px["dates"][0]["png"]) == {"ndvi", "ndre", "ndmi"} and px["rgb"] and px["bounds"], \
+        "panel: mapy pikseli 10 m i obraz w barwach naturalnych z S2_DIR"
+    st6 = px["dates"][0]["stats"]["VINEYARD_06"]["ndvi"]
+    assert st6 is not None and st6[1] <= st6[0] <= st6[2] and st6[3] > 0, st6
+    assert pdata["weather"].get("last10") and "forecast" not in pdata["weather"] and pdata["soil_now"], pdata["weather"]
+    assert "unpkg.com/leaflet@1.9.4" in panel and ".leaflet-pane" in panel and "World_Imagery" in panel
     s9._selftest_parcel(cfg)
     s11._selftest(cfg)
     t3 = tests.set_index("key").loc["t3_main"]
