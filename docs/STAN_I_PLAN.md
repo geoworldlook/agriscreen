@@ -120,8 +120,12 @@ Bez oceny stanu winorośli i bez porad.
 |---|---|---|
 | Z0 ✓ | protokół zarejestrowany przed liczeniem (SHA-256, D-090), wybory U1–U7 przyjęte | `docs/evidence/W3c_protokol_strefy.md` |
 | Z1 ✓ | kod: strefa dnia (piksel − mediana działki, 30 m), norma miejsca z 5 lat, test szumu (pary scen bez deszczu), strefy ≥ 4 komórki, „nowa / potwierdzona”, kryterium pokazania | `step_13_zones.py`, `task_zones` |
-| Z2 | pierwsze liczenie w Colab na archiwum projektu (notatnik, sekcja 5d) | `w3c_tests.csv`, notatka wyników |
-| Z3 | warstwa „Zones vs usual” w panelu — tylko gdy kryterium §6 jest spełnione | panel |
+| Z2 ✓ | pierwsze liczenie w Colab (2026-10-20, 419 scen, zamrożenie 2026-10-18) | `W3c_wyniki.md` |
+| Z3 ✓ | kryterium §6 niespełnione dla NDVI i NDMI → warstwy nie pokazujemy; panel podaje powód | panel |
 
 **Decyzja D-090:** warstwa historii stref według protokołu W3c; pokazujemy ją winiarzom tylko po przejściu trzech
 warunków (próg z testu szumu, szum < ½ zróżnicowania działki, ≤ 5% komórek w strefach przy glebie w normie).
+
+**Wynik:** szum mały (MDC95 NDVI 0,033, NDMI 0,023), ale w dni z glebą w normie mapa świeciłaby na ok. 15% komórek
+(oczekiwane ok. 1%): układ wewnątrz działek zmienia się między latami (najpewniej uprawa międzyrzędzi). Warstwa nie
+przeszła warunku 3 (NDMI także 2). Nowa próba = nowy protokół sprawdzony na sezonie 2027 (`W3c_wyniki.md`, „Co dalej”).

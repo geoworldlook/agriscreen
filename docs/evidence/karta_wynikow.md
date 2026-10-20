@@ -28,6 +28,13 @@ Zasada: „przed” i „po” zawsze na tej samej referencji i w tym samym okre
 | Kalibracja z (T1) | 13 winnic, VI–IX 2018–2026 | 19,6% (Plan v7, VINEYARD_06, przed A3) | 28,0% [4,4; 51,7]; przy glebie w normie 14,1% | bez grubego rozkalibrowania; wysoki udział z lat suchych |
 | Szum (T2) | pary scen bez opadu | — | MDC95 1,03 (ten sam tor) / 1,12 (różne tory) | próg „wyraźnej zmiany” na karcie |
 
+## Strefa gorsza niż zwykle (W3c, protokół D-090; `docs/evidence/W3c_wyniki.md`)
+
+| Zmiana | Referencja i okres | Przed | Po | Wniosek |
+|---|---|---|---|---|
+| Szum strefy (Z1) | pary scen bez opadu, 13 winnic, VI–IX 2019–2026, 689 par G5 | — | MDC95 NDVI 0,033 [0,025; 0,041], NDMI 0,023 [0,017; 0,029] | szum mały; NDVI < ½ zróżnicowania działki, NDMI nie |
+| Mapa w zwykłe dni (Z2) | dni z glebą w normie, 741 scen 2019–2025 | oczekiwane ok. 1% | NDVI 15,4% [9,9; 20,9], NDMI 15,5% [10,3; 20,6] | „zwykły układ” działek zmienia się między latami; warstwa nie przeszła (warunek 3), nie pokazujemy |
+
 ## Kolejne wiersze
 
 | Krok | Co porównamy |

@@ -1,12 +1,13 @@
 # AgriScreen na blog GeoWorldLook
 
-Pliki do publikacji (dane z przebiegu 2026-10-20, testy zamrożone 2026-10-18):
+Pliki do publikacji (dane z przebiegu 2026-10-20, testy W3b i W3c zamrożone 2026-10-18):
 
 | Plik | Co to jest | Skąd |
 |---|---|---|
 | `agriscreen_panel.html` | interaktywny panel 15 winnic (EN, układ jak Wago z projektu ESA WineEO), jeden samodzielny plik | `task_panel` (`panel.html` w `OUTPUT_DIR`) |
 | `agriscreen_data.json` | dane panelu i notatnika | `task_panel` (`panel_data.json`) |
 | `w3b_tests.csv` | zamrożone testy W3b | `task_parcel_tests` |
+| `w3c_tests.csv` | testy W3c (strefa gorsza niż zwykle) — warstwa nie przeszła | `task_zones` |
 | `../../notebooks/AgriScreen_story.ipynb` | notatnik-opowieść (EN) z zapisanymi wykresami | `python build_story_notebook.py` |
 
 **Co jest w panelu:**
@@ -18,8 +19,9 @@ Pliki do publikacji (dane z przebiegu 2026-10-20, testy zamrożone 2026-10-18):
     (NDVI, NDRE, NDMI) — słabsze i mocniejsze strefy działki bez porównywania lat, więc przesunięcia zdjęć między
     latami nie mają znaczenia; pierścień 10 m przy brzegu pominięty (mieszane piksele); opis, bez walidacji,
   - *Zones vs usual* (W3c, `step_13`): to samo miejsce wobec swoich 5 poprzednich lat, względem reszty działki;
-    próg z testu szumu; pojawi się dopiero po liczeniu w Colab i tylko, jeśli przejdzie trzy warunki protokołu
-    (`docs/evidence/W3c_protokol_strefy.md` §6) — w tej wersji pokazowej jeszcze go nie ma,
+    próg z testu szumu; pokazywana tylko po przejściu trzech warunków protokołu (`docs/evidence/W3c_protokol_strefy.md`
+    §6). **Pierwszy przebieg (2026-10-20): nie przeszła** — w zwykłe dni świeciłaby na ok. 15% działek
+    (`docs/evidence/W3c_wyniki.md`); panel podaje powód w „How far to trust it”,
   - *Against its own history · whole parcel*: z całej działki wobec tej samej działki w 5 poprzednich latach
     (tylko dla całej działki — to jest wielkość sprawdzona w protokole W3b; anomalia pojedynczego piksela byłaby
     zbyt zaszumiona: przesunięcia zdjęć o ok. piksel, pasma 20 m, mało scen w normie),
@@ -45,5 +47,6 @@ przebiegu (prognoza z 20.10.2026). W Colab `task_panel` liczy wszystko z archiwu
 
 **Odświeżenie po nowym przebiegu:**
 1. W Colab uruchom notatnik monitoringu (sekcja 6b tworzy `panel.html` i `panel_data.json`).
-2. Skopiuj te pliki tutaj jako `agriscreen_panel.html` i `agriscreen_data.json`, razem z `w3b_tests.csv`.
+2. Skopiuj te pliki tutaj jako `agriscreen_panel.html` i `agriscreen_data.json`, razem z `w3b_tests.csv`
+   i `w3c_tests.csv`.
 3. Uruchom `python build_story_notebook.py`.
