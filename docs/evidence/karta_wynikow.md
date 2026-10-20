@@ -35,6 +35,13 @@ Zasada: „przed” i „po” zawsze na tej samej referencji i w tym samym okre
 | Szum strefy (Z1) | pary scen bez opadu, 13 winnic, VI–IX 2019–2026, 689 par G5 | — | MDC95 NDVI 0,033 [0,025; 0,041], NDMI 0,023 [0,017; 0,029] | szum mały; NDVI < ½ zróżnicowania działki, NDMI nie |
 | Mapa w zwykłe dni (Z2) | dni z glebą w normie, 741 scen 2019–2025 | oczekiwane ok. 1% | NDVI 15,4% [9,9; 20,9], NDMI 15,5% [10,3; 20,6] | „zwykły układ” działek zmienia się między latami; warstwa nie przeszła (warunek 3), nie pokazujemy |
 
+## Miejsce najniżej od 5 lat (W3d, protokół D-091; `docs/evidence/W3d_wyniki.md`)
+
+| Zmiana | Referencja i okres | Przed | Po | Wniosek |
+|---|---|---|---|---|
+| Kalibracja klasy (D1) | miesiące VI–IX z glebą w normie, 13 winnic, 2020–2025 (79) | oczekiwane 1,0 × przypadek | NDVI najniżej 0,49 [0; 1,92], najwyżej 1,16 [0; 3,23]; NDMI 0,55 [0; 2,32], 1,10 [0; 3,70] | w zwykłe miesiące bez przesady, ale przedział za szeroki: nie pokazujemy |
+| Kierunek (opisowo) | miesiące suche / wilgotne | — | suche: najniżej ok. 2,9 ×; wilgotne: najwyżej ok. 2,6–3,0 × | reakcja na wodę we właściwą stronę; sygnał głównie całych winnic |
+
 ## Kolejne wiersze
 
 | Krok | Co porównamy |

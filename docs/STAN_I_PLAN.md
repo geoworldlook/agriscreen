@@ -140,4 +140,8 @@ po przesadzeniu (RPG). Test: w zwykłe miesiące „najniżej od N lat” ma wyp
 |---|---|---|
 | M0 ✓ | protokół zarejestrowany przed liczeniem (D-091); RPG 2015–2024 w `data/rpg_winnice.csv` | `docs/evidence/W3d_protokol_miesiace.md` |
 | M1 ✓ | kod `step_14_months.py`, `task_months`, warstwa „Months” w panelu tylko po teście | kod |
-| M2 | liczenie w Colab (notatnik, sekcja 5e) | `w3d_tests.csv`, notatka wyników |
+| M2 ✓ | liczenie w Colab (2026-10-20, 419 scen, zamrożenie 2026-10-18) | `W3d_wyniki.md` |
+
+**Wynik:** w zwykłe miesiące „najniżej od 5 lat” nie wypada częściej niż przypadkiem (NDVI 0,49 ×, NDMI 0,55 ×), kierunek
+suchy / wilgotny poprawny, ale przy 6 latach przedział jest za szeroki (górna granica do 3,7 ×) — kryterium niespełnione,
+warstwy nie pokazujemy. Klasa dotyczy głównie całych winnic (pogoda roku), konkretne miejsca ok. 15% miesięcy.
