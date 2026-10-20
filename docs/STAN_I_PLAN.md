@@ -119,8 +119,8 @@ Bez oceny stanu winorośli i bez porad.
 | Krok | Co | Wynik |
 |---|---|---|
 | Z0 ✓ | protokół zarejestrowany przed liczeniem (SHA-256, D-090), wybory U1–U7 przyjęte | `docs/evidence/W3c_protokol_strefy.md` |
-| Z1 | kod: strefa dnia (piksel − mediana działki, 30 m), norma miejsca z 5 lat, test szumu (pary scen bez deszczu), strefy ≥ 4 komórki, „nowa / potwierdzona”, kryterium pokazania | `step_13_zones.py`, `task_zones` |
-| Z2 | pierwsze liczenie w Colab na archiwum projektu | `w3c_tests.csv`, notatka wyników |
+| Z1 ✓ | kod: strefa dnia (piksel − mediana działki, 30 m), norma miejsca z 5 lat, test szumu (pary scen bez deszczu), strefy ≥ 4 komórki, „nowa / potwierdzona”, kryterium pokazania | `step_13_zones.py`, `task_zones` |
+| Z2 | pierwsze liczenie w Colab na archiwum projektu (notatnik, sekcja 5d) | `w3c_tests.csv`, notatka wyników |
 | Z3 | warstwa „Zones vs usual” w panelu — tylko gdy kryterium §6 jest spełnione | panel |
 
 **Decyzja D-090:** warstwa historii stref według protokołu W3c; pokazujemy ją winiarzom tylko po przejściu trzech

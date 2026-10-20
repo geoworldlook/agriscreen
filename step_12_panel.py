@@ -54,6 +54,11 @@ REL_RAMP = {"ndvi": ("#8b3a12", "#d08a4a", "#f4efe2", "#7dbf5a", "#1f7a33"),
             "ndre": ("#8b3a12", "#d08a4a", "#f4efe2", "#7dbf5a", "#1f7a33"),
             "ndmi": ("#8b3a12", "#d08a4a", "#f4efe2", "#6fa9d6", "#1f4f8f")}
 REL_EDGE_M = 10.0
+# W3c „Zones vs usual” (step_13): kolory kodów komórek; brąz = słabsze niż zwykle, zieleń / błękit = mocniejsze;
+# potwierdzone pełnym kolorem, nowe jaśniej; szare = za krótka historia; „jak zwykle” lekko rozjaśnione
+HIST_RGBA = {0: (255, 255, 255, 45), 9: (150, 155, 150, 140), 1: (214, 150, 80, 200), 2: (122, 58, 14, 255)}
+HIST_STRONG = {"ndvi": {3: (125, 191, 90, 200), 4: (31, 122, 51, 255)},
+               "ndmi": {3: (111, 169, 214, 200), 4: (31, 79, 143, 255)}}
 PIXEL_UPSCALE = 3            # obraz 10 m rysowany w siatce ~3,3 m (najbliższy sąsiad) — ostre brzegi działek
 CLUSTER_MARGIN_M = 600       # obraz w barwach naturalnych sięga 600 m poza skupisko winnic
 
@@ -121,7 +126,8 @@ def _parcel_shapes(cfg: Dict[str, Any], sites: List[str]) -> Dict[str, Any]:
             "height": round(pad * 2 + h * scale), "bounds": [[round(y0, 6), round(x0, 6)], [round(y1, 6), round(x1, 6)]]}
 
 
-def pixel_maps(cfg: Dict[str, Any], n_dates: Optional[int] = None) -> Dict[str, Any]:
+def pixel_maps(cfg: Dict[str, Any], n_dates: Optional[int] = None, zones: Optional[Dict[str, Any]] = None
+               ) -> Dict[str, Any]:
     """
     Mapy pikseli 10 m wewnątrz winnic (NDVI, NDRE, NDMI) z ostatnich PANEL_PIXEL_DATES bezchmurnych scen sezonu
     w S2_DIR (≥ VEG_MIN_CLEAR_FRAC pikseli winnic bez chmur, jedna scena na dzień) i obraz w barwach naturalnych
@@ -129,6 +135,9 @@ def pixel_maps(cfg: Dict[str, Any], n_dates: Optional[int] = None) -> Dict[str, 
     S2_10m_buf20: piksele bezchmurne w pasie PARCEL_INNER_M od brzegu. Mapa pokazuje całą działkę.
     Strefy (klucz `<indeks>_rel`): piksel minus mediana działki w tym dniu, liczone na pikselach, których środek leży
     ≥ REL_EDGE_M od brzegu; statystyki [mediana, p10 − mediana, p90 − mediana, n].
+    „Zones vs usual” (klucz `<indeks>_hist`, W3c): kody komórek ze step_13 dla tej samej sceny, tylko dla wskaźników,
+    które przeszły kryterium §6; statystyki [% słabsze, % potwierdzone słabsze, % mocniejsze, % potwierdzone
+    mocniejsze, komórki z normą, mediana scen w normie, mediana lat w normie].
     """
     import rasterio
     from rasterio.features import rasterize
@@ -222,6 +231,8 @@ def pixel_maps(cfg: Dict[str, Any], n_dates: Optional[int] = None) -> Dict[str, 
                 rgba[..., :3] = _ramp(ramp, (dst - lo) / (hi - lo))
                 rgba[..., 3] = np.where(px_mask & np.isfinite(dst), 255, 0)
                 pngs[name] = _b64_image(rgba)
+        if zones is not None:
+            _hist_layers(zones, os.path.basename(path), px_t, px_shape, px_mask, pngs, stats)
         res["dates"].append({"date": t.strftime("%Y-%m-%d"), "clear": _r(clear[whole].mean(), 2), "png": pngs,
                              "stats": stats})
         if res["rgb"] is None:                       # najnowsza scena: barwy naturalne (B04, B03, B02) pod mapą
@@ -235,6 +246,102 @@ def pixel_maps(cfg: Dict[str, Any], n_dates: Optional[int] = None) -> Dict[str, 
             res["rgb"] = {"date": t.strftime("%Y-%m-%d"), "jpg": _b64_image(np.ascontiguousarray(rgb), "JPEG"),
                           "bounds": [[round(v, 6) for v in c] for c in rgb_bounds]}
     return res
+
+
+def _hist_layers(zones: Dict[str, Any], scene: str, px_t, px_shape, px_mask: np.ndarray,
+                 pngs: Dict[str, str], stats: Dict[str, Dict[str, Any]]) -> None:
+    """Warstwa W3c dla jednej sceny: kody komórek (siatka magazynu step_13) -> siatka mapy, kolory, statystyki."""
+    from affine import Affine
+    from rasterio.warp import Resampling, reproject
+    if scene not in zones["scenes"]:
+        return
+    row = zones["scenes"].index(scene)
+    h, w = (int(v) for v in zones["shape"])
+    tr, crs = Affine(*zones["transform"]), str(zones["crs"])
+    summ = zones.get("summary", pd.DataFrame())
+    for k in zones.get("show_indices", []):
+        codes = zones[f"codes_{k}"][row]
+        grid = np.full(h * w, np.nan, "float32")
+        grid[zones["pix"]] = np.where(codes >= 0, codes, np.nan)
+        dst = np.full(px_shape, np.nan, "float32")
+        reproject(grid.reshape(h, w), dst, src_transform=tr, src_crs=crs, dst_transform=px_t, dst_crs="EPSG:4326",
+                  resampling=Resampling.nearest, src_nodata=np.nan, dst_nodata=np.nan)
+        rgba = np.zeros(px_shape + (4,), np.uint8)
+        for code, col in {**HIST_RGBA, **HIST_STRONG[k]}.items():
+            rgba[(dst == code) & px_mask] = col
+        pngs[f"{k}_hist"] = _b64_image(rgba)
+        for j, sid in enumerate(zones["sites"]):
+            c = codes[zones["site_idx"] == j]
+            n = int(np.isin(c, (0, 1, 2, 3, 4)).sum())
+            if c.max() < 0:
+                stats.setdefault(sid, {})[f"{k}_hist"] = None
+                continue
+            q = summ[(summ["site_id"] == sid) & (summ["scene"] == scene) & (summ["index"] == k)] if len(summ) else summ
+            pct = (lambda m: _r(100 * m / n, 1) if n else None)
+            stats.setdefault(sid, {})[f"{k}_hist"] = [
+                pct(int(np.isin(c, (1, 2)).sum())), pct(int((c == 2).sum())), pct(int(np.isin(c, (3, 4)).sum())),
+                pct(int((c == 4).sum())), n, _r(q["med_ref_scenes"].iat[0], 0) if len(q) else None,
+                _r(q["med_ref_years"].iat[0], 0) if len(q) else None]
+
+
+def _verdict_en(v: str) -> str:
+    """Werdykt kryterium W3c (step_13.criterion_row, PL) po angielsku dla panelu."""
+    import re
+    out = []
+    for part in v.replace("nie pokazujemy — ", "").split("; "):
+        m2 = re.match(r"2: MDC95 górna ([\d.]+) ≥ ½ rozstępu działki ([\d.]+)", part)
+        m3 = re.match(r"3: udział komórek w strefach \((.*)\) górna ([\d.]+)% > (\d+)%", part)
+        if part.startswith("1:"):
+            out.append("too few pairs of scenes for the noise test")
+        elif m2:
+            out.append(f"noise (upper MDC95 {m2.group(1)}) is not below half the typical spread within a parcel "
+                       f"({m2.group(2)})")
+        elif m3:
+            out.append(f"zones cover too much on {_subset_en(m3.group(1))} (upper {m3.group(2)}% > {m3.group(3)}%)")
+        elif part.startswith(("2:", "3:")):
+            out.append("too few years for a confidence interval")
+        elif part == "pokazujemy":
+            out.append("shown")
+        else:
+            out.append(part)
+    return "; ".join(out)
+
+
+def _subset_en(sub: str) -> str:
+    return {"gleba w normie": "days with normal soil", "wszystkie dni VI–IX": "all June–September days",
+            "wszystkie dni VI–IX (dni z glebą w normie w < 3 latach)":
+                "all June–September days (normal-soil days in fewer than 3 years)"}.get(sub, sub)
+
+
+def zones_info(out_dir: str) -> Optional[Dict[str, Any]]:
+    """Wyniki W3c dla panelu: kody (step_13.load_zones), progi T, werdykty kryterium, wiersze Z1/Z2 do zaufania."""
+    import step_13_zones as s13
+    z = s13.load_zones(out_dir)
+    t = _opt(os.path.join(out_dir, s13.TESTS_NAME))
+    if z is None or t is None:
+        return None
+    k_rows = t.set_index("key")
+    info = {"show": [], "T": {}, "verdict": {}, "z1": {}, "z2": {}, "freeze": str(t["freeze"].iat[0]),
+            "protocol": str(t["protocol_sha256"].iat[0])[:12]}
+    for k in [str(v).split("_")[-1] for v in t["key"].dropna() if str(v).startswith("z_show_")]:
+        crit = k_rows.loc[f"z_show_{k}"]
+        info["verdict"][k] = _verdict_en(str(crit["verdict"]))
+        info["T"][k] = _r(k_rows.loc[f"z_T_{k}", "value"], 4) if f"z_T_{k}" in k_rows.index else None
+        g = next((g for g in ("g5", "g13") if f"z1_{g}_{k}" in k_rows.index
+                  and np.isfinite(float(k_rows.loc[f"z1_{g}_{k}", "value"]))), None)
+        if g:
+            r = k_rows.loc[f"z1_{g}_{k}"]
+            info["z1"][k] = {"group": g.upper(), "value": _r(r["value"], 4), "lo": _r(r["ci_low"], 4),
+                             "hi": _r(r["ci_high"], 4), "n": int(r["n"])}
+        if f"z2_normal_{k}" in k_rows.index:
+            r = k_rows.loc[f"z2_normal_{k}"]
+            info["z2"][k] = {"value": _r(r["value"], 4), "lo": _r(r["ci_low"], 4), "hi": _r(r["ci_high"], 4),
+                             "subset": _subset_en(str(r["subset"]).split(", strefy")[0])}
+        if float(crit["value"]) == 1.0 and f"codes_{k}" in z:
+            info["show"].append(k)
+    z["show_indices"] = info["show"]
+    info["data"] = z
+    return info
 
 
 def weather_data(out_dir: str, cfg: Dict[str, Any], lat: float, lon: float, forecast: Any = "fetch") -> Dict[str, Any]:
@@ -341,7 +448,12 @@ def panel_data(out_dir: str, cfg: Dict[str, Any], forecast: Any = "fetch") -> Di
 
     shapes = _parcel_shapes(cfg, sites)
     try:
-        pixels = pixel_maps(cfg)
+        zinfo = zones_info(out_dir)
+    except Exception as ex:                                   # brak albo uszkodzone wyniki W3c: panel bez tej warstwy
+        logger.warning(f"Panel: wyniki W3c niedostępne: {type(ex).__name__}: {ex}")
+        zinfo = None
+    try:
+        pixels = pixel_maps(cfg, zones=(zinfo or {}).get("data"))
     except Exception as ex:                                   # mapa działa dalej na warstwach „wobec historii”
         logger.warning(f"Panel: mapy pikseli niedostępne: {type(ex).__name__}: {ex}")
         pixels = {"dates": [], "rgb": None, "layers": [], "bounds": None}
@@ -361,13 +473,14 @@ def panel_data(out_dir: str, cfg: Dict[str, Any], forecast: Any = "fetch") -> Di
             "layers": layers, "layer_info": [{"key": k, "label": lab, "about": about} for k, lab, _, about in LAYERS],
             "soil": {"dates": [d.strftime("%Y-%m-%d") for d in soil_pct.index],
                      "pct": [int(round(v)) for v in soil_pct.to_numpy()]},
-            "cards": cards, "trust": trust_rows(out_dir, cfg, summ, tests),
+            "cards": cards, "trust": trust_rows(out_dir, cfg, summ, tests, zinfo),
+            "zones": {k: v for k, v in (zinfo or {}).items() if k != "data"} or None,
             "inner_m": int(cfg.get("PARCEL_INNER_M", 20)), "min_px": int(cfg.get("PARCEL_MIN_PX", 40)),
             "main_site": cfg.get("MAIN_SITE", "VINEYARD_06")}
 
 
 def trust_rows(out_dir: str, cfg: Dict[str, Any], summ: Optional[Dict[str, Any]],
-               tests: Optional[pd.DataFrame]) -> List[Dict[str, str]]:
+               tests: Optional[pd.DataFrame], zinfo: Optional[Dict[str, Any]] = None) -> List[Dict[str, str]]:
     """Tabela „How far to trust it”: co, wynik, status (validated / partly / not confirmed / not validated)."""
     import step_09_panels as s9
     rows: List[Dict[str, str]] = []
@@ -427,6 +540,20 @@ def trust_rows(out_dir: str, cfg: Dict[str, Any], summ: Optional[Dict[str, Any]]
                      "against": "same test, years unseen by the model",
                      "result": f"no gain: Δρ {f(d.get('value'))} [{f(d.get('lo'))}; {f(d.get('hi'))}]",
                      "status": "accepted" if summ["p7"].get("accepted") else "not adopted"})
+    for k, name in (("ndvi", "greenness (NDVI)"), ("ndmi", "water in vegetation (NDMI)")):
+        if not zinfo or k not in zinfo["verdict"]:
+            continue
+        z1, z2, shown = zinfo["z1"].get(k), zinfo["z2"].get(k), k in zinfo["show"]
+        res = (f"threshold {f(z1['value'], 3)} [{f(z1['lo'], 3)}–{f(z1['hi'], 3)}] from {z1['n']} scene pairs "
+               f"({z1['group']})" if z1 else "too few scene pairs for a threshold")
+        if z2 and z2.get("value") is not None:
+            res += f"; cells in zones: {100 * z2['value']:.1f}% [{100 * z2['lo']:.1f}–{100 * z2['hi']:.1f}%] ({z2['subset']})"
+        if not shown:
+            res += "; not shown: " + zinfo["verdict"][k]
+        rows.append({"what": f"Zones vs usual, {name}: places weaker or stronger than usual, relative to the parcel",
+                     "against": "noise between scenes a few days apart without rain; how often zones appear when soil "
+                                "is normal (pre-registered W3c, " + zinfo["protocol"] + "…)",
+                     "result": res, "status": "noise-tested" if shown else "not shown"})
     rows.append({"what": "Vine water stress", "against": "no measurements inside the vineyards",
                  "result": "not assessed; the index sees the whole parcel, vines and inter-rows", "status": "not validated"})
     return rows
@@ -578,10 +705,12 @@ let S = {site: 'ALL', layer: PX.dates.length ? 'px:ndvi' : 'z:water', pi: 0, di:
 try { const m = JSON.parse(localStorage.getItem('agriscreen-v2') || '{}');
   if (m.site && (m.site === 'ALL' || SH[m.site])) S.site = m.site;
   if (m.layer && (m.layer.startsWith('z:') || PX.dates.length)) S.layer = m.layer; } catch (e) {}
-if (!/^(px|rel|z):/.test(S.layer)) S.layer = PX.dates.length ? 'px:ndvi' : 'z:water';
+if (!/^(px|rel|hist|z):/.test(S.layer) || (S.layer.startsWith('hist:') && !ZN.show.includes(S.layer.slice(5)))) S.layer = PX.dates.length ? 'px:ndvi' : 'z:water';
 const mode = () => S.layer.split(':')[0], key = () => S.layer.split(':')[1];
 const isPx = () => mode() !== 'z';                       // 'px' value, 'rel' vs parcel median: pixel-map dates
-const pk = () => mode() === 'rel' ? key() + '_rel' : key();
+const pk = () => mode() === 'rel' ? key() + '_rel' : mode() === 'hist' ? key() + '_hist' : key();
+const ZN = D.zones || {show: [], T: {}, verdict: {}};
+const HIST_COL = {ndvi: ['#d69650', '#7a3a0e', '#7dbf5a', '#1f7a33'], ndmi: ['#d69650', '#7a3a0e', '#6fa9d6', '#1f4f8f']};
 const curDate = () => isPx() ? PX.dates[S.pi].date : D.dates[S.di];
 const sgn = (v, nd) => v == null ? '—' : (v > 0 ? '+' : '') + num(v, nd);
 
@@ -646,7 +775,14 @@ function styleParcels() {
 }
 function legend() {
   let h;
-  if (mode() === 'rel') {
+  if (mode() === 'hist') {
+    const c = HIST_COL[key()], dry = key() === 'ndmi' ? 'drier' : 'weaker', wet = key() === 'ndmi' ? 'wetter' : 'stronger';
+    h = `<b>${esc(PXL[key()].label)} vs usual for this place</b><div class="zl">` +
+      [[c[1], `${dry} than usual, confirmed`], [c[0], `${dry}, new`], [c[3], `${wet}, confirmed`], [c[2], `${wet}, new`],
+       ['#969b96', 'history too short'], ['#f4f4f0', 'as usual']]
+        .map(([col, t]) => `<span><span class="sw" style="background:${col}"></span>${t}</span>`).join('') + '</div>' +
+      `<div class="rl"><span>threshold ${num(ZN.T[key()], 3)} from the noise test · zones ≥ 4 cells of 30 m · ${fmt(curDate())}</span></div>`;
+  } else if (mode() === 'rel') {
     const l = PXL[key()], r = l.rel_ramp;
     h = `<b>${esc(l.label)} vs parcel median</b><div class="ramp" style="background:linear-gradient(90deg,${r.join(',')})"></div>` +
       `<div class="rl"><span>${sgn(-l.rel, 2)} weaker</span><span>median</span><span>stronger ${sgn(l.rel, 2)}</span></div>` +
@@ -671,6 +807,8 @@ function fillLayers() {
   if (PX.dates.length) {
     h += og('Inside the parcel · 10 m pixels', PX.layers.map(l => ['px:' + l.key, l.label]));
     h += og('Zones · pixel vs the rest of the parcel, same day', PX.layers.map(l => ['rel:' + l.key, l.label + ' — vs parcel median']));
+    if (ZN.show.length) h += og('Zones vs usual · this place against its last 5 years (noise-tested)',
+      PX.layers.filter(l => ZN.show.includes(l.key)).map(l => ['hist:' + l.key, l.label + ' — vs usual']));
   }
   h += og('Against its own history · whole parcel', D.layer_info.map(l => ['z:' + l.key, l.label + ' — anomaly']));
   $('layer').innerHTML = h;
@@ -717,7 +855,17 @@ function stats() {
   let h = '';
   if (S.site !== 'ALL') {
     const id = S.site;
-    if (mode() === 'rel') {
+    if (mode() === 'hist') {
+      const st = ((PX.dates[S.pi].stats || {})[id] || {})[pk()], l = PXL[key()];
+      const dry = key() === 'ndmi' ? 'Drier' : 'Weaker', wet = key() === 'ndmi' ? 'Wetter' : 'Stronger';
+      h += `<h3>${esc(l.label)}: ${vname(id)} against its usual pattern · ${fmt(d)}</h3>`;
+      h += st && st[4] ? `<div class="tiles"><div class="tile"><span>${dry} than usual</span><b>${num(st[0], 0)}%</b><small>of the parcel; confirmed ${num(st[1], 0)}%</small></div>` +
+        `<div class="tile"><span>${wet} than usual</span><b>${num(st[2], 0)}%</b><small>of the parcel; confirmed ${num(st[3], 0)}%</small></div>` +
+        `<div class="tile"><span>Threshold</span><b>${num(ZN.T[key()], 3)}</b><small>from the noise test (pairs of scenes without rain)</small></div>` +
+        `<div class="tile"><span>Usual pattern</span><b>${st[5] ?? '—'}</b><small>scenes from ${st[6] ?? '—'} years (median per cell)</small></div></div>`
+        : `<p class="small">No usual pattern for this scene (cloudy parcel or history too short).</p>`;
+      h += `<p class="note">Relative to the rest of this parcel, compared with the same place in the previous five years at this time of year. "Confirmed": the same zone was also seen on another clear scene in the last 10 days. A comparison of satellite images, not a measurement of the vines; mowing or tilling part of the inter-rows looks the same.</p>`;
+    } else if (mode() === 'rel') {
       const st = ((PX.dates[S.pi].stats || {})[id] || {})[pk()], l = PXL[key()];
       h += `<h3>${esc(l.label)} zones inside ${vname(id)} · ${fmt(d)}</h3>`;
       h += st ? `<div class="tiles"><div class="tile"><span>Parcel median</span><b>${num(st[0], 2)}</b><small>reference for the colours</small></div>` +
@@ -749,7 +897,8 @@ function stats() {
       const z = zAt('water', s.id, di), st = isPx() ? ((PX.dates[S.pi].stats || {})[s.id] || {})[pk()] : null;
       const zk = mode() === 'z' ? zAt(key(), s.id, S.di) : null;
       return `<tr class="pick" data-site="${s.id}"><td>${vname(s.id)}</td><td class="num">${s.area_ha.toFixed(2)}</td>` +
-        (mode() === 'rel' ? `<td class="num">${st ? num(st[0], 2) : '—'}</td><td class="num">${st ? sgn(st[1], 2) + ' / ' + sgn(st[2], 2) : '—'}</td>`
+        (mode() === 'hist' ? `<td class="num">${st && st[4] ? num(st[0], 0) + '% (' + num(st[1], 0) + '%)' : '—'}</td><td class="num">${st && st[4] ? num(st[2], 0) + '% (' + num(st[3], 0) + '%)' : '—'}</td>`
+         : mode() === 'rel' ? `<td class="num">${st ? num(st[0], 2) : '—'}</td><td class="num">${st ? sgn(st[1], 2) + ' / ' + sgn(st[2], 2) : '—'}</td>`
          : mode() === 'px' ? `<td class="num">${st ? num(st[0], 2) : '—'}</td><td class="num">${st ? num(st[1], 2) + ' – ' + num(st[2], 2) : '—'}</td>`
                          : `<td class="num">${num(zk, 1)}</td><td>${qc(s.id) ? CLS_TXT[cls(zk)] : 'too small'}</td>`) +
         `<td class="num" style="color:${qc(s.id) && z != null && z <= -1 ? 'var(--wb)' : 'inherit'}">${qc(s.id) ? num(z, 1) : '—'}</td></tr>`;
@@ -761,7 +910,8 @@ function stats() {
       `<div class="tile"><span>Vineyards</span><b>${D.map.shapes.length}</b><small>${Object.values(D.sites).filter(s => s.qc_ok).length} large enough for an anomaly</small></div>` +
       `<div class="tile"><span>Area</span><b>${D.map.shapes.reduce((a, s) => a + s.area_ha, 0).toFixed(1)}</b><small>hectares</small></div></div>`;
     h += `<div class="tbl"><table><thead><tr><th>Vineyard</th><th>ha</th>` +
-      (mode() === 'rel' ? `<th>${esc(PXL[key()].label)} median</th><th>weakest / strongest 10% vs median</th>`
+      (mode() === 'hist' ? `<th>${key() === 'ndmi' ? 'drier' : 'weaker'} than usual (confirmed)</th><th>${key() === 'ndmi' ? 'wetter' : 'stronger'} than usual (confirmed)</th>`
+       : mode() === 'rel' ? `<th>${esc(PXL[key()].label)} median</th><th>weakest / strongest 10% vs median</th>`
        : mode() === 'px' ? `<th>${esc(PXL[key()].label)} mean</th><th>10–90%</th>` : `<th>z ${esc(ZL[key()].label)}</th><th>class</th>`) +
       `<th>z water</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
@@ -928,6 +1078,7 @@ function render(mapOnly) {
   $('newer').disabled = isPx() ? S.pi <= 0 : S.di >= D.dates.length - 1;
   $('pxnote').hidden = m !== 'px';
   $('relnote').hidden = m !== 'rel';
+  $('histnote').hidden = m !== 'hist';
   $('znote').hidden = m !== 'z';
   $('mtitle').innerHTML = S.site === 'ALL' ? `All vineyards <span class="ha">${esc(D.region)}</span>`
     : `${vname(S.site)} <span class="ha">${SH[S.site].area_ha.toFixed(2)} ha</span>`;
@@ -986,6 +1137,10 @@ parcel; they are not compared with a normal and are not validated. Inter-rows an
 <p class="note" id="relnote">Zones: each pixel minus the median of the same parcel on the same day. This shows weaker and
 stronger parts of the parcel without comparing years, so small shifts of the satellite image between years do not matter.
 Pixels within 10 m of the edge are left out (they mix with roads and neighbouring fields). Descriptive, not validated.</p>
+<p class="note" id="histnote">Zones vs usual: is this place weaker or stronger, relative to the rest of the parcel, than it
+usually is at this time of year? Coloured only when the change is larger than the satellite noise measured on pairs of
+scenes a few days apart without rain, and only zones of at least 4 cells. This layer is shown because it passed the
+pre-registered noise test; it is not validated in the field.</p>
 <p class="note" id="znote">Whole-parcel value against the same parcel in the previous five years (same time of year, same
 orbit), as a z-score: −1 means clearly below its own normal.</p>
 <div id="stats"></div>

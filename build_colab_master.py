@@ -57,7 +57,8 @@ print('Projekt:', PROJECT_DIR)"""),
     ("code", """from step_05_colab_run import (setup_runtime, monitor_config, run_task, run_history, registry_summary,
                                task_ingest_s2, task_ingest_era5, task_ingest_swi, task_scene_stats, task_anomalies,
                                task_validate, task_weather, task_ref_validate, task_bulletin, task_dashboard,
-                               task_summary, task_parcel_stats, task_parcel_tests, task_parcel_anomalies, task_panel)
+                               task_summary, task_parcel_stats, task_parcel_tests, task_parcel_anomalies, task_zones,
+                               task_panel)
 from step_06_dashboard import show_dashboard
 rt = setup_runtime(PROJECT_DIR, gee_project='ee-geoworldlook', pull=False)
 cfg = monitor_config(rt)   # zmiany: monitor_config(rt, {'VINEYARDS': {'VINEYARD_06': 6, 'VINEYARD_07': 7}})"""),
@@ -101,6 +102,14 @@ przeliczone wartości „przed” z F4. Kolejne uruchomienia zwracają „skippe
 **Prześlij komunikat `parcel_tests` i plik `w3b_tests.csv`** — na nich powstanie notatka wyników W3b."""),
     ("code", """run_task(rt, 'parcel_tests', task_parcel_tests, rt, cfg)
 run_task(rt, 'parcel_anomalies', task_parcel_anomalies, rt, cfg)"""),
+    ("md", """## 5d. Strefa gorsza niż zwykle (W3c) — prześlij wynik
+Według zarejestrowanego protokołu (`docs/evidence/W3c_protokol_strefy.md`, D-090): w każdej winnicy piksel minus
+mediana działki (wygładzone do 30 m), porównane z tym samym miejscem w 5 poprzednich latach. Próg mapy wyznacza test
+szumu na parach zdjęć bez deszczu. Warstwa „Zones vs usual” trafia do panelu **tylko po spełnieniu trzech warunków**
+(§6). Pierwsze uruchomienie czyta całe archiwum (kilka–kilkanaście minut, zapis co 50 scen), kolejne tylko nowe sceny;
+data zamrożenia testów trafia do `w3c_freeze.json`.
+**Prześlij komunikat `zones` i plik `w3c_tests.csv`** — na nich powstanie notatka wyników W3c."""),
+    ("code", "run_task(rt, 'zones', task_zones, rt, cfg)"),
     ("md", """## 6. Biuletyn i dashboard winnicy
 Od góry: **karta „Moja winnica”** (gleba w okolicy, wskaźnik wody w roślinności Twojej działki wobec jej historii,
 okolica — tylko po spełnionym kryterium testu), **karta „Woda w glebie”** (kategoria suszy, niedobór, miejsce wśród
@@ -116,14 +125,15 @@ if os.path.exists(p):
 else:
     print('Dashboard nie powstał — sprawdź komunikat zadania powyżej.')"""),
     ("md", """## 6b. Panel AgriScreen — 15 winnic (po angielsku, do publikacji na blogu)
-Wybór winnicy (klik na mapie), warstwy (woda w roślinności SWIR, NDVI, NDRE, NDMI, CRSWIR) i daty sceny; karta winnicy,
-przebieg sezonu na tle pozostałych winnic, wilgotność gleby i tabela „How far to trust it”. Plik `panel.html` jest
-samodzielny (bez bibliotek i kafli mapy) — ten sam trafia na blog GeoWorldLook; `panel_data.json` czyta notatnik
-`notebooks/AgriScreen_story.ipynb`."""),
+Układ jak Wago (ESA WineEO): lista winnic, mapa na zdjęciu satelitarnym Esri z półprzezroczystą warstwą — piksele
+10 m (NDVI, NDRE, NDMI), strefy wobec reszty działki, **strefy wobec zwykłego stanu (W3c, tylko po przejściu testu)**
+albo cała działka wobec własnej historii; statystyki, gleba, pogoda (prognoza Open-Meteo), karta, sezon i „How far to
+trust it”. Plik `panel.html` (Leaflet z unpkg, reszta w pliku) trafia na blog GeoWorldLook; `panel_data.json` czyta
+notatnik `notebooks/AgriScreen_story.ipynb`."""),
     ("code", """run_task(rt, 'panel', task_panel, rt, cfg)
 p = os.path.join(cfg['OUTPUT_DIR'], 'panel.html')
 if os.path.exists(p):
-    show_dashboard(p, height=2700)"""),
+    show_dashboard(p, height=3600)"""),
     ("md", """## 7. Raport z uruchomienia (do analizy)
 `run_summary.md` — wersje, konfiguracja, pokrycie danych, kontrola SR, **karty „Woda w glebie” i „Moja winnica”
 z „Na ile ufać”, testy W3b**, status per rok, walidacja, pogoda, błędy.
