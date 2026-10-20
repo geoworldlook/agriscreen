@@ -2,7 +2,8 @@
 
 Status: **PRZYJĘTY DO WDROŻENIA** 2026-10-19 (polecenie wdrożenia kodu; decyzje §6 w brzmieniu rekomendacji, do
 zmiany przed pierwszym przebiegiem testów). Protokół zarejestrowany (D-089), kod K2–K4 wdrożony i przetestowany offline;
-czeka na pierwszy przebieg w Colab i notatkę wyników (K3b).
+pierwszy przebieg 2026-10-20, wyniki: `docs/evidence/W3b_wyniki.md` (T3 nierozstrzygnięty, zdanie 3 ukryte;
+wariant 4 pasm nieprzyjęty).
 
 **Wersja 6 (2026-10-19):** szczegóły w dwóch nowych dokumentach — protokół walidacji
 `docs/evidence/W3b_protokol_walidacji.md` (DRAFT, wybory U1–U8) i plan wdrożenia `docs/plans/W3b_plan_wdrozenia.md`

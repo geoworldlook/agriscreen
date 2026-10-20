@@ -18,6 +18,16 @@ Zasada: „przed” i „po” zawsze na tej samej referencji i w tym samym okre
 | R wobec czujników | 0,57 Condom, 0,52 Auradé, 0,53 Lusignan (35 d) | nie dokładniejszy od modelu; wartość: niezależne potwierdzenie |
 | „ERA5 i SWI zgodnie suche” wobec samego ERA5 (POD/FAR) | do policzenia | test zapisany w W3a §5 |
 
+## Roślinność działki (W3b, protokół D-089; `docs/evidence/W3b_wyniki.md`)
+
+| Zmiana | Referencja i okres | Przed | Po | Wniosek |
+|---|---|---|---|---|
+| Norma, czujnik i produkt (drabinka §9) | ISMN Condom 20–30 cm, IV–X 2018–2024, VINEYARD_06, te same 200 dni | NDMI R 0,57 (F4, norma z przyszłymi latami) | 0,44 → 0,54 → 0,52 (norma przyczynowa → A4 → 10 m z pasem 20 m) | wyciek zawyżał o 0,13; A4 przywraca 0,11; wynik ~0,5 bez wycieku |
+| Prosty wskaźnik wody (T3) | ISMN A4 W1, VI–IX 2018–2024, mediana 12 winnic, 140 dni | — | ρ 0,55 [−0,02; 1,00] | kryterium niespełnione: zdanie 3 ukryte; związek głównie między latami |
+| Wariant 4 pasm (§7) | jw., lata niewidziane przez model | ρ prostego 0,55 | Δρ −0,01 [−0,18; 0,16] | nieprzyjęty; punkt odniesienia dla Planu v8 |
+| Kalibracja z (T1) | 13 winnic, VI–IX 2018–2026 | 19,6% (Plan v7, VINEYARD_06, przed A3) | 28,0% [4,4; 51,7]; przy glebie w normie 14,1% | bez grubego rozkalibrowania; wysoki udział z lat suchych |
+| Szum (T2) | pary scen bez opadu | — | MDC95 1,03 (ten sam tor) / 1,12 (różne tory) | próg „wyraźnej zmiany” na karcie |
+
 ## Kolejne wiersze
 
 | Krok | Co porównamy |
