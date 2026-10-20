@@ -58,7 +58,7 @@ print('Projekt:', PROJECT_DIR)"""),
                                task_ingest_s2, task_ingest_era5, task_ingest_swi, task_scene_stats, task_anomalies,
                                task_validate, task_weather, task_ref_validate, task_bulletin, task_dashboard,
                                task_summary, task_parcel_stats, task_parcel_tests, task_parcel_anomalies, task_zones,
-                               task_panel)
+                               task_months, task_panel)
 from step_06_dashboard import show_dashboard
 rt = setup_runtime(PROJECT_DIR, gee_project='ee-geoworldlook', pull=False)
 cfg = monitor_config(rt)   # zmiany: monitor_config(rt, {'VINEYARDS': {'VINEYARD_06': 6, 'VINEYARD_07': 7}})"""),
@@ -110,6 +110,14 @@ szumu na parach zdjęć bez deszczu. Warstwa „Zones vs usual” trafia do pane
 data zamrożenia testów trafia do `w3c_freeze.json`.
 **Prześlij komunikat `zones` i plik `w3c_tests.csv`** — na nich powstanie notatka wyników W3c."""),
     ("code", "run_task(rt, 'zones', task_zones, rt, cfg)"),
+    ("md", """## 5e. Miejsce najniżej od 5 lat (W3d) — prześlij wynik
+Według zarejestrowanego protokołu (`docs/evidence/W3d_protokol_miesiace.md`, D-091): dla każdego kwadratu 30 m
+w winnicy wartość miesiąca (mediana z czystych dni) porównana z tym samym miesiącem w 5 poprzednich latach tego
+samego miejsca; po przesadzeniu (rejestr RPG, `data/rpg_winnice.csv`) historia liczy się od nowa. Warstwa „Months”
+trafia do panelu tylko, gdy test D1 pokaże, że „najniżej od 5 lat” w zwykłe miesiące zdarza się mniej więcej tak
+rzadko, jak powinno (ok. 1 na 6). Pierwsze uruchomienie czyta całe archiwum (ok. 1–2 min).
+**Prześlij komunikat `months` i plik `w3d_tests.csv`.**"""),
+    ("code", "run_task(rt, 'months', task_months, rt, cfg)"),
     ("md", """## 6. Biuletyn i dashboard winnicy
 Od góry: **karta „Moja winnica”** (gleba w okolicy, wskaźnik wody w roślinności Twojej działki wobec jej historii,
 okolica — tylko po spełnionym kryterium testu), **karta „Woda w glebie”** (kategoria suszy, niedobór, miejsce wśród
@@ -126,7 +134,8 @@ else:
     print('Dashboard nie powstał — sprawdź komunikat zadania powyżej.')"""),
     ("md", """## 6b. Panel AgriScreen — 15 winnic (po angielsku, do publikacji na blogu)
 Układ jak Wago (ESA WineEO): lista winnic, mapa na zdjęciu satelitarnym Esri z półprzezroczystą warstwą — piksele
-10 m (NDVI, NDRE, NDMI), strefy wobec reszty działki, **strefy wobec zwykłego stanu (W3c, tylko po przejściu testu)**
+10 m (NDVI, NDRE, NDMI), strefy wobec reszty działki, **miejsca najniżej / najwyżej od 5 lat (W3d) i strefy wobec
+zwykłego stanu (W3c) — tylko po przejściu testu**
 albo cała działka wobec własnej historii; statystyki, gleba, pogoda (prognoza Open-Meteo), karta, sezon i „How far to
 trust it”. Plik `panel.html` (Leaflet z unpkg, reszta w pliku) trafia na blog GeoWorldLook; `panel_data.json` czyta
 notatnik `notebooks/AgriScreen_story.ipynb`."""),

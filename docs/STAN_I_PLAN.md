@@ -139,5 +139,5 @@ po przesadzeniu (RPG). Test: w zwykłe miesiące „najniżej od N lat” ma wyp
 | Krok | Co | Wynik |
 |---|---|---|
 | M0 ✓ | protokół zarejestrowany przed liczeniem (D-091); RPG 2015–2024 w `data/rpg_winnice.csv` | `docs/evidence/W3d_protokol_miesiace.md` |
-| M1 | kod `step_14_months.py`, `task_months`, warstwa w panelu tylko po teście | kod |
+| M1 ✓ | kod `step_14_months.py`, `task_months`, warstwa „Months” w panelu tylko po teście | kod |
 | M2 | liczenie w Colab (notatnik, sekcja 5e) | `w3d_tests.csv`, notatka wyników |

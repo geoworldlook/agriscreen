@@ -15,6 +15,7 @@ Architektura: kod na GitHub -> obliczenia w Colab -> Dysk Google jako baza danyc
         task_parcel_tests    W3b: testy zamrożone T1–T3, wariant wielopasmowy, wartości „przed” (step_11)
         task_parcel_anomalies W3b: anomalie działek do karty, mediana okolicy, flaga gospodarowania (step_11)
         task_zones           W3c: strefa gorsza niż zwykle — test szumu, kryterium pokazania, kody mapy (step_13)
+        task_months          W3d: miejsce najniżej od 5 lat (miesiące, kwadraty 30 m, reset po przesadzeniu) (step_14)
         task_validate        błąd anomalii na profilu ISMN Condom (step_07)
         task_weather         przymrozki i upały + walidacja ERA5-Land na stacjach Météo-France (step_08)
         task_bulletin        raport, wykresy i JSON dla geoworldlook.vercel.app (step_04) + panele v1.2 (step_09)
@@ -455,6 +456,14 @@ MONITOR_CONFIG: Dict[str, Any] = {
     "ZONES_SPREAD_FRAC": 0.5,             # §6.2: MDC95 (górna) < ½ typowego rozstępu p90 − p10 w działce
     "ZONES_MAX_SHARE": 0.05,              # §6.3: ≤ 5% komórek w strefach przy glebie w normie (górna granica)
     "ZONES_GRID_TOL_M": 1.0,              # §0: scena z siatką przesuniętą o > 1 m wypada
+    # W3d: miejsce najniżej od 5 lat (protokół docs/evidence/W3d_protokol_miesiace.md, D-091)
+    "W3D_PROTOCOL": "docs/evidence/W3d_protokol_miesiace.md",
+    "W3D_FREEZE": None,                   # None = ostatnia scena przy pierwszym liczeniu (w3d_freeze.json)
+    "RPG_PATH": "data/rpg_winnice.csv",   # §3: kody RPG (IGN) 2015–2024; RVI / VRN = przesadzenie
+    "MONTHS_HISTORY_YEARS": 5,            # §2.2: historia z lat Y−5…Y−1
+    "MONTHS_MIN_YEARS": 4,                # §2.2: ≥ 4 lata z wartością
+    "MONTHS_MIN_DAYS": 2,                 # §2.1: wartość miesiąca z ≥ 2 czystych dni
+    "MONTHS_MAX_RATIO": 1.5,              # §5: górna granica ilorazu ≤ 1,5
     # Progi statusu (EDO CDI)
     "THR_SPI1": -2.0, "THR_SPI3": -1.0, "THR_SMA": -1.0, "THR_VEG": -1.0,
     "STATUS_START": "2016-01-01",
@@ -497,7 +506,7 @@ MONITOR_CONFIG: Dict[str, Any] = {
 
 _PATH_KEYS = ("PARCELS_PATH", "AOI_PATH", "ISMN_DIR", "S2_DIR", "S2_MANIFEST", "ERA5_DIR", "SR_MODEL_DIR", "MF_DIR",
               "SR_DIR", "OUTPUT_DIR", "SECRETS_DIR", "SWI_DIR", "REF_DIR", "W3B_PROTOCOL",
-              "W3C_PROTOCOL")
+              "W3C_PROTOCOL", "W3D_PROTOCOL", "RPG_PATH")
 
 
 def monitor_config(rt: Dict[str, Any], overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -1266,6 +1275,25 @@ def task_zones(rt: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[str, Any]:
                        f"siatką: {res['n_skipped']}); zamrożenie {res['freeze']['freeze']}; {show}{warn}"}
 
 
+def task_months(rt: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    W3d (protokół docs/evidence/W3d_protokol_miesiace.md, D-091): dla kwadratów 30 m w 13 winnicach wartość miesiąca
+    (mediana z ≥ 2 czystych dni) porównana z tym samym miesiącem w 5 poprzednich latach tego samego kwadratu, z resetem
+    po przesadzeniu (RPG). Test D1 (iloraz wobec 1/(N + 1)) decyduje o pokazaniu warstwy. Pliki: w3d_store.npz,
+    w3d_tests.csv (z SHA-256 protokołu, zamrożeniem i commitem), w3d_summary.csv, w3d_months.npz.
+    """
+    import step_11_parcel as s11
+    import step_14_months as s14
+    proto = s11.protocol_sha(cfg["W3D_PROTOCOL"])
+    warn = "" if proto["sha256"] == proto["registered"] else \
+        f"; UWAGA: treść protokołu W3d różni się od zarejestrowanej ({proto['sha256'][:12]}… ≠ {proto['registered'][:12]}…)"
+    era5 = pd.read_csv(_era5_csv(cfg), parse_dates=["time"])
+    res = s14.run_months(cfg, cfg["OUTPUT_DIR"], era5, commit=str(rt.get("GIT_COMMIT", "")))
+    show = "; ".join(f"{k.upper()}: {v}" for k, v in res["show"].items())
+    return {"message": f"{res['sites']} winnic, {res['n_scenes']} scen w magazynie (+{res['n_new']}, pominięte z inną "
+                       f"siatką: {res['n_skipped']}); zamrożenie {res['freeze']['freeze']}; {show}{warn}"}
+
+
 def task_panel(rt: Dict[str, Any], cfg: Dict[str, Any], forecast: bool = True) -> Dict[str, Any]:
     """Panel AgriScreen do publikacji (step_12, EN, układ jak Wago): 15 winnic na zdjęciu satelitarnym, mapy pikseli
     10 m z ostatnich bezchmurnych scen S2_DIR, warstwy „wobec własnej historii”, statystyki, gleba, pogoda (prognoza
@@ -1484,6 +1512,7 @@ def run_monitoring(rt: Dict[str, Any], cfg: Optional[Dict[str, Any]] = None, ing
     run_task(rt, "parcel_tests", task_parcel_tests, rt, cfg)        # raz po zamrożeniu; potem „skipped”
     run_task(rt, "parcel_anomalies", task_parcel_anomalies, rt, cfg)
     run_task(rt, "zones", task_zones, rt, cfg)
+    run_task(rt, "months", task_months, rt, cfg)
     run_task(rt, "validate", task_validate, rt, cfg)
     run_task(rt, "weather", task_weather, rt, cfg, fetch=ingest)
     run_task(rt, "bulletin", task_bulletin, rt, cfg)
@@ -1702,7 +1731,7 @@ def _selftest(out_dir: str) -> None:
                                                                          icos_session=FakeIcos(),
                                                                          era5_fetch=lambda *a, **k: era5)),
                          ("parcel_tests", task_parcel_tests), ("parcel_anomalies", task_parcel_anomalies),
-                         ("zones", task_zones),
+                         ("zones", task_zones), ("months", task_months),
                          ("bulletin", task_bulletin),
                          ("dashboard", lambda r, c: task_dashboard(r, c, forecast=False)),
                          ("panel", lambda r, c: task_panel(r, c, forecast=False)), ("summary", task_summary)):
@@ -1716,6 +1745,7 @@ def _selftest(out_dir: str) -> None:
     assert res_p["skipped"] and res_t["skipped"], (res_p, res_t)
     _selftest_w3b(rt, cfg)
     _selftest_w3c(rt, cfg)
+    _selftest_w3d(rt, cfg)
     cov = sr_coverage(rt, cfg)
     assert cov["remaining"] == 0 and cov["sr_ok"] == cov["scenes"] - 1, cov
     st_main = registry_read(rt, "gwl_status")
@@ -1848,10 +1878,47 @@ def _selftest_w3c(rt: Dict[str, Any], cfg: Dict[str, Any]) -> None:
     pdata = json.load(open(os.path.join(out, "panel_data.json"), encoding="utf-8"))
     assert pdata["zones"] and pdata["zones"]["show"] == [], pdata["zones"]
     assert not any(k.endswith("_hist") for k in pdata["pixels"]["dates"][0]["png"])
-    assert sum(r["status"] == "not shown" for r in pdata["trust"]) == 2, [r["status"] for r in pdata["trust"]]
+    assert sum(r["status"] == "not shown" for r in pdata["trust"] if r["what"].startswith("Zones vs usual")) == 2, \
+        [(r["what"][:30], r["status"]) for r in pdata["trust"]]
     s13._selftest(cfg)
     print(f"[OK] W3c: magazyn {len(st['scenes'])} scen × 13 winnic, testy z zarejestrowanym protokołem "
           f"({proto['sha256'][:12]}…), kryterium „za mało par” na scenach co 15–16 dni, panel bez warstwy.")
+
+
+def _selftest_w3d(rt: Dict[str, Any], cfg: Dict[str, Any]) -> None:
+    """
+    W3d w selftescie: magazyn wartości bezwzględnych (13 winnic), testy z SHA-256 zarejestrowanego protokołu, wiersze
+    D1 i kryterium dla NDVI i NDMI, kody miesięcy z resetem po przesadzeniu (RPG: VINEYARD_13 w 2019–2020) i wiersze
+    w „How far to trust it”. Logikę klas i testu na szumie / trendzie sprawdza step_14._selftest.
+    """
+    import step_11_parcel as s11
+    import step_14_months as s14
+    out = cfg["OUTPUT_DIR"]
+    t = pd.read_csv(os.path.join(out, s14.TESTS_NAME))
+    proto = s11.protocol_sha(cfg["W3D_PROTOCOL"])
+    assert proto["status"] == "REGISTERED" and proto["sha256"] == proto["registered"], proto
+    assert (t["protocol_sha256"] == proto["sha256"]).all() and t["code_commit"].iat[0] == rt["GIT_COMMIT"]
+    keys = set(t["key"].dropna())
+    assert {"d_show_ndvi", "d_show_ndmi"} <= keys, keys
+    st = s14.load_months(out)
+    assert len(st["sites"]) == 13 and len(st["months"]) > 20, (len(st["sites"]), len(st["months"]))
+    j = st["sites"].index("VINEYARD_13")
+    sel = st["site_idx"] == j
+    for m in ("2019-07", "2020-07"):
+        if m in st["months"]:
+            c = st["codes_ndvi"][st["months"].index(m)][sel]
+            assert set(np.unique(c)) <= {s14.REPLANT, s14.NO_DATA}, (m, np.unique(c))
+    sm = pd.read_csv(os.path.join(out, s14.SUMMARY_NAME))
+    assert (sm["n_cells"] > 0).any() and set(sm["index"]) == {"ndvi", "ndmi"}
+    pdata = json.load(open(os.path.join(out, "panel_data.json"), encoding="utf-8"))
+    assert pdata["months"] is not None and set(pdata["months"]["verdict"]) == {"ndvi", "ndmi"}, pdata.get("months")
+    assert sum("Lowest in" in r["what"] for r in pdata["trust"]) == 2, [r["what"] for r in pdata["trust"]]
+    shown = pdata["months"]["show"]
+    assert all(any(k + "_mon" in m["png"] for m in pdata["pixels"]["months"]) for k in shown), shown
+    s14._selftest(cfg)
+    verdicts = "; ".join(f"{k}: {v}" for k, v in pdata["months"]["verdict"].items())
+    print(f"[OK] W3d: magazyn {len(st['months'])} miesięcy × 13 winnic, testy z zarejestrowanym protokołem "
+          f"({proto['sha256'][:12]}…), reset po przesadzeniu VINEYARD_13; panel: {verdicts}.")
 
 
 def _selftest_w3b(rt: Dict[str, Any], cfg: Dict[str, Any]) -> None:
