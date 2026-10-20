@@ -49,9 +49,10 @@ data/7_isismn_data/python_metadata/
 # Rejestr gwl_* (baza danych na Dysku Google, nie w repo)
 data/registry/*
 
-# AgriWatch v6: cache ERA5, SR, model, wyniki monitoringu
+# Cache ERA5, wyniki monitoringu i testów (na Dysku Google albo lokalnie, nie w repo)
 data/02_ERA5_Land/
 data/03_SR_2.5m/
 data/08_MeteoFrance/
 data/models/
 data/_selftest_monitor/
+data/_selftest/
