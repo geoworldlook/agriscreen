@@ -17,6 +17,9 @@ Pliki do publikacji (dane z przebiegu 2026-10-20, testy zamrożone 2026-10-18):
   - *Zones · pixel vs the rest of the parcel, same day*: piksel minus mediana tej samej działki w tym samym dniu
     (NDVI, NDRE, NDMI) — słabsze i mocniejsze strefy działki bez porównywania lat, więc przesunięcia zdjęć między
     latami nie mają znaczenia; pierścień 10 m przy brzegu pominięty (mieszane piksele); opis, bez walidacji,
+  - *Zones vs usual* (W3c, `step_13`): to samo miejsce wobec swoich 5 poprzednich lat, względem reszty działki;
+    próg z testu szumu; pojawi się dopiero po liczeniu w Colab i tylko, jeśli przejdzie trzy warunki protokołu
+    (`docs/evidence/W3c_protokol_strefy.md` §6) — w tej wersji pokazowej jeszcze go nie ma,
   - *Against its own history · whole parcel*: z całej działki wobec tej samej działki w 5 poprzednich latach
     (tylko dla całej działki — to jest wielkość sprawdzona w protokole W3b; anomalia pojedynczego piksela byłaby
     zbyt zaszumiona: przesunięcia zdjęć o ok. piksel, pasma 20 m, mało scen w normie),

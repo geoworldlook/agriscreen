@@ -14,6 +14,7 @@ Architektura: kod na GitHub -> obliczenia w Colab -> Dysk Google jako baza danyc
         task_parcel_stats    Moja winnica (W3b): statystyki 15 winnic z pasem 20 m, produkt S2_10m_buf20 (step_04)
         task_parcel_tests    W3b: testy zamrożone T1–T3, wariant wielopasmowy, wartości „przed” (step_11)
         task_parcel_anomalies W3b: anomalie działek do karty, mediana okolicy, flaga gospodarowania (step_11)
+        task_zones           W3c: strefa gorsza niż zwykle — test szumu, kryterium pokazania, kody mapy (step_13)
         task_validate        błąd anomalii na profilu ISMN Condom (step_07)
         task_weather         przymrozki i upały + walidacja ERA5-Land na stacjach Météo-France (step_08)
         task_bulletin        raport, wykresy i JSON dla geoworldlook.vercel.app (step_04) + panele v1.2 (step_09)
@@ -441,6 +442,19 @@ MONITOR_CONFIG: Dict[str, Any] = {
     "PANEL_REGION": "Condom · Gers, France",
     "W3B_FREEZE": None,                   # None = ostatnia scena przy pierwszym liczeniu testów (w3b_freeze.json, U6)
     "W3B_PROTOCOL": "docs/evidence/W3b_protokol_walidacji.md",
+    # W3c: strefa gorsza niż zwykle (protokół docs/evidence/W3c_protokol_strefy.md, D-090; wybory U1–U7)
+    "W3C_PROTOCOL": "docs/evidence/W3c_protokol_strefy.md",
+    "W3C_FREEZE": None,                   # None = ostatnia scena przy pierwszym liczeniu (w3c_freeze.json)
+    "ZONES_INDICES": ("ndvi", "ndmi"),    # U4
+    "ZONES_SMOOTH_MIN": 5,                # U1: okno 3×3, ≥ 5 z 9 ważnych pikseli
+    "ZONES_MIN_SCENES": 5,                # U5: norma komórki z ≥ 5 scen …
+    "ZONES_MIN_YEARS": 3,                 # … z ≥ 3 różnych lat
+    "ZONES_MIN_CELLS": 4,                 # U6: strefa = ≥ 4 komórki (8 sąsiadów)
+    "ZONES_CONFIRM_DAYS": 10,             # U7: „potwierdzona”, gdy strefa była też w scenie z ostatnich 10 dni
+    "ZONES_MIN_PAIRS": 30,                # §3: min. par scen na grupę testu szumu
+    "ZONES_SPREAD_FRAC": 0.5,             # §6.2: MDC95 (górna) < ½ typowego rozstępu p90 − p10 w działce
+    "ZONES_MAX_SHARE": 0.05,              # §6.3: ≤ 5% komórek w strefach przy glebie w normie (górna granica)
+    "ZONES_GRID_TOL_M": 1.0,              # §0: scena z siatką przesuniętą o > 1 m wypada
     # Progi statusu (EDO CDI)
     "THR_SPI1": -2.0, "THR_SPI3": -1.0, "THR_SMA": -1.0, "THR_VEG": -1.0,
     "STATUS_START": "2016-01-01",
@@ -482,7 +496,8 @@ MONITOR_CONFIG: Dict[str, Any] = {
 }
 
 _PATH_KEYS = ("PARCELS_PATH", "AOI_PATH", "ISMN_DIR", "S2_DIR", "S2_MANIFEST", "ERA5_DIR", "SR_MODEL_DIR", "MF_DIR",
-              "SR_DIR", "OUTPUT_DIR", "SECRETS_DIR", "SWI_DIR", "REF_DIR", "W3B_PROTOCOL")
+              "SR_DIR", "OUTPUT_DIR", "SECRETS_DIR", "SWI_DIR", "REF_DIR", "W3B_PROTOCOL",
+              "W3C_PROTOCOL")
 
 
 def monitor_config(rt: Dict[str, Any], overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -1231,6 +1246,26 @@ def task_dashboard(rt: Dict[str, Any], cfg: Dict[str, Any], forecast: bool = Tru
     return {"message": os.path.relpath(path, cfg["PROJECT_DIR"])}
 
 
+def task_zones(rt: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    W3c (protokół docs/evidence/W3c_protokol_strefy.md, D-090): strefa dnia (piksel − mediana działki, 30 m) z
+    archiwum S2_DIR (magazyn przyrostowy w3c_store.npz), norma miejsca z 5 lat, test szumu Z1 (pary scen bez deszczu)
+    -> próg T, Z2, kryterium pokazania (§6), strefy ≥ 4 komórki i „nowa / potwierdzona”. Pliki: w3c_tests.csv
+    (z SHA-256 protokołu, zamrożeniem i commitem), w3c_summary.csv, w3c_zones.npz (kody komórek do panelu).
+    """
+    import step_11_parcel as s11
+    import step_13_zones as s13
+    out = cfg["OUTPUT_DIR"]
+    proto = s11.protocol_sha(cfg["W3C_PROTOCOL"])
+    warn = "" if proto["sha256"] == proto["registered"] else \
+        f"; UWAGA: treść protokołu W3c różni się od zarejestrowanej ({proto['sha256'][:12]}… ≠ {proto['registered'][:12]}…)"
+    era5 = pd.read_csv(_era5_csv(cfg), parse_dates=["time"])
+    res = s13.run_zones(cfg, out, era5, commit=str(rt.get("GIT_COMMIT", "")))
+    show = "; ".join(f"{k.upper()}: {v}" for k, v in res["show"].items())
+    return {"message": f"{res['sites']} winnic, {res['n_scenes']} scen w magazynie (+{res['n_new']}, pominięte z inną "
+                       f"siatką: {res['n_skipped']}); zamrożenie {res['freeze']['freeze']}; {show}{warn}"}
+
+
 def task_panel(rt: Dict[str, Any], cfg: Dict[str, Any], forecast: bool = True) -> Dict[str, Any]:
     """Panel AgriScreen do publikacji (step_12, EN, układ jak Wago): 15 winnic na zdjęciu satelitarnym, mapy pikseli
     10 m z ostatnich bezchmurnych scen S2_DIR, warstwy „wobec własnej historii”, statystyki, gleba, pogoda (prognoza
@@ -1448,6 +1483,7 @@ def run_monitoring(rt: Dict[str, Any], cfg: Optional[Dict[str, Any]] = None, ing
     run_task(rt, "anomalies", task_anomalies, rt, cfg)
     run_task(rt, "parcel_tests", task_parcel_tests, rt, cfg)        # raz po zamrożeniu; potem „skipped”
     run_task(rt, "parcel_anomalies", task_parcel_anomalies, rt, cfg)
+    run_task(rt, "zones", task_zones, rt, cfg)
     run_task(rt, "validate", task_validate, rt, cfg)
     run_task(rt, "weather", task_weather, rt, cfg, fetch=ingest)
     run_task(rt, "bulletin", task_bulletin, rt, cfg)
@@ -1666,6 +1702,7 @@ def _selftest(out_dir: str) -> None:
                                                                          icos_session=FakeIcos(),
                                                                          era5_fetch=lambda *a, **k: era5)),
                          ("parcel_tests", task_parcel_tests), ("parcel_anomalies", task_parcel_anomalies),
+                         ("zones", task_zones),
                          ("bulletin", task_bulletin),
                          ("dashboard", lambda r, c: task_dashboard(r, c, forecast=False)),
                          ("panel", lambda r, c: task_panel(r, c, forecast=False)), ("summary", task_summary)):
@@ -1678,6 +1715,7 @@ def _selftest(out_dir: str) -> None:
     assert res["skipped"], "Drugie uruchomienie nie powinno przetwarzać scen ponownie (także odrzuconych przez SR)"
     assert res_p["skipped"] and res_t["skipped"], (res_p, res_t)
     _selftest_w3b(rt, cfg)
+    _selftest_w3c(rt, cfg)
     cov = sr_coverage(rt, cfg)
     assert cov["remaining"] == 0 and cov["sr_ok"] == cov["scenes"] - 1, cov
     st_main = registry_read(rt, "gwl_status")
@@ -1784,6 +1822,36 @@ def _selftest(out_dir: str) -> None:
     print("[OK] Selftest monitoringu. Status:", js["current"]["date"], js["current"]["cdi_class"])
     v_old = val[~val["segment"].isin(["T1", "T2", "T3", "P7", "P9", "QC"])]          # bez wierszy W3b (osobny test)
     print(v_old[["product", "reference", "segment", "subset", "metric", "value", "n"]].round(3).to_string(index=False))
+
+
+def _selftest_w3c(rt: Dict[str, Any], cfg: Dict[str, Any]) -> None:
+    """
+    W3c w selftescie: magazyn stref z syntetycznych scen (13 winnic z QC), testy z SHA-256 zarejestrowanego protokołu,
+    kryterium dla NDVI i NDMI. Sceny syntetyczne są co 15–16 dni, więc testu szumu nie ma z czego policzyć: warstwa
+    ma wyjść „nie pokazujemy — 1: za mało par”, a panel ma pokazać to w „How far to trust it”, bez warstwy na mapie.
+    Logikę stref (próg, U6, U7) sprawdza step_13._selftest na danych syntetycznych.
+    """
+    import step_11_parcel as s11
+    import step_13_zones as s13
+    out = cfg["OUTPUT_DIR"]
+    t = pd.read_csv(os.path.join(out, s13.TESTS_NAME))
+    proto = s11.protocol_sha(cfg["W3C_PROTOCOL"])
+    assert proto["status"] == "REGISTERED" and proto["sha256"] == proto["registered"], proto
+    assert (t["protocol_sha256"] == proto["sha256"]).all() and t["code_commit"].iat[0] == rt["GIT_COMMIT"]
+    crit = t.set_index("key").loc[["z_show_ndvi", "z_show_ndmi"]]
+    assert (crit["value"] == 0).all() and crit["verdict"].str.contains("1: za mało par").all(), crit["verdict"]
+    st = s13.load_store(os.path.join(out, s13.STORE_NAME))
+    assert len(st["sites"]) == 13 and len(st["scenes"]) >= 100 and not st["skipped"], (len(st["sites"]), st["skipped"])
+    assert np.isfinite(st["r_ndvi"]).any() and np.isfinite(st["r_ndmi"]).any()
+    zs = pd.read_csv(os.path.join(out, s13.SUMMARY_NAME))
+    assert set(zs["index"]) == {"ndvi", "ndmi"} and (zs["n_norm"] > 0).any(), "Δ z normą w części scen"
+    pdata = json.load(open(os.path.join(out, "panel_data.json"), encoding="utf-8"))
+    assert pdata["zones"] and pdata["zones"]["show"] == [], pdata["zones"]
+    assert not any(k.endswith("_hist") for k in pdata["pixels"]["dates"][0]["png"])
+    assert sum(r["status"] == "not shown" for r in pdata["trust"]) == 2, [r["status"] for r in pdata["trust"]]
+    s13._selftest(cfg)
+    print(f"[OK] W3c: magazyn {len(st['scenes'])} scen × 13 winnic, testy z zarejestrowanym protokołem "
+          f"({proto['sha256'][:12]}…), kryterium „za mało par” na scenach co 15–16 dni, panel bez warstwy.")
 
 
 def _selftest_w3b(rt: Dict[str, Any], cfg: Dict[str, Any]) -> None:
