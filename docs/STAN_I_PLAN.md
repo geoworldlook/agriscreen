@@ -129,3 +129,15 @@ warunków (próg z testu szumu, szum < ½ zróżnicowania działki, ≤ 5% komó
 **Wynik:** szum mały (MDC95 NDVI 0,033, NDMI 0,023), ale w dni z glebą w normie mapa świeciłaby na ok. 15% komórek
 (oczekiwane ok. 1%): układ wewnątrz działek zmienia się między latami (najpewniej uprawa międzyrzędzi). Warstwa nie
 przeszła warunku 3 (NDMI także 2). Nowa próba = nowy protokół sprawdzony na sezonie 2027 (`W3c_wyniki.md`, „Co dalej”).
+
+## 2d. W3d — miejsce najniżej od 5 lat (2026-10-20)
+
+Zdanie dla winiarza: „W lipcu 2026 to miejsce miało najniższą zieleń od 5 lat.” Kwadraty 30 m wewnątrz winnicy,
+miesiąc kalendarzowy, porównanie z tym samym miesiącem w 5 poprzednich latach tego samego miejsca, reset historii
+po przesadzeniu (RPG). Test: w zwykłe miesiące „najniżej od N lat” ma wypadać ok. 1/(N + 1) kwadratów (iloraz ≤ 1,5).
+
+| Krok | Co | Wynik |
+|---|---|---|
+| M0 ✓ | protokół zarejestrowany przed liczeniem (D-091); RPG 2015–2024 w `data/rpg_winnice.csv` | `docs/evidence/W3d_protokol_miesiace.md` |
+| M1 | kod `step_14_months.py`, `task_months`, warstwa w panelu tylko po teście | kod |
+| M2 | liczenie w Colab (notatnik, sekcja 5e) | `w3d_tests.csv`, notatka wyników |
