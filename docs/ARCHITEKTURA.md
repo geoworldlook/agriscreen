@@ -1,197 +1,110 @@
-# AgriWatch — architektura (stan kodu v1.2)
+# AgriScreen — architektura (wersja 1.0)
 
-> Opis tego, co jest zaimplementowane w `step_01…11` (stan na 2026-10-19: v1.1 „precyzja”, v1.2 „prezentacja”, karta wody
-> W1–W3a, walidacja W2 + REF i „Moja winnica” W3b).
-> Nie jest to plan ani zapis decyzji — plany są w `docs/plans/` (patrz „Dokumenty” na końcu). Stan projektu, wyniki
-> i lista otwartych spraw: [`docs/MIGRACJA_PODSUMOWANIE.md`](MIGRACJA_PODSUMOWANIE.md).
+Opis kodu w pakiecie `agriscreen/`. Stan projektu i wyniki: `docs/STAN_I_PLAN.md`; zmiany wersji: `CHANGELOG.md`.
 
 ## 1. Przepływ
 
 ```text
-GitHub (kod) ──git pull──▶ Dysk Google: MyDrive/GeoWorldLook/agriwatch ◀──── Colab (GPU, GEE)
-                                     │
-notebooks/AgriWatch_Monitor.ipynb ──▶ step_05.setup_runtime ──▶ run_task(...) dla każdego zadania
-                                                                   │
-  ingest_s2 ─▶ ingest_era5 ─▶ scene_stats ─▶ parcel_stats ─▶ anomalies ─▶ parcel_tests ─▶ parcel_anomalies ─▶ validate
-  (step_01)    (step_01)      (step_03/04)   (step_04)        (step_04)    (step_11)        (step_11)            (step_07)
-        ─▶ weather ─▶ bulletin ─▶ dashboard ─▶ summary
-           (step_08)  (step_04/09) (step_06/09)  (step_05)
-                                                                   │
-                                     data/registry/gwl_*.csv  +  data/05_Final_Outputs/agriwatch/
+GitHub (kod) ──git pull──▶ Dysk Google: MyDrive/GeoWorldLook/agriwatch (kod + dane) ◀── Colab (GEE, bez GPU)
+                                         │
+notebooks/AgriScreen_Monitor.ipynb ──▶ runtime.setup_runtime ──▶ runtime.run_task(...) dla każdego zadania
+                                                                     │
+ ingest_s2 ─▶ ingest_era5 ─▶ ingest_swi ─▶ parcel_stats ─▶ soil ─▶ parcel_tests ─▶ parcel_anomalies
+ ─▶ reference ─▶ weather ─▶ [zones ─▶ months: eksperymenty, domyślnie wyłączone] ─▶ panel ─▶ summary
+                                                                     │
+                   data/registry/gwl_*.csv  +  data/05_Final_Outputs/agriwatch/ (panel.html, panel_data.json, …)
 ```
 
-Każde zadanie jest wywoływane przez `run_task`, który zapisuje wiersz w `gwl_runs` (czas, status, commit gita
-z flagą `+dirty`, parametry, liczba nowych wierszy). Błąd zadania jest zapisywany i nie zatrzymuje kolejnych.
+To samo bez notatnika: `pipeline.run_all(rt, cfg, ingest_data=True, experiments=False)`.
+Każde zadanie zwraca słownik `{"message", "skipped"?, "registry"?}`; `run_task` zapisuje wiersz w `gwl_runs`
+(czas, status, commit z flagą `+dirty`, parametry, liczba nowych wierszy). Błąd jednego zadania nie zatrzymuje
+kolejnych.
 
 ## 2. Moduły
 
 | Moduł | Odpowiedzialność | Główne funkcje |
 |---|---|---|
-| `step_01_ingest.py` | Pobieranie z Google Earth Engine | `initialize_earth_engine`, `load_aoi_geometry`, `add_cloud_and_shadow_mask`, `sync_sentinel2_time_series` (10 pasm L2A [0–1] + `cloudmask` + SCL, manifest `data/00_Metadata/ingest_manifest.json`, filtr miesięcy), `sync_era5_land_point` (ERA5-Land DAILY_AGGR w punkcie: wilgotność 3 warstw, opad, T, Tmin, Tmax; cache CSV w fragmentach 12-miesięcznych, ponowne pobieranie ostatnich 120 dni), `read_geotiff_to_numpy`, `write_geotiff` |
-| `step_03_super_resolve.py` | SEN2SRLite „main” 10 m → 2,5 m | `load_sen2sr`, `super_resolve` (dopełnienie do kwadratu ≥ 128 px — obejście błędów `predict_large` w sen2sr 0.8.5), `sr_checks` (H-SR0, H-SR1, decyzja per wskaźnik), `plot_sr_comparison` |
-| `step_04_metrics_alert.py` | Indeksy, anomalie, status, biuletyn | `compute_indices` (NDVI, NDMI, NDRE, CRSWIR; stała CRSWIR jako argument), `site_stats` (pas wewnętrzny i średnie pasm jako argumenty), `load_parcels` (15 winnic W3b), `clim_anomaly`, `spi`, `era5_anomalies`, `track_ids`, `scene_anomaly` (z `n_ref_years`), `soil_drought_probability`, `build_status`, `build_bulletin` |
-| `step_05_colab_run.py` | Sterowanie i rejestr | `setup_runtime`, `run_task`, `registry_read/upsert`, `MONITOR_CONFIG`, `monitor_config`, zadania `task_*`, `run_monitoring`, `--selftest` |
-| `step_06_dashboard.py` | Dashboard winnicy (HTML, wzór: panel Wago z ESA WineEO) | `save_site_ndvi` (wycinki NDVI działki z `task_scene_stats`), `build_dashboard` (mapa NDVI na zdjęciu satelitarnym z wyborem daty, status, ryzyko suszy z prawdopodobieństwem, przyczyny, panele v1.2, pogoda ERA5 + prognoza Open-Meteo, przymrozki i upały, wiarygodność), `show_dashboard` |
-| `step_07_station_pipeline.py` | Stacja ISMN: QC i walidacja anomalii; eksperymentalny potok S-1 | `qc_insitu`, `validate_anomalies` (używana w monitoringu), `fast_drop_days`, `a4_variants`, `a4_flag_report` (reguły A4, D-060–D-063); `extract_satellite`, `s1_change_detection`, `evaluate`, `run_station_pipeline` (potok S-1, poza statusem) |
-| `step_08_weather.py` | Przymrozki, upały i walidacja ERA5-Land na stacjach Météo-France | `download_mf`, `read_mf`, `select_stations`, `validate_weather` (Tmin, Tmax, opad, SPI), `calibrated_thresholds`, `weather_hazards`, `hazard_summary` |
-| `step_09_panels.py` | Karty „Woda w winnicy” (Plan v9 W1) i „Moja winnica” (W3b) oraz panele prezentacji v1.2 (dashboard i biuletyn) | `water_card` + `water_card_lines` + `water_card_json` (karta wody; klasa gleby w 3 klasach `soil_class`), `parcel_card` + `parcel_card_lines` + `parcel_card_from_outputs` (karta działki, protokół W3b §10), `condition_panel` („Kondycja winnicy”: NDVI, NDRE, NDMI), `season_trajectory` + `plot_season_trajectory` (krzywa sezonu), `signal_matrix` + `matrix_html` / `plot_signal_matrix` (matryca sygnałów), `_selftest_panels`, `_selftest_parcel` |
-| `step_11_parcel.py` | „Moja winnica” (W3b): 15 winnic wobec własnej historii, testy według protokołu `docs/evidence/W3b_protokol_walidacji.md` | `parcel_wide`, `one_scene_per_day`, `parcel_anomalies`, `water_index` (z_woda = (z_NDMI − z_CRSWIR)/2), `area_series`, `band_features`, `management_flags`, `sensor_daily` + `anomaly_daily` + `window_mean` (cel T3), `jackknife_ci` (przedział po latach), `t1_rows`, `t2_rows`, `t3_main`, `multiband_loyo` + `multiband_rows` (wariant 4 pasm), `before_rows` (drabinka „przed” F4), `qc_rows`, `protocol_sha`, `freeze_info`, `run_tests`, `tests_summary`, `_selftest` |
-| `step_10_reference.py` | Stacje referencyjne ICOS i wspólna walidacja warstwy wody (Plan v9 W2 + REF, protokół D-083) | `icos_latest_objects`, `icos_download` (licencja CC BY 4.0), `icos_read_swc`, `icos_daily` (QC: zakres, FAST_DROP, kompletność dnia), `layer_series`, `profile_series`, `validate_layer` (R i ρ anomalii z CI, zgodność klas, kappa, POD/FAR), `validate_icos_site`, `monitor_current`, `ref_summary_md` |
-| `step_12_panel.py` | Panel AgriScreen do publikacji (EN, 15 winnic, układ jak Wago/WineEO): mapa Leaflet na zdjęciu Esri, półprzezroczyste mapy pikseli 10 m i warstwy „wobec własnej historii”, statystyki, gleba, pogoda | `pixel_maps` (NDVI/NDRE/NDMI z S2_DIR, statystyki w pasie 20 m; strefy `_rel` = piksel − mediana działki tego dnia), `weather_data` (prognoza, ERA5 10 dni, SPI, przymrozki/upały), `panel_data`, `trust_rows`, `panel_html`, `build_panel` |
-| `step_13_zones.py` | W3c: strefa gorsza niż zwykle (protokół `docs/evidence/W3c_protokol_strefy.md`, D-090) | `update_store` (strefa dnia: piksel − mediana działki, 3×3, magazyn przyrostowy), `norm_delta` (norma miejsca z 5 lat), `pair_rows`/`z1_threshold` (test szumu, próg T), `z2_rows`, `criterion_row` (§6), `zone_masks` (≥ 4 komórki), `confirm` (10 dni), `run_zones`, `load_zones` |
-| `step_14_months.py` | W3d: miejsce najniżej od 5 lat (protokół `docs/evidence/W3d_protokol_miesiace.md`, D-091) | `step_13.update_store(kind="abs")` (kwadraty 30 m), `month_values` (mediana z ≥ 2 dni), `replant_years` (RPG), `classify` (najniżej / najwyżej od N ≥ 4 lat), `spots` (≥ 4 piksele), `d1_rows` (iloraz wobec 1/(N+1), kryterium), `run_months`, `load_months` |
-| `build_story_notebook.py` | Generator i wykonanie notatnika na blog `notebooks/AgriScreen_story.ipynb` (dane z `docs/showcase/`) | `create_story_notebook`, `run_cells` |
-| `build_colab_master.py` | Generator `notebooks/AgriWatch_Monitor.ipynb` (notatnika nie edytujemy ręcznie) | `create_monitor_notebook` |
+| `config.py` | Wszystkie ustawienia w jednym miejscu; ścieżki względem katalogu projektu. Wartości metod pochodzą z protokołów (zmiana = nowa wersja protokołu) | `CONFIG`, `make_config`, `era5_csv`, `main_site_lonlat` |
+| `runtime.py` | Środowisko (Colab / lokalnie), rejestr CSV, uruchamianie zadań | `setup_runtime`, `run_task`, `registry_read`, `registry_upsert`, `run_history`, `registry_summary`, `show_html` |
+| `ingest.py` | Dane wejściowe: Sentinel-2 L2A z GEE (przyrostowo, manifest, maska chmur), ERA5-Land w punkcie (cache), satelitarny SWI z Copernicus Data Space (klucze tylko z folderu `secrets`), GeoTIFF | `sync_sentinel2_time_series`, `sync_era5_land_point`, `sync_swi_point`, `clean_swi`, `read_geotiff_to_numpy`, `write_geotiff` |
+| `metrics.py` | Wskaźniki (NDVI, NDMI, NDRE, CRSWIR), statystyki działek z pasem wewnętrznym, anomalie klimatologiczne, SPI, tory orbit | `compute_indices`, `site_stats`, `load_parcels`, `clim_anomaly`, `rootzone`, `spi`, `era5_anomalies`, `track_ids`, `scene_anomaly` |
+| `parcel.py` | W3b „Moja winnica”: anomalie 15 winnic wobec własnej historii i testy według protokołu `docs/evidence/W3b_protokol_walidacji.md` | `parcel_anomalies`, `water_index`, `area_series`, `management_flags`, `jackknife_ci`, `t1_rows`, `t2_rows`, `t3_main`, `multiband_rows`, `before_rows`, `run_tests`, `tests_summary`, `protocol_sha`, `freeze_info`, `t1_by_soil` (analiza dodatkowa) |
+| `stations.py` | Czujnik ISMN Condom: odczyt, QC, reguły A4 | `read_ismn_stm`, `qc_insitu`, `insitu_daily`, `fast_drop_days`, `a4_variants`, `a4_flag_report` |
+| `reference.py` | Stacje ICOS (Auradé, Lusignan) i wspólna walidacja warstwy wody (protokół W2 + REF) | `ingest_icos_site`, `icos_daily`, `validate_layer`, `validate_icos_site`, `monitor_current` |
+| `weather.py` | Météo-France: walidacja ERA5-Land (Tmin, Tmax, opad, SPI), progi przymrozku i upału, zdarzenia | `download_mf`, `read_mf`, `select_stations`, `validate_weather`, `calibrated_thresholds`, `weather_hazards`, `hazard_summary` |
+| `card.py` | Zdania karty winnicy (EN; PL zachowane w kodzie), kategorie suszy wg progów USDM, klasy SWI | `parcel_card`, `parcel_card_lines`, `parcel_class`, `water_category`, `read_swi`, `swi_agreement` |
+| `panel.py` | Produkt: panel EN (Leaflet na zdjęciu Esri, mapy pikseli 10 m, strefy dnia, warstwy z, statystyki, gleba, pogoda, karta, sezon, „How far to trust it”) i jego dane JSON | `pixel_maps`, `weather_data`, `panel_data`, `trust_rows`, `panel_html`, `build_panel` |
+| `pipeline.py` | Zadania v1 w kolejności uruchamiania | `task_*`, `TASKS`, `run_all` |
+| `experiments/` | W3c (`zones.py`) i W3d (`months.py`): anomalie miejsc wewnątrz winnicy; testy według protokołów; panel pokazuje tylko wynik testu | `task_zones`, `task_months`, `trust_rows`, `run_zones`, `run_months` |
+| `selftest.py` | Test bez sieci: dane syntetyczne, wszystkie zadania, kontrola plików, testy jednostkowe modułów | `make_inputs`, `run_tasks`, `check_*`, `unit_tests`, `main` |
+| `assets/` | Arkusz stylów Leaflet 1.9.4 wbudowywany w panel (BSD-2) | |
 
-Zależności między modułami: `step_05` importuje pozostałe moduły leniwie (wewnątrz zadań); `step_09` importuje `step_04`;
-`step_06` używa `step_09` (błąd panelu daje kartę „Element niedostępny”, reszta dashboardu powstaje); `step_11` importuje
-`step_04` (i leniwie `step_07`); `step_09` używa `step_11` tylko do podsumowania testów karty działki;
-`step_07` używa z `step_01` tylko GEE, maski chmur i ERA5, a z `step_04` funkcji `clim_anomaly`, `rootzone`, `dekad_end`;
-`step_08` używa `step_04.spi` i `dekad_end`.
+Zależności: `pipeline` → wszystkie moduły; `panel` → `card`, `parcel`, `metrics`, `experiments.trust_rows`;
+`parcel` → `metrics`, `stations`; `reference` → `stations`, `metrics`; `weather` → `metrics`;
+`experiments` → `parcel`, `metrics`. `ingest` importuje Earth Engine tylko, gdy jest zainstalowany (potrzebny
+wyłącznie do `task_ingest_s2`).
 
-## 3. Zadania monitoringu (`step_05`)
+## 3. Zadania (`pipeline.py`)
 
 | Zadanie | Wejście | Wyjście |
 |---|---|---|
-| `task_ingest_s2` | AOI + bufor 320 m, sezon IV–X, ≤ 40% chmur nad AOI | `data/01_Raw_Sentinel2/S2_L2A_*.tif` |
-| `task_ingest_era5` | centroid winnicy, 1991 → dziś | `data/02_ERA5_Land/era5_land_daily.csv` |
-| `task_ingest_swi` | klucze z `SECRETS_DIR` (`cdse.env`), piksel winnicy | `SWI_DIR/swi_v4_0.1deg_point.csv` (CLMS SWI 0,1° v4, 2007 – dziś, wiersz satelity na karcie) i `swi_v2_1km_point.csv` (1 km v2 od 13 VII 2025, bez normy); fragmenty kwartalne w `SWI_DIR/cache`; flagi producenta usunięte; klucze nie trafiają do wyników (Plan v9 W3a) |
-| `task_probe_swi` | jak wyżej | `swi_probe.json` — sonda dostępu (diagnostyka; poza notatnikiem) |
-| `task_scene_stats` | nowe sceny (brak w `gwl_observations`), od najnowszej | statystyki obiektów 10 m i 2,5 m (tylko wskaźniki, których pasma przeszły H-SR0/H-SR1); QC SR jako `product = SR_QC` z wersją kontroli w `calib_id`; limit `SR_MAX_SCENES_PER_RUN` na uruchomienie; pokrycie SR w komunikacie (`sr_coverage`); zapis co 25 scen (wznawianie po przerwanej sesji); wycinki NDVI działki dla mapy |
-| `task_parcel_stats` | sceny `S2_DIR` (archiwum i nowe), 15 winnic `Typ = winnice` | produkt `S2_10m_buf20` w `gwl_observations` (NDVI, NDMI, NDRE, CRSWIR ze stałą FORDEAD, pasma B04/B06/B8A/B12, `clear_frac`; pas 20 m, bez `all_touched`); `parcel_qc.csv`; „zrobione” = (działka, scena); zapis co 25 scen |
-| `task_parcel_tests` | obserwacje działek ≤ `W3B_FREEZE`, ISMN Condom (A4), ERA5-Land, SWI, `veg_anomalies.csv`, F4 `a2_variant_series.csv` | `w3b_tests.csv` (T1–T3, wariant wielopasmowy, wartości „przed”, QC; SHA-256 protokołu, zamrożenie, wersja kodu) + `gwl_validation_metrics`; `w3b_freeze.json`; ponowne uruchomienie = `skipped` |
-| `task_parcel_anomalies` | obserwacje działek, `w3b_tests.csv` | `parcel_anomalies.csv` (wszystkie winnice i wskaźniki + `water`), `parcel_area.csv` (mediana okolicy; `water_mb` przy przyjętym wariancie 4 pasm), `parcel_flags.csv` |
-| `task_anomalies` | ERA5, obserwacje roślinności | `gwl_anomalies`, `gwl_status` (z `p_soil_drought`), `era5_daily_anomalies.csv`, `veg_anomalies.csv` (NDVI, NDRE, NDMI, CRSWIR; kolumny `track`, `ref_mode`), `status_dekads.csv` |
-| `task_validate` | anomalie i status | `gwl_validation_metrics`, `validation_anomalies.csv` (R anomalii vs ISMN 5 cm i 20–30 cm z CI, POD/FAR suchych dekad) |
-| `task_ref_validate` | ISMN Condom (A4), pliki ICOS FR-Aur i FR-Lus, ERA5-Land i SWI v4 w punktach stacji | `validation_reference.csv` (+ `gwl_validation_metrics`), `validation_reference_qc.csv`, `a4_flags.csv`, `reference_current.json`; sekcja „Walidacja na stacjach referencyjnych” w `run_summary.md` |
-| `task_weather` | pliki dobowe Météo-France (Gers, Lot-et-Garonne), ERA5-Land w punktach stacji | `validation_weather.csv`, `mf_stations.csv`, `hazard_thresholds.json`, `weather_hazards.csv`, `hazard_summary.csv`; metryki do `gwl_validation_metrics` |
-| `task_bulletin` | status, anomalie, walidacja, wyniki W3b | `bulletin.md` (EN; sekcja „My vineyard” na początku dodatków, panele v1.2 z podpisami PL), `season_*.png`, `last_12_months.png`, `last_5_years.png`, `season_trajectory.png`, `signal_matrix.png/.csv`, `agriwatch_latest.json` (z `water_card` i `parcel_card`) |
-| `task_dashboard` | wyniki powyżej + wycinki NDVI działki (`SR_DIR/site_ndvi/`) | `dashboard.html` (od góry: „Moja winnica”, „Woda w glebie”) |
-| `task_zones` | archiwum S2_DIR, ERA5-Land, wyniki QC W3b | `w3c_store.npz`, `w3c_tests.csv`, `w3c_summary.csv`, `w3c_zones.npz`, `w3c_freeze.json` |
-| `task_months` | archiwum S2_DIR, ERA5-Land, `data/rpg_winnice.csv` | `w3d_store.npz`, `w3d_tests.csv`, `w3d_summary.csv`, `w3d_months.npz`, `w3d_freeze.json` |
-| `task_panel` | wyniki W3b, gleba, walidacja | `panel.html` (panel AgriScreen, EN), `panel_data.json` |
-| `task_summary` | rejestr i wyniki | `run_summary.md` / `.json` — wersje, konfiguracja, kontrola SR, karty wody i działki, testy W3b, status per rok, walidacja, pogoda, ostatnie uruchomienia |
+| `task_ingest_s2` | AOI + bufor 320 m, sezon IV–X, ≤ 40% chmur nad AOI | `data/01_Raw_Sentinel2/S2_L2A_*.tif` (10 pasm [0–1] + maska chmur + SCL), manifest |
+| `task_ingest_era5` | środek VINEYARD_06, 1991 → dziś | `data/02_ERA5_Land/era5_land_daily.csv` |
+| `task_ingest_swi` | klucze z `SECRETS_DIR` | `SWI_DIR/swi_v4_0.1deg_point.csv` (od 2007), `swi_v2_1km_point.csv` (od VII 2025) |
+| `task_parcel_stats` | sceny S2 (przyrostowo, para działka–scena) | `gwl_observations` (produkt `S2_10m_buf20`), `parcel_qc.csv` |
+| `task_soil` | ERA5-Land | `era5_daily_anomalies.csv` (percentyl i z 0–7 i 0–100 cm, SPI-1, SPI-3) |
+| `task_parcel_tests` | obserwacje ≤ zamrożenie, ERA5, SWI, czujnik ISMN | `w3b_tests.csv`, `w3b_freeze.json`, `gwl_validation_metrics`; pomijane przy tym samym protokole, zamrożeniu i commicie |
+| `task_parcel_anomalies` | obserwacje działek | `parcel_anomalies.csv`, `parcel_area.csv`, `parcel_flags.csv` |
+| `task_reference` | ISMN Condom, ICOS, ERA5 i SWI w punktach stacji | `validation_reference.csv`, `validation_reference_qc.csv`, `a4_flags.csv`, `reference_current.json` |
+| `task_weather` | Météo-France, ERA5 w punktach stacji | `validation_weather.csv`, `mf_stations.csv`, `weather_hazards.csv`, `hazard_summary.csv`, `hazard_thresholds.json` |
+| `experiments.task_zones` / `task_months` | sceny S2, ERA5, RPG | `w3c_*`, `w3d_*` (magazyny `.npz`, testy, podsumowania, zamrożenie) |
+| `task_panel` | pliki wynikowe, sceny S2, prognoza Open-Meteo | `panel.html`, `panel_data.json` |
+| `task_summary` | pliki wynikowe, `gwl_runs` | `run_summary.md`, `run_summary.json` |
 
-## 4. Metoda
+## 4. Rejestr (`data/registry/`, na Dysku)
 
-- **Anomalie ERA5-Land** (`clim_anomaly`): z-score i percentyl względem klimatologii dnia roku 1991–2020 (okno ±15 dni,
-  konwencja WMO; obejmuje lata 2016–2020, więc dla nich nie jest przyczynowa).
-  Wilgotność strefy korzeni = średnia warstw 0–7, 7–28, 28–100 cm ważona grubością; warstwa 0–7 cm informacyjnie.
-- **SPI-1, SPI-3** (`spi`): sumy 30 i 90 dni, rozkład gamma dopasowany dla pory roku, z prawdopodobieństwem zera.
-- **Anomalie roślinności** (`scene_anomaly`, Plan v7 A1–A3): dla sceny z roku Y odniesieniem są sceny tylko z lat
-  **wcześniejszych** (`VEG_CAUSAL`), najwyżej `VEG_REF_YEARS` = 5 (zmiana gospodarki międzyrzędziem daje trend NDVI),
-  ±15 dni roku, z **tego samego toru orbity** S-2 (`VEG_BY_TRACK`; tor rozpoznawany z godziny przelotu, `track_ids`;
-  gdy scen z toru za mało — oba tory, `ref_mode = all_tracks`), min. 5 scen odniesienia, tylko sceny z ≥ 90% czystych
-  pikseli. z predykcyjne z rozkładu t-Studenta (`VEG_PREDICTIVE_Z`), żeby częstość z ≤ −1 odpowiadała rozkładowi
-  normalnemu przy krótkiej historii. Liczone dla NDVI, NDRE, NDMI i CRSWIR; status używa tylko NDVI (`VEG_INDEX`).
-- **Status** (`build_status`): na koniec każdej dekady; obserwuj = SPI-1 ≤ −2 lub SPI-3 ≤ −1; sucho = anomalia gleby
-  0–100 cm ≤ −1; sprawdź winnicę = sucho oraz anomalia NDVI winnicy ≤ −1 (roślinność tylko w IV–X i nie starsza niż
-  30 dni); powrót do normy = po „sucho”/„sprawdź” anomalie nadal ujemne. `confidence` = high / medium / low zależnie od
-  dostępności i wieku sceny.
-- **Prawdopodobieństwo suszy gleby** (`soil_drought_probability`, Plan v7 A7 w wersji jednoźródłowej):
-  p = P(anomalia ISMN 20–30 cm ≤ −1 | anomalia ERA5-Land z) = Φ((−1 − ρz)/√(1−ρ²)), ρ = `PSMA_RHO` = 0,58
-  (korelacja ERA5-Land z ISMN Condom). Kolumna `p_soil_drought` w statusie, pokazywana na dashboardzie.
-  Ocena Brierem jest na razie poza potokiem (Plan v7, krok A5).
-- **Walidacja** (`step_07.validate_anomalies`): R anomalii klimatologicznych i 35-dniowych z 95% CI z bootstrapu
-  blokowego (30 dni); 5 cm osobno dla każdego czujnika (wymiana w 2019 r.); 20–30 cm jako strefa korzeni; roślinność
-  w dniu sceny (10 m i SR 2,5 m, także sparowane); POD/FAR suchych dekad (z ≤ −1). Okres ISMN z nazw plików
-  (`END_DATE = "auto"`). QC czujników: flaga ISMN, zakres, zamrożone wartości, okres wymiany czujnika 5 cm;
-  flagi utraty kontaktu 20/30 cm (QC-4 z `docs/evidence/Condom_QC.md`) jeszcze nie ma (Plan v7, krok A4).
-- **Pogoda** (`step_08`): przymrozki wiosenne (Tmin ≤ próg, 15 III – 15 V) i upały (Tmax ≥ próg, VI–VIII) z ERA5-Land
-  w punkcie winnicy. Progi kalibrowane tylko na stacji Météo-France w promieniu 5 km (Condom, 0,2 km), na latach
-  < 2021, i tylko gdy jest ≥ 10 zdarzeń i CSI rośnie o ≥ 0,05; inaczej próg nominalny (0 °C, 35 °C). POD/FAR na
-  latach ≥ 2021 dla progu używanego w produkcie (D-049).
-- **Karta „Woda w winnicy”** (`step_09.water_card`, Plan v9 W1): percentyl wilgotności 0–100 cm wobec normy
-  1991–2020 (±15 dni) → kategoria wg progów US Drought Monitor (≤ 2, 5, 10, 20, 30; ≥ 70 wilgotniej); niedobór =
-  (mediana normy − stan) × 1000 mm, zaokrąglony do 5 mm; miejsce wśród tego samego dnia we wszystkich latach ERA5;
-  „od kiedy” = ciąg dekad o średnim percentylu ≤ 20; opad 30/90 dni jako % mediany normy. Ta sama karta w dashboardzie
-  (PL), biuletynie (EN), `agriwatch_latest.json` (`water_card`) i `run_summary.md`. Dotyczy okolicy, nie działki.
-- **Panele v1.2** (`step_09`): kondycja winnicy (najnowsze z NDVI, NDRE, NDMI z klasą słowną i R wobec ISMN; NDRE
-  i NDMI informacyjnie, D-051), krzywa sezonu (pasmo 10–90% NDVI z 5 lat ściśle wcześniejszych; gleba na tle normy
-  1991–2020), matryca sygnałów (kaskada CDI, ostatnie 36 dekad, wybór sceny jak w statusie).
-- **Rozdzielczość detekcji: SR 2,5 m** (`VEG_PRODUCT = "S2SR_2.5m"`, decyzja 2026-10-07). Każda scena wchodząca do
-  detekcji jest po SEN2SR; scena, która nie przeszła kontroli pasm 10 m, nie wchodzi do detekcji (bez zastępstwa 10 m).
-  NDVI 10 m jest liczony dalej jako odniesienie (segment `anomaly_clim_paired`). Wynik walidacji: SR 2,5 m jest
-  równoważny 10 m dla sygnału (ΔR +0,004 [0,000; 0,009], Plan v7 ustalenie 14), więc SR zostaje do map.
-- **Kontrola SR:** H-SR0 — `std(SR − bikubika) / std(SR) ≥ 0,02` (model faktycznie działał);
-  H-SR1 — RMSE(SR uśredniony do natywnej rozdzielczości pasma, wejście) w reflektancji (spójność radiometryczna):
-  pasma 10 m (B02, B03, B04, B08) w blokach 4×4, próg stały 0,01; pasma 20 m (B05–B07, B8A, B11, B12) w blokach 8×8
-  względem pikseli 20 m (przesunięcie siatki wykrywane z powielonych pikseli), próg = specyfikacja dokładności L2A
-  `SR_20M_SPEC_FACTOR · (0,05·ρ + 0,005)` (Vermote 2008), ρ = średnia reflektancja pasma w scenie.
-  **Decyzja per wskaźnik** (`step_03.INDEX_BANDS`): NDVI (B04, B08), NDMI (B8A, B11), NDRE (B8A, B05),
-  CRSWIR (B8A, B11, B12) z 2,5 m tylko, gdy przeszły wszystkie ich pasma. Szacowany błąd wskaźnika z SR
-  (`{idx}_sr_err`) zapisywany w `SR_QC` dla każdej sceny. Brak modelu = błąd zgłoszony, bez zastępstwa interpolacją.
-  Wersja kontroli: `SR_QC_VERSION = "qc4"`, `SR_20M_SPEC_FACTOR = 1,5`. W przebiegu 2026-10-09: 414 scen ocenionych,
-  NDVI z 2,5 m przyjęte w 98,3%; mediana błędu NDVI z SR 0,009, NDMI 0,04, NDRE 0,035, CRSWIR 0,085.
-- **Ryzyko przyjęte świadomie (2026-10-07):** pasma 20 m po SR mają błąd spójności kilkunastokrotnie większy niż pasma
-  10 m; NDMI, NDRE i CRSWIR z 2,5 m mają błąd ~0,03–0,09 na piksel, porównywalny z typową zmiennością międzyroczną.
-  Dlatego nie wchodzą do logiki statusu.
+| Tabela | Klucz | Zawartość |
+|---|---|---|
+| `gwl_observations` | site_id, product, variable, time_utc, orbit | statystyki działek ze scen (`S2_10m_buf20`) |
+| `gwl_validation_metrics` | site_id, product, reference, segment, period, subset, metric | wyniki walidacji i testów |
+| `gwl_runs` | run_id | historia zadań |
 
-## 5. Rejestr `gwl_*` (Dysk Google, `data/registry/`)
+Zapis według klucza (`registry_upsert`): ten sam wiersz z tą samą wartością nie jest dopisywany ponownie.
 
-Pliki CSV o nazwach i kolumnach przyszłej bazy danych. `registry_upsert` dopisuje wiersze według klucza głównego:
-nowy klucz → dopisany, zmieniona wartość → zastąpiony, bez zmian → zostaje stary wiersz. Zapis atomowy.
+## 5. Testy
 
-| Tabela | Klucz |
+- `python -m agriscreen.selftest [--out KATALOG]` (kilka minut, bez sieci i kluczy): dane syntetyczne (ERA5 1991–2024,
+  stacja Météo-France, atrapy Copernicus Data Space i portalu ICOS, 126 scen Sentinel-2 na prawdziwych granicach
+  15 winnic, sygnał wstrzyknięty w winnicę 7 w 2024 r.), wszystkie zadania, eksperymenty, kontrola plików i
+  testy jednostkowe modułów (`_selftest` w `ingest`, `reference`, `weather`, `card`, `parcel`, `zones`, `months`).
+- Prawdziwe dane w teście: granice winnic i czujnik ISMN Condom z repozytorium.
+- Lint: `ruff check agriscreen` (reguły w `pyproject.toml`).
+
+## 6. Stare nazwy modułów (protokoły i notatki sprzed 1.0)
+
+Zarejestrowane protokoły i notatki wyników odwołują się do modułów `step_*`. Odpowiedniki w 1.0:
+
+| Do wersji 1.0 | Wersja 1.0 |
 |---|---|
-| `gwl_sites` | `site_id` |
-| `gwl_observations` | `site_id, product, variable, time_utc, orbit` |
-| `gwl_anomalies` | `site_id, product, date` |
-| `gwl_validation_metrics` | `site_id, product, reference, segment, period, subset, metric` |
-| `gwl_calibrations` | `calib_id, site_id, product, orbit, param` |
-| `gwl_status` | `site_id, date` |
-| `gwl_runs` | `run_id` |
+| `step_01_ingest.py` | `agriscreen/ingest.py` |
+| `step_04_metrics_alert.py` | `agriscreen/metrics.py` |
+| `step_05_colab_run.py` | `agriscreen/runtime.py`, `config.py`, `pipeline.py`, `selftest.py` |
+| `step_07_station_pipeline.py` | `agriscreen/stations.py` (bez gałęzi Sentinel-1) |
+| `step_08_weather.py` | `agriscreen/weather.py` |
+| `step_09_panels.py` | `agriscreen/card.py` (bez karty wody PL, paneli v1.2 i biuletynu) |
+| `step_10_reference.py` | `agriscreen/reference.py` |
+| `step_11_parcel.py` | `agriscreen/parcel.py` |
+| `step_12_panel.py` | `agriscreen/panel.py` |
+| `step_13_zones.py`, `step_14_months.py` | `agriscreen/experiments/zones.py`, `months.py` |
+| `step_03_super_resolve.py`, `step_06_dashboard.py` | wycofane (SEN2SR, dashboard PL) |
 
-Pełny schemat: `REGISTRY_SCHEMA` w `step_05_colab_run.py`.
+Funkcje przeniesiono bez zmian logiki; regresja na danych syntetycznych daje identyczne pliki wynikowe
+(`CHANGELOG.md`). Ostatni commit z modułami `step_*`: `82844ae`.
 
-## 6. Konfiguracja
+## 7. Zasady
 
-Jedno miejsce: `MONITOR_CONFIG` w `step_05_colab_run.py` (ścieżki względne liczone od `PROJECT_DIR`).
-Kolejna winnica = nowy wpis w `VINEYARDS` (`{"site_id": fid}` z `data/1_AOI_GBOV_CONDOM.geojson`).
-„Moja winnica” (W3b): klucze `PARCEL_*` i `W3B_*` (wszystkie winnice `Typ = winnice`, pas 20 m, progi testów); definicje
-w protokole `docs/evidence/W3b_protokol_walidacji.md`, zmiana definicji = nowa wersja protokołu.
-Konfiguracja stacji ISMN: `STATION_CONFIG` w `step_07_station_pipeline.py`.
-
-## 7. Testy offline
-
-```bash
-python step_05_colab_run.py --selftest --out <katalog>   # cały monitoring (~5 min): syntetyczne S-2, ERA5 i Météo-France,
-                                                         # prawdziwe ISMN i działki, atrapa SEN2SR; panele v1.2 i test wycieku;
-                                                         # W3b: 15 winnic, flaga z wstrzykniętego sygnału, testy zamrożone,
-                                                         # karta „Moja winnica”, regresja pikseli starych produktów
-python docs/evidence/W3b_symulacje.py                    # symulacje do protokołu W3b (moc T3, czułość T1; ziarno 42)
-python step_08_weather.py                                # pogoda: odczyt MF, kalibracja progów, walidacja
-python step_07_station_pipeline.py --selftest            # potok S-1 stacji (wymaga pytesmo)
-python -m pyflakes step_0*.py step_09_panels.py          # znane: 2× undefined name 'pd' w step_01 (adnotacje)
-```
-
-## 8. Dokumenty
-
-Orientacja w jednym miejscu: [`docs/STAN_I_PLAN.md`](STAN_I_PLAN.md) — co mamy, co wprowadzamy, co później.
-
-| Dokument | Status |
-|---|---|
-| `docs/MIGRACJA_PODSUMOWANIE.md` | stan projektu, audyt wyników, następne kroki (2026-10-10) |
-| `docs/plans/Plan_v7_precyzja.md` | `PROPOSED` (2026-10-08), etap A wdrożony poza A4/A5; decyzje D-040…D-051 |
-| `docs/plans/Plan_v8_cloud_native_dl.md` | `PROPOSED` (2026-10-14): moduły 1 (A4, A5, cloud-native), 2 (U-Net na ortofotomapie), 3 (rozplątanie sygnału, test); D-052…D-059 |
-| `docs/plans/Plan_v9_woda_w_winnicy.md` | `PROPOSED` (2026-10-14): moduł 1 = „Woda w winnicy”, prototyp w Colab (W1, W2, W4, W5, W6); D-064…D-069 |
-| `docs/evidence/W3a_SWI_1km_satelita.md` | metoda W3a (2026-10-14, rewizja 2026-10-15): CLMS SWI jako satelitarne potwierdzenie stanu gleby — na karcie SWI 0,1° v4 (jedna wersja 2007–dziś), T = 15, norma 2007–2024; 1 km v2 zbierany; D-074…D-078, D-080; wdrożone w `task_ingest_swi`, `step_09.water_satellite` |
-| `docs/plans/Plan_W3b_moja_winnica.md`, `docs/plans/W3b_plan_wdrozenia.md` | „Moja winnica” (W3b): plan (D-084–D-089) i plan wdrożenia K1–K4; kod K2–K4 wdrożony 2026-10-19, wyniki po pierwszym przebiegu w Colab |
-| `docs/evidence/W3b_protokol_walidacji.md`, `W3b_symulacje.py`, `W3b_przeglad_literatury_woda_w_lisciach.md` | protokół W3b zarejestrowany przed liczeniem (D-089), symulacje mocy, przegląd literatury |
-| `docs/evidence/W2_REF_protokol_walidacji.md`, `W2_REF_wyniki.md`, `karta_wynikow.md` | protokół W2 + REF zarejestrowany przed liczeniem (D-083), wyniki pierwszego przebiegu, karta wyników (D-070) |
-| `docs/evidence/REF_obszar_pomocniczy_ICOS.md` | `PROPOSED` (2026-10-15): obszar pomocniczy z pomiarami w gruncie — FR-Lus (dane bieżące), FR-Aur (historia w Gers); D-082 |
-| `docs/evidence/A4_QC_czujnikow_ISMN.md` | `PROPOSED` (2026-10-14): metoda QC czujników 20/30 cm przed wdrożeniem; D-060…D-063 |
-| `docs/evidence/F4_eksperymenty/`, `F5_asymilacja_danych.md`, `F7_v12/` | dowody do Planu v7 i v1.2 (eksperymenty offline z recenzjami) |
-| `docs/evidence/F6_alerty_strefowe.md` | przegląd i projekt alertów w obrębie działki (niewdrożone) |
-| `docs/plans/Plan_v3_monitoring_winnic_SR.md` | `APPROVED` (2026-10-06); część A = przegląd literatury, z którego korzysta kod (EDO CDI, walidacja anomalii, SR) |
-| `docs/plans/Plan_v6_platforma_anomalii_wilgotnosci.md` | `PROPOSED` (2026-10-07) — platforma na wzór WineEO dla 15 winnic; przegląd i propozycje Z1–Z8 w `docs/evidence/F3_przeglad_literatury_platforma.md` |
-| `docs/plans/Plan_v5_bilans_wodny_winnic.md` | `PROPOSED` (bilans wodny FAO-56) — niezatwierdzony; eksperyment F4 B nie potwierdził zysku |
-| `docs/plans/Plan_v4_cel_zawodowy.md` | `SUPERSEDED` |
-| `docs/plans/F0…`, `F1…`, `Plan_wdrozenia_pipeline.md`, `Plan_GeoWorldLook_Jupyter_Colab.md`, `Plan_6_tygodni.md` | historyczne; odwołują się do plików `step_02`, `step_06` z v2.5, które są teraz w `legacy/` |
-| `docs/evidence/F1_evidence_brief.md`, `docs/evidence/Condom_QC.md` | analizy źródłowe (reguły QC-1, QC-2, QC-5 wdrożone w `step_07.qc_insitu`; QC-4 — krok A4) |
-
-## 9. `legacy/`
-
-Poprzedni potok AgriScreen v2.5 (LST z H-pyDMS, ATPRK, TCARI/OSAVI, TVDI, walidacja Landsat) i poprzednie wersje modułów
-(`*_v1.py`). Nie jest uruchamiany i nie jest utrzymywany; zostaje jako archiwum. Obecny kod korzysta wyłącznie z danych
-satelitarnych Copernicus (D-048).
+- Dane satelitarne tylko z programu Copernicus (D-048). Kafle Esri tylko jako tło w przeglądarce (bez zapisu).
+- Klucze tylko z `MyDrive/GeoWorldLook/secrets/`; kod nie wypisuje ich wartości.
+- Metody z protokołów zarejestrowanych przed liczeniem (SHA-256 treści od „## 0.” do końca, `parcel.protocol_sha`);
+  testy na danych do daty zamrożenia; zmiana metody = nowa wersja protokołu i nowe dane.
+- Notatniki generujemy skryptami (`notebooks/build_monitor.py`, `notebooks/build_story.py`), nie edytujemy ręcznie.

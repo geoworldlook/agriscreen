@@ -3,8 +3,9 @@
 > **Status:** wynik protokołu `docs/evidence/W3b_protokol_walidacji.md` (D-089, SHA-256 `f01b74a8…`, status
 > `REGISTERED`, skrót w wynikach zgodny z zarejestrowanym), bez zmian protokołu po rejestracji.
 > - Przebieg w Colab 2026-10-20, kod `54cc586`; notatnik z wynikami: commit `2d2fcbe`.
-> - Flaga `+dirty`: kopia repozytorium na Dysku ma lokalne zmiany w plikach śledzonych. Ta flaga pojawiała się też
->   w poprzednich przebiegach. Kod `step_*.py` pochodzi z `git pull` tego samego commita.
+> - Flaga `+dirty`: kopia repozytorium na Dysku miała lokalne zmiany (zapisany notatnik). Pochodzenie wyniku
+>   potwierdza co innego: testy policzone od nowa przez kolejne commity (`a52d7a1`, `ddf26dd`) dały te same wartości
+>   co ten przebieg (kopia w `docs/showcase/w3b_tests.csv`).
 > - Zamrożenie: 419 scen 2016-04-11 – 2026-10-18; SHA-256 listy scen `96d70cb4…`, bez zmian od zamrożenia.
 > - Pełna tabela: `w3b_tests.csv` (247 wierszy) w `data/05_Final_Outputs/agriwatch/` na Dysku.
 >
@@ -27,16 +28,26 @@
    - Cechy są parami prawie identyczne (B06–B8A r = 0,97, B04–B12 r = 0,95), a wagi par mają przeciwne znaki. Model
      ma w praktyce 2 niezależne wymiary.
    - Zostaje prosty wskaźnik; ten wynik jest punktem odniesienia dla sieci neuronowej (Plan v8).
-3. **T1 — kalibracja: nie wykryto grubego rozkalibrowania, ale udział klasy „poniżej” jest wysoki.**
+3. **T1 — kalibracja (opisowo): nie wykryto grubego rozkalibrowania, ale test jest słaby, a udział klasy „poniżej”
+   silnie zależy od roku.**
    - 28,0% scen [4,4; 51,7] wobec zakładanych 15,9%.
-   - Rozkład po latach pokazuje przyczynę — prawdziwe susze: 2022 76%, 2026 59%, 2020 36%, a 2021 1% i 2023 2%.
-   - W dniach z glebą w normie (percentyl ERA5 30–70) udział wynosi 14,1% [0,0; 29,6], czyli blisko oczekiwanych 15,9%.
-   - Klasa nie zapala się więc „sama z siebie”, tylko w latach suchych.
-4. **T2 — szum:** najmniejsza wyraźna zmiana z między scenami to 1,03 [0,59; 1,47] dla tego samego toru (4–6 dni)
-   i 1,12 [0,77; 1,46] dla różnych torów (1–3 dni). Przy opadzie ≥ 5 mm rośnie do ok. 1,6. Wskaźnik wody jest mniej
-   zaszumiony niż NDVI (1,38 / 1,24).
+   - Po latach od 1% (2021) do 76% (2022). Lata nie układają się czysto według gleby: w 2019 gleba była sucha
+     (średni percentyl ERA5-Land 0–100 cm w VI–IX: 17), a poniżej normy było 15% scen; w 2020 gleba w normie (43),
+     a poniżej normy 36%.
+   - W dniach z glebą w normie (percentyl ERA5 w przedziale (30; 70)) udział wynosi 14,1% [0,0; 29,6]. Protokół (§4)
+     zastrzega, że ten podzbiór sprzyja niskiej wartości.
+   - **Analiza dodatkowa (po teście, poza protokołem; `parcel.t1_by_soil`):** według gleby w dniu sceny — sucho
+     (≤ 30) 45,9% [10,8; 81,0], n = 1185; w normie 14,1% [0,0; 29,6], n = 839; wilgotno (≥ 70) 6,7% [0,4; 13,1],
+     n = 445. Kierunek zgodny z oczekiwanym, przedziały szerokie. Ta analiza niczego nie rozstrzyga.
+4. **T2 — szum (opisowo):** najmniejsza wyraźna zmiana z między scenami (MDC95 = 1,96·√średnia d²) to
+   1,03 [0,59; 1,47] dla tego samego toru (4–6 dni) i 1,12 [0,77; 1,46] dla różnych torów (1–3 dni). Typowa różnica
+   dwóch scen jest ok. 2 razy mniejsza (ok. 0,5 z). Pary z opadem ≥ 5 mm dają 1,64 / 1,56, ale protokół (§5) nie
+   wymaga dla nich normy z tego samego toru, więc nie są wprost porównywalne; z tym samym filtrem wychodzi ok.
+   1,33 / 1,17 (przybliżenie z audytu 2026-10-20, po teście). Wskaźnik wody jest mniej zaszumiony niż NDVI
+   (1,38 / 1,24).
 5. **Wartości „przed” z F4 (VINEYARD_06):**
-   - Wyciek przyszłych lat zawyżał R o 0,13: krok a 0,57 → krok b 0,44 na tych samych 200 dniach.
+   - Krok a → b: 0,57 → 0,44 na tych samych 200 dniach. Ten krok zmienia naraz normę (bez lat przyszłych), tor
+     odniesienia i z predykcyjne, więc spadku o 0,13 nie można przypisać samemu wyciekowi przyszłych lat.
    - Kontrola czujników A4 przywraca 0,11 (krok c 0,54), produkt 10 m z pasem 20 m daje 0,52 (krok d).
    - Po obu poprawkach R z czujnikiem jest podobne do opublikowanego w F4 (0,47), ale już bez wycieku.
 
@@ -73,7 +84,7 @@
 | z ≤ −1: NDVI | 24,7% [5,1; 44,3] | 2469 |
 | z ≤ −1: mediana okolicy | 25,8% [0,0; 53,9] | 194 |
 | MDC95 wskaźnika wody: G5 / G13 bez opadu | 1,03 [0,59; 1,47] / 1,12 [0,77; 1,46] | 638 / 799 par |
-| MDC95: pary z opadem ≥ 5 mm (G5 / G13) | 1,64 / 1,56 | 242 / 121 par |
+| MDC95: pary z opadem ≥ 5 mm (G5 / G13), bez filtra toru normy (§5) | 1,64 / 1,56 | 242 / 121 par |
 | MDC95 w jednostkach: NDMI G5 / G13 | 0,058 / 0,082 | |
 
 ## 4. Wartości „przed” (§9), VINEYARD_06, IV–X 2018–2024
@@ -133,7 +144,8 @@ Uwaga do porównania z T3:
 ## 7. Interpretacja i ograniczenia
 
 - **Co to mówi rolnikowi:**
-  - wskaźnik wody działki jest stabilny (szum ok. 1 z) i skalibrowany w latach normalnych;
+  - dwie bliskie sceny bez deszczu różnią się o mniej niż ok. 1 z (MDC95), więc mniejszych zmian nie pokazujemy
+    jako zmiany; kalibrację sprawdza tylko słaby test (T1);
   - w latach suchych (2022, 2026) większość winnic jest poniżej normy naraz;
   - porównanie „Twoja działka a sąsiedzi” (k z N) jest więc ważniejsze niż sama klasa.
 - **Czego nie możemy powiedzieć:**
@@ -142,3 +154,11 @@ Uwaga do porównania z T3:
 - **Ograniczenia (§12):** 7 sezonów, cel punktowy pod trawą i w 59% cenzurowany, nieznane nawadnianie. Sprawdzamy
   spójność na danych już oglądanych w F4, a nie na nowych danych.
 - **Następny test na nowych danych:** sezon 2027 — te same reguły, bez zmian.
+
+## 8. Audyt wyników (2026-10-20, przed wersją 1.0)
+
+Niezależne przeliczenie z plików wynikowych potwierdziło liczby tej notatki (T1, T2, T3, §7, QC, flagi; przedział T3
+odtworzony ręcznie z wartości „bez roku”). Poprawki opisu po audycie: T1 bez listy „prawdziwych susz” (lata nie
+układają się czysto według gleby; zamiast tego analiza dodatkowa według gleby w dniu sceny), pary z opadem w T2
+z zastrzeżeniem o filtrze, krok a → b w §9 bez przypisywania spadku samemu wyciekowi. Liczby testów i werdykty bez
+zmian.

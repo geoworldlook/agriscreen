@@ -4,6 +4,10 @@ Dowody do `docs/plans/Plan_v7_precyzja.md`. Wszystko liczone offline na danych z
 (`gwl_observations.csv`, `era5_land_daily.csv`, `gwl_anomalies.csv`, `gwl_status.csv`; przebieg z commita `277d162`,
 pełna historia SR 414 scen) i surowych plikach ISMN Condom z `data/7_isismn_data`.
 
+> **Kod z wersji przed v1.** Skrypty importują moduły `step_04_metrics_alert.py` i `step_07_station_pipeline.py`,
+> których od wersji 1.0 nie ma w repozytorium (zastąpił je pakiet `agriscreen/`). Aby je uruchomić, przywróć te
+> pliki z ostatniego commita sprzed v1: `git checkout 82844ae -- step_04_metrics_alert.py step_07_station_pipeline.py`.
+
 Każdy eksperyment najpierw odtwarzał wynik v1.0 tą samą metodą co `step_07.validate_anomalies`
 (wszystkie trzy odtworzyły go dokładnie: ERA5 RZ R = 0,583, n = 2976; POD/FAR 0,574/0,571; NDVI SR R = 0,433, n = 245),
 a potem był sprawdzany przez niezależnego recenzenta, który powtarzał obliczenia i szukał błędów (katalogi `*_weryfikacja`).
