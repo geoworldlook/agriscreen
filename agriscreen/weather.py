@@ -297,8 +297,8 @@ def calibrated_thresholds(val: pd.DataFrame, stations: pd.DataFrame, cfg: Dict[s
             thr[f"{ev}_source"] = f"nominalny (za mało zdarzeń do kalibracji na stacji {near['name']}: {n})"
             continue
         csi = val[(val["reference"].astype(str) == ref) & (val["product"] == prod) & (val["metric"] == "csi")]
-        get = lambda tag: csi.loc[csi["period"].astype(str).str.endswith(tag), "value"]
-        nom, cal = get(" nominal"), get(" calibrated")
+        nom = csi.loc[csi["period"].astype(str).str.endswith(" nominal"), "value"]
+        cal = csi.loc[csi["period"].astype(str).str.endswith(" calibrated"), "value"]
         gain = float(cal.iat[0] - nom.iat[0]) if len(nom) and len(cal) else np.nan
         if np.isfinite(gain) and gain >= cfg["WX_MIN_CSI_GAIN"]:
             thr[ev] = float(q["value"].iat[0])

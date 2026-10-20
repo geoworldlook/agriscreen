@@ -1,0 +1,33 @@
+[project]
+name = "agriscreen"
+version = "1.0.0"
+description = "Vineyards against their own history, from open Copernicus data (Sentinel-2, ERA5-Land, CLMS SWI)"
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.10"
+dependencies = [
+    "numpy",
+    "pandas",
+    "scipy",
+    "rasterio",
+    "geopandas",
+    "requests",
+    "pillow",
+]
+
+[project.optional-dependencies]
+ingest = ["earthengine-api", "geemap", "geedim"]
+
+[tool.setuptools]
+packages = ["agriscreen", "agriscreen.experiments"]
+
+[tool.setuptools.package-data]
+agriscreen = ["assets/*.css"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+# błędy i pułapki; styl adnotacji i kolejność importów zostają jak w kodzie
+select = ["E4", "E7", "E9", "F", "B"]
+ignore = ["B008", "B023", "B028", "B905"]

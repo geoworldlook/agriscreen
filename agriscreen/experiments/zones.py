@@ -485,7 +485,7 @@ def run_zones(cfg: Dict[str, Any], out_dir: str, era5: pd.DataFrame, commit: str
         codes = np.full((len(store["scenes"]), n_pix), NO_DATA, np.int8)
         delta = np.full((len(store["scenes"]), n_pix), np.nan, np.float16)
         counts = []
-        for j, sid, sel, sc, R, D, info in per_site:
+        for _j, sid, sel, sc, R, D, info in per_site:
             if not len(sc):
                 continue
             rr, cc = rr_all[sel], cc_all[sel]
@@ -511,12 +511,12 @@ def run_zones(cfg: Dict[str, Any], out_dir: str, era5: pd.DataFrame, commit: str
                                 "ref_mode": info["ref_mode"].iat[i], "med_ref_scenes": info["med_ref_scenes"].iat[i],
                                 "med_ref_years": info["med_ref_years"].iat[i]})
                 if nd and t.normalize() <= freeze and m0 <= t.month <= m1:
-                    p = soil.get(t.normalize(), np.nan)
+                    p = soil.get(t.normalize(), np.nan)          # gleba w normie: (30; 70), jak karta wody (§0)
                     counts.append({"site_id": sid, "time": t.normalize(), "year": t.year, "n": nd,
                                    "weak": int(zw[i].sum()), "strong": int(zs[i].sum()),
                                    "both": int(zw[i].sum() + zs[i].sum()),
                                    "raw_both": int(zw_raw[i].sum() + zs_raw[i].sum()),
-                                   "soil_normal": bool(np.isfinite(p) and 30 <= p <= 70)})
+                                   "soil_normal": bool(np.isfinite(p) and 30 < p < 70)})
         r2, z2 = z2_rows(pd.DataFrame(counts), k, cfg)
         rows += r2
         crit = criterion_row(k, z1, spread, z2, cfg)

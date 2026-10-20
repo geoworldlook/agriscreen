@@ -381,7 +381,12 @@ def panel_data(out_dir: str, cfg: Dict[str, Any], forecast: Any = "fetch") -> Di
 
 def trust_rows(out_dir: str, cfg: Dict[str, Any], summ: Optional[Dict[str, Any]],
                tests: Optional[pd.DataFrame]) -> List[Dict[str, str]]:
-    """Tabela „How far to trust it”: co, wynik, status (validated / partly / not confirmed / not validated)."""
+    """
+    Tabela „How far to trust it”: co, z czym porównane, wynik, status. Statusy (legenda w panelu):
+    confirmed / not confirmed — test zarejestrowany z kryterium; accepted / not adopted — wariant §7;
+    checked — porównanie z pomiarami bez progu zaliczenia (W2 + REF §5, pogoda); descriptive — miara opisowa bez
+    kryterium (W3b §4 T1, §5 T2); experimental — eksperyment, warstwy nie ma na mapie; not validated — nie ma czym.
+    """
     from agriscreen import card
     rows: List[Dict[str, str]] = []
 
@@ -396,40 +401,49 @@ def trust_rows(out_dir: str, cfg: Dict[str, Any], summ: Optional[Dict[str, Any]]
                 q = ref[(ref["site_id"] == site) & (ref["reference"] == reference) & (ref["product"] == prod)]
                 r = q[(q["segment"] == seg) & (q["metric"] == "pearson_r")]
                 a = q[(q["segment"] == "class_agreement") & (q["metric"] == "agreement")]
-                if len(r):
-                    parts.append(f"{name.split(' (')[0]} R {f(r['value'].iat[0])}")
+                if len(r):                             # Lusignan: inna miara (anomalie 35-dniowe), więc z podpisem
+                    parts.append(f"{name.split(' (')[0]} R {f(r['value'].iat[0])}"
+                                 + (" (35-day anomalies)" if seg == "anomaly_35d" else ""))
                 if len(a):
                     agree.append(f"{100 * a['value'].iat[0]:.0f}%")
             if parts:
                 rows.append({"what": what, "against": "in situ soil sensors at 3 stations (ISMN Condom, ICOS Auradé "
-                                                      "and Lusignan)",
-                             "result": "; ".join(parts) + (f"; same dry/normal/wet class on {', '.join(agree)} of days"
-                                                           if agree else ""),
-                             "status": "validated"})
+                                                      "and Lusignan); no pass threshold was set",
+                             "result": "anomaly correlation " + "; ".join(parts)
+                                       + (f"; same dry/normal/wet class on {', '.join(agree)} of days" if agree else "")
+                                       + " (moderate agreement)",
+                             "status": "checked"})
     wv = _opt(os.path.join(out_dir, "validation_weather.csv"))
     if wv is not None:
         q = wv[(wv["product"] == "ERA5L_PRECIP") & (wv["segment"] == "sum_30d") & (wv["period"].astype(str) == "all")
                & (wv["metric"] == "pearson_r")]
         if len(q):
             rows.append({"what": "Rainfall, 30-day sums (ERA5-Land)", "against": f"rain gauge {q['subset'].iat[0]}",
-                         "result": f"R {f(q['value'].iat[0])}", "status": "validated"})
+                         "result": f"R {f(q['value'].iat[0])}", "status": "checked"})
     if summ:
         t2 = summ["mdc"]
         g5, g13 = (t2.get("G5") or {}).get("value"), (t2.get("G13") or {}).get("value")
         rows.append({"what": "Parcel vegetation water index: noise between scenes",
                      "against": "pairs of scenes a few days apart without rain",
-                     "result": f"smallest clear change: {f(g5, 1)} z (same orbit), {f(g13, 1)} z (different orbits)",
-                     "status": "validated"})
+                     "result": f"smallest clear change (MDC95): {f(g5, 1)} z (same orbit), {f(g13, 1)} z (different "
+                               f"orbits)", "status": "descriptive"})
         t1 = summ["t1"]
-        normal = None
+        normal, years = None, ""
         if tests is not None:
             q = tests[tests["subset"].astype(str).str.startswith("gleba w normie")]
             normal = q["value"].iat[0] if len(q) else None
+            y = tests[(tests["segment"] == "T1") & (tests["metric"] == "share_z_le_-1")
+                      & tests["subset"].astype(str).str.fullmatch(r"rok \d{4}")]
+            if len(y):
+                lo, hi = y.loc[y["value"].idxmin()], y.loc[y["value"].idxmax()]
+                years = (f" from {100 * lo['value']:.0f}% ({str(lo['subset'])[4:]}) to {100 * hi['value']:.0f}% "
+                         f"({str(hi['subset'])[4:]})")
         rows.append({"what": "Parcel index: how often “below its own normal” appears",
                      "against": "all scenes June–September, 13 vineyards (expected 16%, 1 in 6)",
-                     "result": f"{100 * t1['value']:.0f}% [{100 * t1['lo']:.0f}–{100 * t1['hi']:.0f}%], mostly in dry "
-                               f"years" + (f"; {100 * normal:.0f}% when soil is near normal" if normal is not None else ""),
-                     "status": "validated"})
+                     "result": f"{100 * t1['value']:.0f}% [{100 * t1['lo']:.0f}–{100 * t1['hi']:.0f}%] of scenes; "
+                               f"varies strongly between years{years}" + (f"; {100 * normal:.0f}% on scenes with near-normal "
+                                                                   f"soil" if normal is not None else "")
+                               + "; no gross miscalibration detected (a weak test)", "status": "descriptive"})
         t3 = summ["t3"]
         rows.append({"what": "Area vegetation follows soil water of the previous 30 days",
                      "against": "ISMN sensor at Condom, June–September 2018–2024 (pre-registered test)",
@@ -556,7 +570,8 @@ font-size:.88rem;align-items:center}
 .notes{color:var(--warn);font-size:.88rem;margin:6px 0;padding-left:18px}
 .small{color:var(--muted);font-size:.82rem}
 svg text{fill:var(--muted);font-family:var(--mono);font-size:11px}
-.st-validated,.st-confirmed,.st-accepted,.st-experimental-passed{color:var(--ok)}
+.st-validated,.st-confirmed,.st-accepted,.st-checked,.st-experimental-passed{color:var(--ok)}
+.st-descriptive{color:var(--muted)}
 .st-not-confirmed,.st-not-adopted,.st-experimental-not-shown{color:var(--warn)}
 .st-not-validated{color:var(--bad)}
 footer{grid-column:1 / -1;color:var(--muted);font-size:.82rem;max-width:110ch}
@@ -823,7 +838,7 @@ function gauge() {
   const lab = s.label.charAt(0).toUpperCase() + s.label.slice(1);
   $('gauge').innerHTML = `<h3>Soil dryness · area</h3><svg viewBox="0 0 220 122" width="100%" style="max-width:260px" role="img" aria-label="Soil dryness gauge">${svg}</svg>` +
     `<div class="lab">${esc(lab)}${s.code && s.code.startsWith('D') ? ' (' + s.code + ')' : ''}</div>` +
-    `<p class="small">Soil 0–100 cm, ERA5-Land (~9 km): percentile ${s.pct} vs ${s.clim_ref} · ${fmt(s.date)}. Checked against soil sensors at 3 stations (R about 0.6). Drought classes after the US Drought Monitor.</p>`;
+    `<p class="small">Soil 0–100 cm, ERA5-Land (~9 km): percentile ${s.pct} vs ${s.clim_ref} · ${fmt(s.date)}. Checked against soil sensors at 3 stations: moderate agreement (anomaly correlation about 0.6). Drought classes use the US Drought Monitor percentile thresholds on this ERA5-Land percentile; this is not the USDM product.</p>`;
 }
 function weather() {
   const W = D.weather || {}, F = W.forecast || [], t = W.fc_thr || {frost: 0, heat: 35};
@@ -1011,7 +1026,8 @@ parcel; they are not compared with a normal and are not validated. Inter-rows an
 stronger parts of the parcel without comparing years, so small shifts of the satellite image between years do not matter.
 Pixels within 10 m of the edge are left out (they mix with roads and neighbouring fields). Descriptive, not validated.</p>
 <p class="note" id="znote">Whole-parcel value against the same parcel in the previous five years (same time of year, same
-orbit), as a z-score: −1 means clearly below its own normal.</p>
+orbit), as a z-score. −1 or lower counts as “below its own normal”; by construction about 1 scene in 6 lands there
+even in an ordinary year.</p>
 <div id="stats"></div>
 </section>
 </div>
@@ -1027,6 +1043,9 @@ orbit), as a z-score: −1 means clearly below its own normal.</p>
 <section class="box" id="season" aria-labelledby="sh"><h2 id="sh">Season</h2><p class="small" id="stitle"></p><div id="seasonc"></div>
 <p class="small" id="soiltitle"></p><div id="soil"></div></section>
 <section class="box" id="trust-sec" aria-labelledby="trusth"><h2 id="trusth">How far to trust it</h2>
+<p class="small">Status: <b>confirmed / not confirmed</b> — a test registered in advance with a pass criterion;
+<b>checked</b> — compared with measurements, no pass threshold; <b>descriptive</b> — measured, no pass criterion;
+<b>experimental</b> — computed, not drawn on the map; <b>not validated</b> — nothing to check it against.</p>
 <div class="tbl"><table><thead><tr><th>What</th><th>Checked against</th><th>Result</th><th>Status</th></tr></thead>
 <tbody id="trust"></tbody></table></div></section>
 </div>
