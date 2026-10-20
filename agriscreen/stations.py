@@ -180,9 +180,9 @@ def qc_insitu(df: pd.DataFrame, cfg: Dict[str, Any]) -> pd.DataFrame:
     lo, hi = cfg["SM_VALID_RANGE"]
     mark(out["flag"] != "G", "FLAG_NOT_G")
     mark(out["sm"].isna() | (out["sm"] < lo) | (out["sm"] > hi), "OUT_OF_RANGE")
-    for seg, g in out.groupby("segment"):
+    for _seg, g in out.groupby("segment"):
         mark(_stuck_mask(g["sm"], cfg["STUCK_MIN_HOURS"]).reindex(out.index, fill_value=False), "STUCK_VALUE")
-    for start, end, depth, why in cfg["EXCLUDE_PERIODS"]:
+    for start, end, depth, _why in cfg["EXCLUDE_PERIODS"]:
         in_period = (out.index >= pd.Timestamp(start)) & (out.index < pd.Timestamp(end) + pd.Timedelta(days=1))
         depth_ok = np.ones(len(out), bool) if depth is None else np.isclose(out["depth_from"], depth)
         mark(pd.Series(in_period & depth_ok, index=out.index), "EXCLUDED_PERIOD")

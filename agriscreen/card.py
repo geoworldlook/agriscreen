@@ -280,6 +280,9 @@ def parcel_card_lines(card: Dict[str, Any], lang: str = "pl") -> Dict[str, Any]:
         x = _float(x)
         return _num(x, nd) if pl else ("—" if not np.isfinite(x) else f"{x:.{nd}f}")
 
+    def zn(z):                       # tuż przy progu ±1 dwa miejsca, żeby „w normie (z = −1,0)” nie myliło
+        return num(z, 2 if 0.95 <= abs(_float(z)) < 1.0 else 1)
+
     def date(t):
         return pd.Timestamp(t).strftime("%d.%m.%Y" if pl else "%Y-%m-%d")
 
@@ -293,7 +296,8 @@ def parcel_card_lines(card: Dict[str, Any], lang: str = "pl") -> Dict[str, Any]:
     if soil and soil.get("class"):
         c0, c1 = soil.get("clim_ref") or ("1991", "2020")
         word = (SWI_CLASS_PL if pl else SWI_CLASS_EN)[soil["class"]]
-        usdm = (f" ({soil['code']} wg US Drought Monitor)" if pl else f" ({soil['code']}, US Drought Monitor)") \
+        usdm = (f" ({soil['code']} wg progów US Drought Monitor)" if pl else
+                f" ({soil['code']} on the US Drought Monitor percentile scale)") \
             if soil.get("code") else ""
         out["sentences"].append(
             f"Gleba w okolicy (~10 km, model ERA5-Land): {word} — percentyl {num(soil['percentile'], 0)} wobec "
@@ -316,13 +320,13 @@ def parcel_card_lines(card: Dict[str, Any], lang: str = "pl") -> Dict[str, Any]:
                                 f"Your parcel: no recent scene (last one {date(card['date'])}, "
                                 f"{card['age_days']} days ago).")
     else:
-        txt = (f"Twoja działka — wskaźnik wody w roślinności (SWIR): {cls_txt[card['cls']]} (z = {num(card['z'])}), "
+        txt = (f"Twoja działka — wskaźnik wody w roślinności (SWIR): {cls_txt[card['cls']]} (z = {zn(card['z'])}), "
                f"scena {date(card['date'])}; tak samo {card['k']} z {card['N']} winnic w okolicy." if pl else
-               f"Your parcel — vegetation water index (SWIR): {cls_txt[card['cls']]} (z = {num(card['z'])}), scene "
+               f"Your parcel — vegetation water index (SWIR): {cls_txt[card['cls']]} (z = {zn(card['z'])}), scene "
                f"{date(card['date'])}; {card['k']} of {card['N']} vineyards in the area are in the same class.")
         ch = card.get("change")
         if ch:
-            prev = f"{date(ch['date_prev'])}, z = {num(ch['z_prev'])}"
+            prev = f"{date(ch['date_prev'])}, z = {zn(ch['z_prev'])}"
             if ch["dt"] > 6:
                 txt += f" Poprzednia scena: {prev}." if pl else f" Previous scene: {prev}."
             elif ch["group"] is None or not np.isfinite(_float(ch["mdc"])):
@@ -443,7 +447,7 @@ def _selftest_parcel(cfg: Dict[str, Any]) -> None:
     pl, en = parcel_card_lines(card), parcel_card_lines(card, "en")
     s = " ".join(pl["sentences"] + pl["notes"] + pl["trust"])
     assert pl["sentences"][0].startswith("Gleba w okolicy (~10 km, model ERA5-Land): sucho") and len(pl["sentences"]) == 3
-    assert "(D1 wg US Drought Monitor)" in pl["sentences"][0], pl["sentences"][0]
+    assert "(D1 wg progów US Drought Monitor)" in pl["sentences"][0], pl["sentences"][0]
     assert "poniżej swojej normy (z = −1,4)" in s and "tak samo 3 z 5 winnic" in s, s
     assert "Wyraźna zmiana od poprzedniej sceny" in s and "Między scenami padało (18 mm)" in s, s
     assert "Porównanie z historią mniej pewne" in s and "2023" in s and "Dla pojedynczej działki" in s, s

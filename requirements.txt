@@ -1,0 +1,12 @@
+# AgriScreen v1 (Python ≥ 3.10). Colab ma większość z nich; setup_runtime() doinstalowuje brakujące.
+numpy
+pandas
+scipy
+rasterio
+geopandas
+requests
+pillow
+# tylko pobieranie Sentinel-2 (task_ingest_s2)
+earthengine-api
+geemap
+geedim

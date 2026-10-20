@@ -145,7 +145,7 @@ def d1_rows(counts: pd.DataFrame, index: str, cfg: Dict[str, Any]) -> Tuple[List
         rows.append(parcel._row("D", parcel.PARCELS, prod, "", "kryterium pokazania warstwy (§5)", "show", 0.0, criterion=True,
                              verdict="nie pokazujemy — brak miesięcy z historią", key=f"d_show_{index}"))
         return rows, res
-    normal = counts[counts["soil"].between(30, 70)]
+    normal = counts[(counts["soil"] > 30) & (counts["soil"] < 70)]       # (30; 70) jak karta wody (§0)
     basis = normal if normal["year"].nunique() >= 3 else counts
     res["basis"] = "gleba w normie" if basis is normal else "wszystkie miesiące VI–IX (gleba w normie w < 3 latach)"
     max_r = float(cfg["MONTHS_MAX_RATIO"])
@@ -237,7 +237,7 @@ def run_months(cfg: Dict[str, Any], out_dir: str, era5: pd.DataFrame, commit: st
             V = month_values(R, sc, min_days)                      # mapa: wszystkie sceny
             frozen = sc["time"].dt.normalize() <= freeze
             Vt = month_values(R[frozen.to_numpy()], sc[frozen].reset_index(drop=True), min_days)   # test: ≤ zamrożenia
-            for (y, m), (v, nd) in V.items():
+            for (y, m), (_v, nd) in V.items():
                 c, N = classify(V, y, m, rp.get(sid, set()), cfg)
                 cs = spots(c, rr_all[sel], cc_all[sel], min_cells)
                 month = f"{y}-{m:02d}"
