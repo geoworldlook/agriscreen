@@ -377,8 +377,8 @@ def months_info(out_dir: str) -> Optional[Dict[str, Any]]:
         for part in v.replace("nie pokazujemy — ", "").split("; "):
             m = re.match(r"„(najniżej|najwyżej)” górna ([\d.]+) > ([\d.]+)", part)
             if m:
-                parts.append(f"“{'lowest' if m.group(1) == 'najniżej' else 'highest'} in N years” occurs too often "
-                             f"(upper ratio {m.group(2)} > {m.group(3)})")
+                parts.append(f"“{'lowest' if m.group(1) == 'najniżej' else 'highest'} in N years” not confirmed to be "
+                             f"as rare as chance (upper bound {m.group(2)} × chance > {m.group(3)})")
             elif part == "pokazujemy":
                 parts.append("shown")
             elif "za mało lat" in part or "< 3 lat" in part:

@@ -1,6 +1,6 @@
 # AgriScreen na blog GeoWorldLook
 
-Pliki do publikacji (dane z przebiegu 2026-10-20, testy W3b i W3c zamrożone 2026-10-18):
+Pliki do publikacji (dane z przebiegu 2026-10-20, testy W3b, W3c i W3d zamrożone 2026-10-18):
 
 | Plik | Co to jest | Skąd |
 |---|---|---|
@@ -8,6 +8,7 @@ Pliki do publikacji (dane z przebiegu 2026-10-20, testy W3b i W3c zamrożone 202
 | `agriscreen_data.json` | dane panelu i notatnika | `task_panel` (`panel_data.json`) |
 | `w3b_tests.csv` | zamrożone testy W3b | `task_parcel_tests` |
 | `w3c_tests.csv` | testy W3c (strefa gorsza niż zwykle) — warstwa nie przeszła | `task_zones` |
+| `w3d_tests.csv` | testy W3d (miejsce najniżej od 5 lat) — warstwa nie przeszła | `task_months` |
 | `../../notebooks/AgriScreen_story.ipynb` | notatnik-opowieść (EN) z zapisanymi wykresami | `python build_story_notebook.py` |
 
 **Co jest w panelu:**
@@ -24,7 +25,8 @@ Pliki do publikacji (dane z przebiegu 2026-10-20, testy W3b i W3c zamrożone 202
     (`docs/evidence/W3c_wyniki.md`); panel podaje powód w „How far to trust it”,
   - *Months* (W3d, `step_14`): każdy kwadrat 30 m wobec tego samego miesiąca w 5 poprzednich latach — „najniżej /
     najwyżej od 5 lat”; reset po przesadzeniu (RPG); pokazywana tylko po teście kalibracji
-    (`docs/evidence/W3d_protokol_miesiace.md` §5) — czeka na liczenie w Colab,
+    (`docs/evidence/W3d_protokol_miesiace.md` §5). **Pierwszy przebieg (2026-10-20): nie przeszła** — w zwykłe
+    miesiące bez przesady, ale za mało lat na potwierdzenie (`docs/evidence/W3d_wyniki.md`),
   - *Against its own history · whole parcel*: z całej działki wobec tej samej działki w 5 poprzednich latach
     (tylko dla całej działki — to jest wielkość sprawdzona w protokole W3b; anomalia pojedynczego piksela byłaby
     zbyt zaszumiona: przesunięcia zdjęć o ok. piksel, pasma 20 m, mało scen w normie),
@@ -50,6 +52,6 @@ przebiegu (prognoza z 20.10.2026). W Colab `task_panel` liczy wszystko z archiwu
 
 **Odświeżenie po nowym przebiegu:**
 1. W Colab uruchom notatnik monitoringu (sekcja 6b tworzy `panel.html` i `panel_data.json`).
-2. Skopiuj te pliki tutaj jako `agriscreen_panel.html` i `agriscreen_data.json`, razem z `w3b_tests.csv`
-   i `w3c_tests.csv`.
+2. Skopiuj te pliki tutaj jako `agriscreen_panel.html` i `agriscreen_data.json`, razem z `w3b_tests.csv`,
+   `w3c_tests.csv` i `w3d_tests.csv`.
 3. Uruchom `python build_story_notebook.py`.
