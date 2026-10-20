@@ -30,33 +30,37 @@ ani zabiegów. Każda liczba na karcie ma wynik sprawdzenia albo napis „niezwa
 - **Karta „Woda w winnicy”** z sekcją „Na ile ufać”, dashboard, biuletyn i notatnik Colab sterujący całością.
 - **Archiwum Sentinel-2 na Dysku:** 414 scen 2016–2026, 15 winnic i 5 sadów w obszarze 4 × 4,4 km.
 
-## 2. Wprowadzamy teraz — „Moja winnica” (W3b): kod gotowy, czeka na przebieg w Colab
+## 2. „Moja winnica” (W3b): wdrożone, pierwszy przebieg 2026-10-20 (`docs/evidence/W3b_wyniki.md`)
 
-Na karcie pojawią się 3 zdania:
-1. **Gleba w okolicy:** sucho / w normie / wilgotno. To już mamy; nagłówek przechodzi na 3 klasy.
+Karta ma 3 zdania:
+1. **Gleba w okolicy:** sucho / w normie / wilgotno. Nagłówek gleby w 3 klasach.
 2. **Twoja działka:** wskaźnik wody w roślinności (pasma SWIR) poniżej / w normie / powyżej jej własnej historii,
    ile winnic w okolicy jest w tym samym stanie oraz przebieg sezonu.
 3. **Okolica:** czy roślinność winnic idzie w parze z wodą w glebie. To zdanie pokazujemy tylko, jeśli test to
-   potwierdzi.
+   potwierdzi (w pierwszym przebiegu: nie).
 
 | Krok | Co | Wynik |
 |---|---|---|
 | K1 ✓ | zapisanie testów i reguł przed liczeniem: protokół zarejestrowany 2026-10-19 (SHA-256, D-089) | protokół |
-| K2 ✓ kod | statystyki 15 winnic z archiwum (pas 20 m od brzegu, min. 40 pikseli — spełnia 13 z 15) | dane działek |
-| K3 ✓ kod | anomalie i testy: T1 kalibracja, T2 szum, T3 zgodność z czujnikiem w gruncie; poprawione liczby „przed”; **wariant wielopasmowy** (4 pasma z pracy Laroche-Pinel, wagi uczone na czujniku, ocena na latach niewidzianych przez model) | notatka wyników (po Colab) |
-| K4 ✓ kod | karta w dashboardzie, biuletynie i notatniku | karta „Moja winnica” |
+| K2 ✓ | statystyki 15 winnic z archiwum (pas 20 m od brzegu, min. 40 pikseli — spełnia 13 z 15) | dane działek |
+| K3 ✓ | anomalie i testy: T1 kalibracja, T2 szum, T3 zgodność z czujnikiem w gruncie; poprawione liczby „przed”; **wariant wielopasmowy** (4 pasma z pracy Laroche-Pinel, wagi uczone na czujniku, ocena na latach niewidzianych przez model) | `W3b_wyniki.md` |
+| K4 ✓ | karta w dashboardzie, biuletynie i notatniku | karta „Moja winnica” |
 
-**Następny krok:** notatnik w Colab („Uruchom wszystko”), potem przesłanie komunikatu `parcel_tests`, `w3b_tests.csv`
-i `run_summary.md` — na nich powstaje notatka wyników W3b.
+**Wynik pierwszego przebiegu:**
+- T3 ρ 0,55 [−0,02; 1,00] — kryterium niespełnione, więc zdanie 3 jest ukryte;
+- wariant 4 pasm nieprzyjęty;
+- T1 bez grubego rozkalibrowania;
+- szum ok. 1 z.
+
+Karta działa ze zdaniami 1–2. Kolejny test na nowych danych: sezon 2027, te same reguły.
 
 **Reguła dla wariantu wielopasmowego:** zastępuje prosty wskaźnik tylko wtedy, gdy jest pewnie lepszy na latach
 testowych. Jeśli nie, zostaje prosty wskaźnik, a wynik i tak służy jako punkt odniesienia dla sieci neuronowej.
 
-**Spodziewany wynik:** test T3 (zdanie 3) najpewniej wyjdzie nierozstrzygnięty, bo mamy ok. 7 sezonów; symulacja daje
-ok. 1 szansę na 4 przy umiarkowanym związku. Zdania 1 i 2 działają niezależnie od tego.
+**Przewidywanie przed liczeniem** (spełnione): T3 najpewniej nierozstrzygnięty przy ok. 7 sezonach.
 
 **Decyzje:** D-084–D-089 przyjęte do wdrożenia 2026-10-19 (Plan W3b §6), wybory U1–U8 według rekomendacji
-(protokół §13). Zmiana któregoś przed pierwszym przebiegiem w Colab = nowa wersja protokołu.
+(protokół §13). Protokół bez zmian po rejestracji.
 
 **Drobne dokończenia warstwy gleby** (Plan v9, robione przy okazji):
 - test „ERA5 i SWI zgodnie suche”;

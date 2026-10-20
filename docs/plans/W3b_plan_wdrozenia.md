@@ -1,7 +1,7 @@
 # W3b — plan wdrożenia K1–K4 („Moja winnica”)
 
-> **Status:** WDROŻONY W KODZIE 2026-10-19 (K1–K4; selftest offline przechodzi). Do zrobienia: przebieg w Colab
-> i notatka wyników (K3b). Rozwija Plan W3b (`docs/plans/Plan_W3b_moja_winnica.md`, decyzje D-084–D-089). Definicje,
+> **Status:** ZAKOŃCZONY 2026-10-20: K1–K4 wdrożone, przebieg w Colab i notatka wyników
+> `docs/evidence/W3b_wyniki.md` (K3b). Rozwija Plan W3b (`docs/plans/Plan_W3b_moja_winnica.md`, decyzje D-084–D-089). Definicje,
 > liczby i kryteria są w protokole `docs/evidence/W3b_protokol_walidacji.md` (REGISTERED, SHA-256 `f01b74a804b28315…`),
 > dalej **P§n**.
 
