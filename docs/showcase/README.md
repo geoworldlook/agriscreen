@@ -22,6 +22,9 @@ Pliki do publikacji (dane z przebiegu 2026-10-20, testy W3b i W3c zamrożone 202
     próg z testu szumu; pokazywana tylko po przejściu trzech warunków protokołu (`docs/evidence/W3c_protokol_strefy.md`
     §6). **Pierwszy przebieg (2026-10-20): nie przeszła** — w zwykłe dni świeciłaby na ok. 15% działek
     (`docs/evidence/W3c_wyniki.md`); panel podaje powód w „How far to trust it”,
+  - *Months* (W3d, `step_14`): każdy kwadrat 30 m wobec tego samego miesiąca w 5 poprzednich latach — „najniżej /
+    najwyżej od 5 lat”; reset po przesadzeniu (RPG); pokazywana tylko po teście kalibracji
+    (`docs/evidence/W3d_protokol_miesiace.md` §5) — czeka na liczenie w Colab,
   - *Against its own history · whole parcel*: z całej działki wobec tej samej działki w 5 poprzednich latach
     (tylko dla całej działki — to jest wielkość sprawdzona w protokole W3b; anomalia pojedynczego piksela byłaby
     zbyt zaszumiona: przesunięcia zdjęć o ok. piksel, pasma 20 m, mało scen w normie),

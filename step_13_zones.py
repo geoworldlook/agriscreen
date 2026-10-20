@@ -66,9 +66,10 @@ def day_zone(index: np.ndarray, inner: np.ndarray, clear: np.ndarray, min_valid:
     return smooth3(raw, ok, min_valid)
 
 
-def _params(cfg: Dict[str, Any]) -> Dict[str, Any]:
+def _params(cfg: Dict[str, Any], kind: str = "rel") -> Dict[str, Any]:
     """Ustawienia, od których zależy zawartość magazynu; inne = magazyn liczony od nowa."""
-    return {"code": CODE_VERSION, "inner_m": float(cfg["PARCEL_INNER_M"]), "min_px": int(cfg["PARCEL_MIN_PX"]),
+    extra = {} if kind == "rel" else {"kind": kind}           # W3c bez zmian; W3d: wartości bezwzględne
+    return {**extra, "code": CODE_VERSION, "inner_m": float(cfg["PARCEL_INNER_M"]), "min_px": int(cfg["PARCEL_MIN_PX"]),
             "indices": list(cfg["ZONES_INDICES"]), "min_valid": int(cfg["ZONES_SMOOTH_MIN"]),
             "clear": float(cfg["VEG_MIN_CLEAR_FRAC"]), "parcels": os.path.basename(cfg["PARCELS_PATH"]),
             "type": cfg["PARCEL_TYPE"]}
@@ -95,12 +96,13 @@ def _save_store(path: str, st: Dict[str, Any]) -> None:
     os.replace(tmp, path)
 
 
-def update_store(cfg: Dict[str, Any], path: str, save_every: int = 50) -> Dict[str, Any]:
+def update_store(cfg: Dict[str, Any], path: str, save_every: int = 50, kind: str = "rel") -> Dict[str, Any]:
     """
     Magazyn stref dnia (przyrostowo, zapis co save_every scen): okno wokół winnic z pierwszej sceny, piksele pasa
     PARCEL_INNER_M winnic z ≥ PARCEL_MIN_PX pikseli (QC jak W3b), dla każdej sceny udział czystych pikseli pasa
     i r(x, t) dla ZONES_INDICES (NaN, gdy scena działki nie jest czysta). Scena z siatką przesuniętą o
-    > ZONES_GRID_TOL_M wypada (lista `skipped`, §0).
+    > ZONES_GRID_TOL_M wypada (lista `skipped`, §0). kind="abs" (W3d): zamiast r zapisuje sam wskaźnik wygładzony
+    3×3 (bez odejmowania mediany działki), pod tymi samymi kluczami r_<indeks>.
     """
     import rasterio
     from rasterio.features import rasterize
@@ -109,7 +111,7 @@ def update_store(cfg: Dict[str, Any], path: str, save_every: int = 50) -> Dict[s
     scenes = sorted(glob.glob(os.path.join(cfg["S2_DIR"], "S2_L2A_*.tif")))
     if not scenes:
         raise RuntimeError("Brak scen w S2_DIR.")
-    params, keys = _params(cfg), list(cfg["ZONES_INDICES"])
+    params, keys = _params(cfg, kind), list(cfg["ZONES_INDICES"])
     st = load_store(path)
     if st is not None and st["params"] != params:
         logger.info("W3c: zmienione ustawienia magazynu — liczę od nowa")
@@ -186,7 +188,11 @@ def update_store(cfg: Dict[str, Any], path: str, save_every: int = 50) -> Dict[s
                 continue
             sel = st["site_idx"] == j
             for k in keys:
-                rows[k][sel] = day_zone(idx[k], m, clear, int(cfg["ZONES_SMOOTH_MIN"])).ravel()[st["pix"][sel]]
+                if kind == "rel":
+                    v = day_zone(idx[k], m, clear, int(cfg["ZONES_SMOOTH_MIN"]))
+                else:
+                    v = smooth3(idx[k], m & clear & np.isfinite(idx[k]), int(cfg["ZONES_SMOOTH_MIN"]))
+                rows[k][sel] = v.ravel()[st["pix"][sel]]
         new_names.append(name)
         new_clear.append(cf)
         for k in keys:

@@ -59,6 +59,10 @@ REL_EDGE_M = 10.0
 HIST_RGBA = {0: (255, 255, 255, 45), 9: (150, 155, 150, 140), 1: (214, 150, 80, 200), 2: (122, 58, 14, 255)}
 HIST_STRONG = {"ndvi": {3: (125, 191, 90, 200), 4: (31, 122, 51, 255)},
                "ndmi": {3: (111, 169, 214, 200), 4: (31, 79, 143, 255)}}
+# W3d „Months vs own history” (step_14): najniżej od N lat = brąz, najwyżej = zieleń / błękit, w zakresie lekko
+# rozjaśnione, za mało historii / przesadzane szare
+MON_RGBA = {0: (255, 255, 255, 45), 1: (122, 58, 14, 235), 8: (150, 155, 150, 140), 9: (150, 155, 150, 140)}
+MON_HIGH = {"ndvi": (31, 122, 51, 235), "ndmi": (31, 79, 143, 235)}
 PIXEL_UPSCALE = 3            # obraz 10 m rysowany w siatce ~3,3 m (najbliższy sąsiad) — ostre brzegi działek
 CLUSTER_MARGIN_M = 600       # obraz w barwach naturalnych sięga 600 m poza skupisko winnic
 
@@ -126,8 +130,8 @@ def _parcel_shapes(cfg: Dict[str, Any], sites: List[str]) -> Dict[str, Any]:
             "height": round(pad * 2 + h * scale), "bounds": [[round(y0, 6), round(x0, 6)], [round(y1, 6), round(x1, 6)]]}
 
 
-def pixel_maps(cfg: Dict[str, Any], n_dates: Optional[int] = None, zones: Optional[Dict[str, Any]] = None
-               ) -> Dict[str, Any]:
+def pixel_maps(cfg: Dict[str, Any], n_dates: Optional[int] = None, zones: Optional[Dict[str, Any]] = None,
+               months: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Mapy pikseli 10 m wewnątrz winnic (NDVI, NDRE, NDMI) z ostatnich PANEL_PIXEL_DATES bezchmurnych scen sezonu
     w S2_DIR (≥ VEG_MIN_CLEAR_FRAC pikseli winnic bez chmur, jedna scena na dzień) i obraz w barwach naturalnych
@@ -148,7 +152,7 @@ def pixel_maps(cfg: Dict[str, Any], n_dates: Optional[int] = None, zones: Option
     import step_04_metrics_alert as s4
     layers = [{"key": k, "label": lab, "lo": lo, "hi": hi, "ramp": list(ramp), "low": low, "high": high,
                "rel": REL_RANGE[k], "rel_ramp": list(REL_RAMP[k])} for k, lab, lo, hi, ramp, low, high in PIXEL_LAYERS]
-    res: Dict[str, Any] = {"dates": [], "rgb": None, "layers": layers, "bounds": None}
+    res: Dict[str, Any] = {"dates": [], "rgb": None, "layers": layers, "bounds": None, "months": []}
     scenes = sorted(glob.glob(os.path.join(cfg["S2_DIR"], "S2_L2A_*.tif")))
     if not scenes:
         return res
@@ -169,6 +173,8 @@ def pixel_maps(cfg: Dict[str, Any], n_dates: Optional[int] = None, zones: Option
     px_t, px_shape, px_bounds = ll_grid((w - pad, s - pad, e + pad, n + pad), 10.0 / PIXEL_UPSCALE)
     px_mask = rasterize(((g, 1) for g in parcels.geometry), out_shape=px_shape, transform=px_t, fill=0).astype(bool)
     res["bounds"] = [[round(v, 6) for v in c] for c in px_bounds]
+    if months is not None:
+        res["months"] = _month_layers(months, px_t, px_shape, px_mask)
 
     geo, box = None, None
     seen = set()
@@ -313,6 +319,90 @@ def _subset_en(sub: str) -> str:
                 "all June–September days (normal-soil days in fewer than 3 years)"}.get(sub, sub)
 
 
+def _month_layers(mz: Dict[str, Any], px_t, px_shape, px_mask: np.ndarray) -> List[Dict[str, Any]]:
+    """Warstwy W3d: dla każdego miesiąca z klasą (najnowsze pierwsze) kody kwadratów -> siatka mapy, kolory,
+    statystyki [% najniżej (plamy), % najwyżej (plamy), % oczekiwane przypadkiem, mediana N, czyste dni]."""
+    from affine import Affine
+    from rasterio.warp import Resampling, reproject
+    h, w = (int(v) for v in mz["shape"])
+    tr, crs = Affine(*mz["transform"]), str(mz["crs"])
+    summ = mz.get("summary", pd.DataFrame())
+    out = []
+    for i in range(len(mz["months"]) - 1, -1, -1):
+        month = mz["months"][i]
+        item: Dict[str, Any] = {"month": month, "png": {}, "stats": {}}
+        for k in mz.get("show_indices", []):
+            codes = mz[f"codes_{k}"][i]
+            if not np.isin(codes, (0, 1, 3)).any():
+                continue
+            grid = np.full(h * w, np.nan, "float32")
+            grid[mz["pix"]] = np.where(codes >= 0, codes, np.nan)
+            dst = np.full(px_shape, np.nan, "float32")
+            reproject(grid.reshape(h, w), dst, src_transform=tr, src_crs=crs, dst_transform=px_t, dst_crs="EPSG:4326",
+                      resampling=Resampling.nearest, src_nodata=np.nan, dst_nodata=np.nan)
+            rgba = np.zeros(px_shape + (4,), np.uint8)
+            for code, col in {**MON_RGBA, 3: MON_HIGH[k]}.items():
+                rgba[(dst == code) & px_mask] = col
+            item["png"][f"{k}_mon"] = _b64_image(rgba)
+            for j, sid in enumerate(mz["sites"]):
+                q = summ[(summ["site_id"] == sid) & (summ["month"] == month) & (summ["index"] == k)] if len(summ) else summ
+                if not len(q) or int(q["n_cells"].iat[0]) == 0:
+                    item["stats"].setdefault(sid, {})[f"{k}_mon"] = None
+                    continue
+                r = q.iloc[0]
+                n = int(r["n_cells"])
+                item["stats"].setdefault(sid, {})[f"{k}_mon"] = [
+                    _r(100 * r["low_spot"] / n, 1), _r(100 * r["high_spot"] / n, 1), _r(100 * r["expected"] / n, 1),
+                    _r(r["med_years"], 0), int(r["n_days"])]
+        if item["png"]:
+            out.append(item)
+    return out
+
+
+def months_info(out_dir: str) -> Optional[Dict[str, Any]]:
+    """Wyniki W3d dla panelu: kody (step_14.load_months), werdykty kryterium (EN), ilorazy D1 do zaufania."""
+    import re
+    import step_14_months as s14
+    z = s14.load_months(out_dir)
+    t = _opt(os.path.join(out_dir, s14.TESTS_NAME))
+    if z is None or t is None:
+        return None
+    kr = t.set_index("key")
+    info: Dict[str, Any] = {"show": [], "verdict": {}, "d1": {}, "freeze": str(t["freeze"].iat[0]),
+                            "protocol": str(t["protocol_sha256"].iat[0])[:12]}
+    for k in [str(v).split("_")[-1] for v in t["key"].dropna() if str(v).startswith("d_show_")]:
+        crit = kr.loc[f"d_show_{k}"]
+        v = str(crit["verdict"])
+        parts = []
+        for part in v.replace("nie pokazujemy — ", "").split("; "):
+            m = re.match(r"„(najniżej|najwyżej)” górna ([\d.]+) > ([\d.]+)", part)
+            if m:
+                parts.append(f"“{'lowest' if m.group(1) == 'najniżej' else 'highest'} in N years” occurs too often "
+                             f"(upper ratio {m.group(2)} > {m.group(3)})")
+            elif part == "pokazujemy":
+                parts.append("shown")
+            elif "za mało lat" in part or "< 3 lat" in part:
+                parts.append("too few years for the test")
+            elif "brak miesięcy" in part:
+                parts.append("no months with enough history")
+            else:
+                parts.append(part)
+        info["verdict"][k] = "; ".join(parts)
+        d1 = {}
+        for col in ("low", "high"):
+            if f"d1_{col}_{k}" in kr.index:
+                r = kr.loc[f"d1_{col}_{k}"]
+                d1[col] = {"value": _r(r["value"], 2), "lo": _r(r["ci_low"], 2), "hi": _r(r["ci_high"], 2),
+                           "subset": "months with normal soil" if str(r["subset"]).startswith("gleba w normie")
+                           else "all June–September months"}
+        info["d1"][k] = d1
+        if float(crit["value"]) == 1.0 and f"codes_{k}" in z:
+            info["show"].append(k)
+    z["show_indices"] = info["show"]
+    info["data"] = z
+    return info
+
+
 def zones_info(out_dir: str) -> Optional[Dict[str, Any]]:
     """Wyniki W3c dla panelu: kody (step_13.load_zones), progi T, werdykty kryterium, wiersze Z1/Z2 do zaufania."""
     import step_13_zones as s13
@@ -453,7 +543,12 @@ def panel_data(out_dir: str, cfg: Dict[str, Any], forecast: Any = "fetch") -> Di
         logger.warning(f"Panel: wyniki W3c niedostępne: {type(ex).__name__}: {ex}")
         zinfo = None
     try:
-        pixels = pixel_maps(cfg, zones=(zinfo or {}).get("data"))
+        minfo = months_info(out_dir)
+    except Exception as ex:                                   # brak albo uszkodzone wyniki W3d: panel bez tej warstwy
+        logger.warning(f"Panel: wyniki W3d niedostępne: {type(ex).__name__}: {ex}")
+        minfo = None
+    try:
+        pixels = pixel_maps(cfg, zones=(zinfo or {}).get("data"), months=(minfo or {}).get("data"))
     except Exception as ex:                                   # mapa działa dalej na warstwach „wobec historii”
         logger.warning(f"Panel: mapy pikseli niedostępne: {type(ex).__name__}: {ex}")
         pixels = {"dates": [], "rgb": None, "layers": [], "bounds": None}
@@ -473,14 +568,16 @@ def panel_data(out_dir: str, cfg: Dict[str, Any], forecast: Any = "fetch") -> Di
             "layers": layers, "layer_info": [{"key": k, "label": lab, "about": about} for k, lab, _, about in LAYERS],
             "soil": {"dates": [d.strftime("%Y-%m-%d") for d in soil_pct.index],
                      "pct": [int(round(v)) for v in soil_pct.to_numpy()]},
-            "cards": cards, "trust": trust_rows(out_dir, cfg, summ, tests, zinfo),
+            "cards": cards, "trust": trust_rows(out_dir, cfg, summ, tests, zinfo, minfo),
+            "months": {k: v for k, v in (minfo or {}).items() if k != "data"} or None,
             "zones": {k: v for k, v in (zinfo or {}).items() if k != "data"} or None,
             "inner_m": int(cfg.get("PARCEL_INNER_M", 20)), "min_px": int(cfg.get("PARCEL_MIN_PX", 40)),
             "main_site": cfg.get("MAIN_SITE", "VINEYARD_06")}
 
 
 def trust_rows(out_dir: str, cfg: Dict[str, Any], summ: Optional[Dict[str, Any]],
-               tests: Optional[pd.DataFrame], zinfo: Optional[Dict[str, Any]] = None) -> List[Dict[str, str]]:
+               tests: Optional[pd.DataFrame], zinfo: Optional[Dict[str, Any]] = None,
+               minfo: Optional[Dict[str, Any]] = None) -> List[Dict[str, str]]:
     """Tabela „How far to trust it”: co, wynik, status (validated / partly / not confirmed / not validated)."""
     import step_09_panels as s9
     rows: List[Dict[str, str]] = []
@@ -554,6 +651,19 @@ def trust_rows(out_dir: str, cfg: Dict[str, Any], summ: Optional[Dict[str, Any]]
                      "against": "noise between scenes a few days apart without rain; how often zones appear when soil "
                                 "is normal (pre-registered W3c, " + zinfo["protocol"] + "…)",
                      "result": res, "status": "noise-tested" if shown else "not shown"})
+    for k, name in (("ndvi", "greenness (NDVI)"), ("ndmi", "water in vegetation (NDMI)")):
+        if not minfo or k not in minfo["verdict"]:
+            continue
+        d1, shown = minfo["d1"].get(k, {}), k in minfo["show"]
+        res = "; ".join(f"{w} {f(d1[c]['value'])} [{f(d1[c]['lo'])}–{f(d1[c]['hi'])}] × chance"
+                        for c, w in (("low", "lowest"), ("high", "highest")) if c in d1)
+        res = (res + (f" ({d1['low']['subset']})" if "low" in d1 else "")) or "no test result"
+        if not shown:
+            res += "; not shown: " + minfo["verdict"][k]
+        rows.append({"what": f"Lowest in N years, {name}: a 30 m place against the same month in its last 5 years",
+                     "against": "how often “lowest / highest in N years” occurs vs chance 1/(N+1) (pre-registered W3d, "
+                                + minfo["protocol"] + "…)",
+                     "result": res, "status": "calibration-tested" if shown else "not shown"})
     rows.append({"what": "Vine water stress", "against": "no measurements inside the vineyards",
                  "result": "not assessed; the index sees the whole parcel, vines and inter-rows", "status": "not validated"})
     return rows
@@ -701,17 +811,29 @@ const dIndex = Object.fromEntries(D.dates.map((d, i) => [d, i]));
 const zAt = (key, site, i) => i == null ? null : (((D.layers[key] || {})[site] || [])[i] ?? null);
 const median = a => { a = a.filter(v => v != null).sort((x, y) => x - y); if (!a.length) return null;
   const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
-let S = {site: 'ALL', layer: PX.dates.length ? 'px:ndvi' : 'z:water', pi: 0, di: D.dates.length - 1, op: 0.8, base: 'esri'};
+let S = {site: 'ALL', layer: PX.dates.length ? 'px:ndvi' : 'z:water', pi: 0, mi: 0, di: D.dates.length - 1, op: 0.8, base: 'esri'};
 try { const m = JSON.parse(localStorage.getItem('agriscreen-v2') || '{}');
   if (m.site && (m.site === 'ALL' || SH[m.site])) S.site = m.site;
   if (m.layer && (m.layer.startsWith('z:') || PX.dates.length)) S.layer = m.layer; } catch (e) {}
-if (!/^(px|rel|hist|z):/.test(S.layer) || (S.layer.startsWith('hist:') && !ZN.show.includes(S.layer.slice(5)))) S.layer = PX.dates.length ? 'px:ndvi' : 'z:water';
+if (!/^(px|rel|hist|mon|z):/.test(S.layer) || (S.layer.startsWith('hist:') && !ZN.show.includes(S.layer.slice(5)))
+    || (S.layer.startsWith('mon:') && !((D.months || {}).show || []).includes(S.layer.slice(4)))) S.layer = PX.dates.length ? 'px:ndvi' : 'z:water';
 const mode = () => S.layer.split(':')[0], key = () => S.layer.split(':')[1];
 const isPx = () => mode() !== 'z';                       // 'px' value, 'rel' vs parcel median: pixel-map dates
-const pk = () => mode() === 'rel' ? key() + '_rel' : mode() === 'hist' ? key() + '_hist' : key();
+const pk = () => mode() === 'rel' ? key() + '_rel' : mode() === 'hist' ? key() + '_hist' : mode() === 'mon' ? key() + '_mon' : key();
 const ZN = D.zones || {show: [], T: {}, verdict: {}};
 const HIST_COL = {ndvi: ['#d69650', '#7a3a0e', '#7dbf5a', '#1f7a33'], ndmi: ['#d69650', '#7a3a0e', '#6fa9d6', '#1f4f8f']};
-const curDate = () => isPx() ? PX.dates[S.pi].date : D.dates[S.di];
+const PM = PX.months || [];
+const MN = D.months || {show: [], verdict: {}};
+// one list of dates per mode: anomaly series (oldest first), scenes or months (newest first)
+const DL = () => mode() === 'z' ? {list: D.dates, i: S.di, desc: false}
+  : mode() === 'mon' ? {list: PM.map(m => m.month), i: S.mi, desc: true}
+  : {list: PX.dates.map(p => p.date), i: S.pi, desc: true};
+const setIdx = v => { if (mode() === 'z') S.di = v; else if (mode() === 'mon') S.mi = v; else S.pi = v; };
+const curSrc = () => mode() === 'mon' ? PM[S.mi] : isPx() ? PX.dates[S.pi] : null;
+const curStats = id => (((curSrc() || {}).stats || {})[id] || {})[pk()];
+const fmtMonth = m => new Date(m + '-01T00:00:00Z').toLocaleDateString('en-GB', {month: 'long', year: 'numeric', timeZone: 'UTC'});
+const curDate = () => mode() === 'mon' ? PM[S.mi].month + '-15' : isPx() ? PX.dates[S.pi].date : D.dates[S.di];
+const curLabel = () => mode() === 'mon' ? fmtMonth(PM[S.mi].month) : fmt(curDate());
 const sgn = (v, nd) => v == null ? '—' : (v > 0 ? '+' : '') + num(v, nd);
 
 // latest state of each vineyard (card: latest scene; water index against its own history)
@@ -759,8 +881,9 @@ if (window.L) {
 function drawMap() {
   if (!map) return;
   if (ov) { map.removeLayer(ov); ov = null; }
-  if (isPx() && PX.dates[S.pi] && PX.dates[S.pi].png[pk()])
-    ov = L.imageOverlay('data:image/png;base64,' + PX.dates[S.pi].png[pk()], PX.bounds,
+  const src = curSrc();
+  if (src && src.png[pk()])
+    ov = L.imageOverlay('data:image/png;base64,' + src.png[pk()], PX.bounds,
       {pane: 'pixels', opacity: S.op, className: 'pxl'}).addTo(map);
   styleParcels();
   esri.setOpacity(S.base === 'esri' ? 1 : 0);
@@ -775,7 +898,14 @@ function styleParcels() {
 }
 function legend() {
   let h;
-  if (mode() === 'hist') {
+  if (mode() === 'mon') {
+    const lowc = '#7a3a0e', highc = key() === 'ndmi' ? '#1f4f8f' : '#1f7a33';
+    h = `<b>${esc(PXL[key()].label)}: ${curLabel()} against the same month in the last 5 years</b><div class="zl">` +
+      [[lowc, 'lowest in N years'], [highc, 'highest in N years'], ['#f4f4f0', 'within its range'],
+       ['#969b96', 'history too short or replanted']]
+        .map(([col, t]) => `<span><span class="sw" style="background:${col}"></span>${t}</span>`).join('') + '</div>' +
+      `<div class="rl"><span>by chance about 1 place in 6 is lowest in 5 years · spots ≥ 4 pixels</span></div>`;
+  } else if (mode() === 'hist') {
     const c = HIST_COL[key()], dry = key() === 'ndmi' ? 'drier' : 'weaker', wet = key() === 'ndmi' ? 'wetter' : 'stronger';
     h = `<b>${esc(PXL[key()].label)} vs usual for this place</b><div class="zl">` +
       [[c[1], `${dry} than usual, confirmed`], [c[0], `${dry}, new`], [c[3], `${wet}, confirmed`], [c[2], `${wet}, new`],
@@ -791,7 +921,7 @@ function legend() {
     const l = PXL[key()];
     h = `<b>${esc(l.label)}</b><div class="ramp" style="background:linear-gradient(90deg,${l.ramp.join(',')})"></div>` +
       `<div class="rl"><span>${num(l.lo, 2)} ${esc(l.low)}</span><span>${esc(l.high)} ${num(l.hi, 2)}</span></div>` +
-      `<div class="rl"><span>10 m pixels · ${fmt(curDate())}</span></div>`;
+      `<div class="rl"><span>10 m pixels · ${curLabel()}</span></div>`;
   } else {
     h = `<b>${esc(ZL[key()].label)} vs its own normal</b><div class="zl">` +
       [['wb', '≤ −1.5'], ['b', '−1.5…−1'], ['n', 'normal'], ['a', '+1…+1.5'], ['wa', '≥ +1.5'], ['nd', 'no data / too small']]
@@ -809,16 +939,16 @@ function fillLayers() {
     h += og('Zones · pixel vs the rest of the parcel, same day', PX.layers.map(l => ['rel:' + l.key, l.label + ' — vs parcel median']));
     if (ZN.show.length) h += og('Zones vs usual · this place against its last 5 years (noise-tested)',
       PX.layers.filter(l => ZN.show.includes(l.key)).map(l => ['hist:' + l.key, l.label + ' — vs usual']));
+    if (MN.show.length && PM.length) h += og('Months · each 30 m place against the same month in its last 5 years',
+      PX.layers.filter(l => MN.show.includes(l.key)).map(l => ['mon:' + l.key, l.label + ' — lowest / highest in 5 years']));
   }
   h += og('Against its own history · whole parcel', D.layer_info.map(l => ['z:' + l.key, l.label + ' — anomaly']));
   $('layer').innerHTML = h;
 }
 function fillDates() {
-  const list = isPx() ? PX.dates.map(p => p.date) : D.dates;
-  const cur = isPx() ? S.pi : S.di;
-  const idx = list.map((d, i) => i);
-  const order = isPx() ? idx : idx.slice().reverse();
-  $('date').innerHTML = order.map(i => `<option value="${i}"${i === cur ? ' selected' : ''}>${fmt(list[i])}</option>`).join('');
+  const d = DL(), idx = d.list.map((x, i) => i), order = d.desc ? idx : idx.slice().reverse();
+  const lab = mode() === 'mon' ? fmtMonth : fmt;
+  $('date').innerHTML = order.map(i => `<option value="${i}"${i === d.i ? ' selected' : ''}>${lab(d.list[i])}</option>`).join('');
 }
 function nearest(list, d) {
   const t = Date.parse(d); let best = 0, bd = Infinity;
@@ -827,13 +957,13 @@ function nearest(list, d) {
 }
 $('layer').addEventListener('change', e => {
   const before = curDate(); S.layer = e.target.value;
-  if (isPx()) S.pi = nearest(PX.dates.map(p => p.date), before); else S.di = nearest(D.dates, before);
+  setIdx(nearest(DL().list, before));
   render(true);
 });
-$('date').addEventListener('change', e => { if (isPx()) S.pi = +e.target.value; else S.di = +e.target.value; render(true); });
+$('date').addEventListener('change', e => { setIdx(+e.target.value); render(true); });
 function step(k) {   // k = +1 newer, −1 older
-  if (isPx()) S.pi = Math.min(PX.dates.length - 1, Math.max(0, S.pi - k));
-  else S.di = Math.min(D.dates.length - 1, Math.max(0, S.di + k));
+  const d = DL();
+  setIdx(Math.min(d.list.length - 1, Math.max(0, d.i + (d.desc ? -k : k))));
   render(true);
 }
 $('older').addEventListener('click', () => step(-1));
@@ -855,7 +985,16 @@ function stats() {
   let h = '';
   if (S.site !== 'ALL') {
     const id = S.site;
-    if (mode() === 'hist') {
+    if (mode() === 'mon') {
+      const st = curStats(id), l = PXL[key()];
+      h += `<h3>${esc(l.label)}: ${vname(id)} · ${curLabel()} against the same month in the last 5 years</h3>`;
+      h += st ? `<div class="tiles"><div class="tile"><span>Lowest in ${st[3] ?? 'N'} years</span><b>${num(st[0], 0)}%</b><small>of the parcel (spots ≥ 4 pixels)</small></div>` +
+        `<div class="tile"><span>Highest in ${st[3] ?? 'N'} years</span><b>${num(st[1], 0)}%</b><small>of the parcel</small></div>` +
+        `<div class="tile"><span>By chance</span><b>≈ ${num(st[2], 0)}%</b><small>each extreme, if nothing changed (1 in N+1)</small></div>` +
+        `<div class="tile"><span>Clear days</span><b>${st[4]}</b><small>in this month</small></div></div>`
+        : `<p class="small">No class this month (too few clear days, history too short or replanted).</p>`;
+      h += `<p class="note">Each 30 m place is compared with the same place in the same month of the previous five years. Brown: lower than in every one of those years. Look for large spots that come back in the next months. A comparison of satellite images, not a measurement of the vines; inter-row mowing or tillage counts too.</p>`;
+    } else if (mode() === 'hist') {
       const st = ((PX.dates[S.pi].stats || {})[id] || {})[pk()], l = PXL[key()];
       const dry = key() === 'ndmi' ? 'Drier' : 'Weaker', wet = key() === 'ndmi' ? 'Wetter' : 'Stronger';
       h += `<h3>${esc(l.label)}: ${vname(id)} against its usual pattern · ${fmt(d)}</h3>`;
@@ -894,10 +1033,11 @@ function stats() {
     }
   } else {
     const rows = D.map.shapes.map(s => {
-      const z = zAt('water', s.id, di), st = isPx() ? ((PX.dates[S.pi].stats || {})[s.id] || {})[pk()] : null;
+      const z = zAt('water', s.id, di), st = isPx() ? curStats(s.id) : null;
       const zk = mode() === 'z' ? zAt(key(), s.id, S.di) : null;
       return `<tr class="pick" data-site="${s.id}"><td>${vname(s.id)}</td><td class="num">${s.area_ha.toFixed(2)}</td>` +
-        (mode() === 'hist' ? `<td class="num">${st && st[4] ? num(st[0], 0) + '% (' + num(st[1], 0) + '%)' : '—'}</td><td class="num">${st && st[4] ? num(st[2], 0) + '% (' + num(st[3], 0) + '%)' : '—'}</td>`
+        (mode() === 'mon' ? `<td class="num">${st ? num(st[0], 0) + '%' : '—'}</td><td class="num">${st ? num(st[1], 0) + '%' : '—'}</td>`
+         : mode() === 'hist' ? `<td class="num">${st && st[4] ? num(st[0], 0) + '% (' + num(st[1], 0) + '%)' : '—'}</td><td class="num">${st && st[4] ? num(st[2], 0) + '% (' + num(st[3], 0) + '%)' : '—'}</td>`
          : mode() === 'rel' ? `<td class="num">${st ? num(st[0], 2) : '—'}</td><td class="num">${st ? sgn(st[1], 2) + ' / ' + sgn(st[2], 2) : '—'}</td>`
          : mode() === 'px' ? `<td class="num">${st ? num(st[0], 2) : '—'}</td><td class="num">${st ? num(st[1], 2) + ' – ' + num(st[2], 2) : '—'}</td>`
                          : `<td class="num">${num(zk, 1)}</td><td>${qc(s.id) ? CLS_TXT[cls(zk)] : 'too small'}</td>`) +
@@ -905,12 +1045,13 @@ function stats() {
     }).join('');
     const below = D.map.shapes.filter(s => qc(s.id) && (zAt('water', s.id, di) ?? 0) <= -1).length;
     const n = D.map.shapes.filter(s => qc(s.id) && zAt('water', s.id, di) != null).length;
-    h += `<h3>All vineyards · ${fmt(d)}</h3>`;
+    h += `<h3>All vineyards · ${curLabel()}</h3>`;
     h += `<div class="tiles"><div class="tile"><span>Below own normal</span><b>${n ? below + ' / ' + n : '—'}</b><small>vegetation water (SWIR), z ≤ −1</small></div>` +
       `<div class="tile"><span>Vineyards</span><b>${D.map.shapes.length}</b><small>${Object.values(D.sites).filter(s => s.qc_ok).length} large enough for an anomaly</small></div>` +
       `<div class="tile"><span>Area</span><b>${D.map.shapes.reduce((a, s) => a + s.area_ha, 0).toFixed(1)}</b><small>hectares</small></div></div>`;
     h += `<div class="tbl"><table><thead><tr><th>Vineyard</th><th>ha</th>` +
-      (mode() === 'hist' ? `<th>${key() === 'ndmi' ? 'drier' : 'weaker'} than usual (confirmed)</th><th>${key() === 'ndmi' ? 'wetter' : 'stronger'} than usual (confirmed)</th>`
+      (mode() === 'mon' ? `<th>lowest in N years</th><th>highest in N years</th>`
+       : mode() === 'hist' ? `<th>${key() === 'ndmi' ? 'drier' : 'weaker'} than usual (confirmed)</th><th>${key() === 'ndmi' ? 'wetter' : 'stronger'} than usual (confirmed)</th>`
        : mode() === 'rel' ? `<th>${esc(PXL[key()].label)} median</th><th>weakest / strongest 10% vs median</th>`
        : mode() === 'px' ? `<th>${esc(PXL[key()].label)} mean</th><th>10–90%</th>` : `<th>z ${esc(ZL[key()].label)}</th><th>class</th>`) +
       `<th>z water</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -1074,8 +1215,10 @@ function render(mapOnly) {
   const m = mode();
   $('layer').value = S.layer;
   fillDates();
-  $('older').disabled = isPx() ? S.pi >= PX.dates.length - 1 : S.di <= 0;
-  $('newer').disabled = isPx() ? S.pi <= 0 : S.di >= D.dates.length - 1;
+  const dl = DL();
+  $('older').disabled = dl.desc ? dl.i >= dl.list.length - 1 : dl.i <= 0;
+  $('newer').disabled = dl.desc ? dl.i <= 0 : dl.i >= dl.list.length - 1;
+  $('monnote').hidden = m !== 'mon';
   $('pxnote').hidden = m !== 'px';
   $('relnote').hidden = m !== 'rel';
   $('histnote').hidden = m !== 'hist';
@@ -1137,6 +1280,10 @@ parcel; they are not compared with a normal and are not validated. Inter-rows an
 <p class="note" id="relnote">Zones: each pixel minus the median of the same parcel on the same day. This shows weaker and
 stronger parts of the parcel without comparing years, so small shifts of the satellite image between years do not matter.
 Pixels within 10 m of the edge are left out (they mix with roads and neighbouring fields). Descriptive, not validated.</p>
+<p class="note" id="monnote">Months: each 30 m place against the same month in its previous five years. Brown = lower than
+in every one of those years, green/blue = higher. By chance about 1 place in 6 is lowest in 5 years, so look for large
+spots that come back month after month. History restarts after replanting (French crop register RPG). Shown because it
+passed the pre-registered calibration test; not validated in the field.</p>
 <p class="note" id="histnote">Zones vs usual: is this place weaker or stronger, relative to the rest of the parcel, than it
 usually is at this time of year? Coloured only when the change is larger than the satellite noise measured on pairs of
 scenes a few days apart without rain, and only zones of at least 4 cells. This layer is shown because it passed the
