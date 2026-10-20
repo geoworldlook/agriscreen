@@ -1,6 +1,8 @@
 # Plan W3b — „Moja winnica wobec jej historii” (wersja 6)
 
-Status: **PROPOSED** 2026-10-19, do akceptacji przed kodem (wariant wielopasmowy §2a wybrany 2026-10-19).
+Status: **PRZYJĘTY DO WDROŻENIA** 2026-10-19 (polecenie wdrożenia kodu; decyzje §6 w brzmieniu rekomendacji, do
+zmiany przed pierwszym przebiegiem testów). Protokół zarejestrowany (D-089), kod K2–K4 wdrożony i przetestowany offline;
+czeka na pierwszy przebieg w Colab i notatkę wyników (K3b).
 
 **Wersja 6 (2026-10-19):** szczegóły w dwóch nowych dokumentach — protokół walidacji
 `docs/evidence/W3b_protokol_walidacji.md` (DRAFT, wybory U1–U8) i plan wdrożenia `docs/plans/W3b_plan_wdrozenia.md`
@@ -136,10 +138,10 @@ W K2 dodatkowo: ujednolicić stałą CRSWIR z FORDEAD (różnica wagi 0,002, kos
 
 | Krok | Co | Sesje |
 |---|---|---|
-| **K1** | Protokół (`docs/evidence/W3b_protokol_walidacji.md`): wskaźnik (§2), wariant wielopasmowy (§2a), T1–T3 z kryterium (§3), progi QC (§4); wybory U1–U8; skrót SHA-256 przed liczeniem | 1 |
-| **K2** | Statystyki 15 winnic z archiwum na Dysku (414 scen, bez nowego pobierania) z regułami §4 | 1 |
-| **K3** | Anomalie + T1–T3 w Colab; wariant wielopasmowy z walidacją z pominięciem roku (§2a); przeliczone wartości „przed” z F4; notatka wyników; wiersze w karcie wyników | 2 |
-| **K4** | Karta „Moja winnica” w dashboardzie, biuletynie i notatniku; nagłówek gleby w 3 klasach | 1–2 |
+| **K1** ✓ | Protokół (`docs/evidence/W3b_protokol_walidacji.md`): wskaźnik (§2), wariant wielopasmowy (§2a), T1–T3 z kryterium (§3), progi QC (§4); wybory U1–U8; skrót SHA-256 przed liczeniem (D-089) | 1 |
+| **K2** ✓ kod | Statystyki 15 winnic z archiwum na Dysku (414 scen, bez nowego pobierania) z regułami §4 | 1 |
+| **K3** ✓ kod | Anomalie + T1–T3 w Colab; wariant wielopasmowy z walidacją z pominięciem roku (§2a); przeliczone wartości „przed” z F4; notatka wyników (po przebiegu w Colab); wiersze w karcie wyników | 2 |
+| **K4** ✓ kod | Karta „Moja winnica” w dashboardzie, biuletynie i notatniku; nagłówek gleby w 3 klasach | 1–2 |
 
 Razem 5–6 sesji. Bieżące sceny dochodzą tym samym potokiem, więc karta działa w sezonie 2027 na bieżąco. Zmiany
 w kodzie, testy i kryteria odbioru każdego kroku: `docs/plans/W3b_plan_wdrozenia.md`.
@@ -162,7 +164,7 @@ w tym SWIR) jest zapisany w Planie v8.
 - wskaźnik red-edge (REP), (B8A − B12)/(B8A + B12), norma harmoniczna jak w FORDEAD — ewentualnie później,
   eksploracyjnie.
 
-## 6. Decyzje do zatwierdzenia
+## 6. Decyzje (przyjęte do wdrożenia 2026-10-19)
 
 - **D-084 Dane:** archiwum S-2 z Dysku i obecny potok (jedno źródło dla historii i bieżących scen).
 - **D-085 Wskaźnik i QC:**
@@ -183,8 +185,9 @@ w tym SWIR) jest zapisany w Planie v8.
   - nigdy „stres wodny winorośli” ani „wczesne ostrzeżenie”;
   - zdanie 3 tylko na poziomie okolicy;
   - nagłówek gleby w 3 klasach.
-- **D-089 Protokół W3b:** `docs/evidence/W3b_protokol_walidacji.md` z rozstrzygniętymi U1–U8, zarejestrowany skrótem
-  SHA-256 przed pierwszym commitem kodu K2 (skrót wpisujemy tutaj po zatwierdzeniu).
+- **D-089 Protokół W3b:** `docs/evidence/W3b_protokol_walidacji.md` z rozstrzygniętymi U1–U8 (rekomendacje),
+  zarejestrowany 2026-10-19 przed pierwszym liczeniem testów; SHA-256 sekcji 0–13:
+  `f01b74a804b28315dea94df90b9c685b4e5c9d621211be92be5e992a542b05cf`.
 
 ## 7. Źródła
 

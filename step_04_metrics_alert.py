@@ -35,9 +35,11 @@ logger = logging.getLogger("AgriWatch_Metrics")
 S2_BANDS = ["B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B11", "B12"]
 RASTER_CLOUD_BAND = 10          # indeks pasma 'cloudmask' w plikach z step_01 (1 = chmura/cień)
 INDICES = ("ndvi", "ndmi", "ndre", "crswir")
-# CRSWIR: przybliżone środki pasm [nm]; FORDEAD (INRAE) używa 864 / 1610,4 / 2185,7 (w = 0,5647 wobec 0,5623) —
-# ujednolicić w W3b K2. Waga kontinuum dla B11 między B8A a B12.
+# CRSWIR: waga kontinuum dla B11 między B8A a B12. Stała potoku (przybliżone środki pasm [nm]) zostaje w produktach
+# S2_10m i S2SR_2.5m, żeby ich historia nie mieszała dwóch stałych; produkt działek W3b (S2_10m_buf20) używa stałej
+# z kodu FORDEAD (INRAE): środki pasm 864 / 1610,4 / 2185,7 nm (protokół W3b §3).
 CRSWIR_W = (1610.0 - 865.0) / (2190.0 - 865.0)
+CRSWIR_W_FORDEAD = (1610.4 - 864.0) / (2185.7 - 864.0)
 
 CDI_CLASSES = {0: "normal", 1: "watch", 2: "warning", 3: "alert"}
 ACTION = {"normal": "normal", "recovery": "normal", "watch": "watch", "warning": "watch", "alert": "inspect"}
@@ -47,10 +49,10 @@ ACTION = {"normal": "normal", "recovery": "normal", "watch": "watch", "warning":
 # I. INDEKSY I STATYSTYKI OBIEKTÓW Z RASTRÓW SENTINEL-2
 # ==============================================================================
 
-def compute_indices(arr: np.ndarray) -> Dict[str, np.ndarray]:
+def compute_indices(arr: np.ndarray, crswir_w: float = CRSWIR_W) -> Dict[str, np.ndarray]:
     """
     NDVI = (B08-B04)/(B08+B04)        — wigor / pokrycie roślinnością,
-    NDMI = (B8A-B11)/(B8A+B11)        — woda w liściach (SWIR + NIR, Ceccato i in. 2001); u Laroche-Pinel i in. 2021
+    NDMI = (B8A-B11)/(B8A+B11)        — woda w roślinności (SWIR + NIR, Ceccato i in. 2001); u Laroche-Pinel i in. 2021
                                          sam NDII (B8/B11) R² 0,09; w modelu wielopasmowym wystarczają B4, B6, B8A, B12,
     NDRE = (B8A-B05)/(B8A+B05)        — red-edge (chlorofil),
     CRSWIR = B11 / (B8A + (B12-B8A)·w) — głębokość absorpcji wody przy 1610 nm względem kontinuum B8A–B12
@@ -62,7 +64,7 @@ def compute_indices(arr: np.ndarray) -> Dict[str, np.ndarray]:
             "ndvi": (b["B08"] - b["B04"]) / (b["B08"] + b["B04"]),
             "ndmi": (b["B8A"] - b["B11"]) / (b["B8A"] + b["B11"]),
             "ndre": (b["B8A"] - b["B05"]) / (b["B8A"] + b["B05"]),
-            "crswir": b["B11"] / (b["B8A"] + (b["B12"] - b["B8A"]) * CRSWIR_W),
+            "crswir": b["B11"] / (b["B8A"] + (b["B12"] - b["B8A"]) * crswir_w),
         }
 
 
@@ -104,38 +106,56 @@ def load_sites(cfg: Dict[str, Any], crs: Any, station_lonlat: Tuple[float, float
 
 
 def site_stats(arr: np.ndarray, cloud: np.ndarray, profile: Dict[str, Any], sites, product: str,
-               t: pd.Timestamp) -> List[Dict[str, Any]]:
+               t: pd.Timestamp, inner_m: Optional[float] = None, bands: Tuple[str, ...] = (),
+               crswir_w: float = CRSWIR_W, all_touched_fallback: bool = True) -> List[Dict[str, Any]]:
     """
     Średnie indeksów w obiektach (tylko piksele bezchmurne) + udział pikseli czystych i ich liczba.
     Winnice: bez pasa brzegowego o szerokości 1 piksela tej rozdzielczości (Sozzi i in. 2020:
     usunięcie pikseli brzegowych poprawia zgodność z UAV; dla działek < 0,5 ha bywa odwrotnie).
+    Działki W3b (protokół §1): inner_m = 20 (pas 20 m, bo piksel 20 m zapisany na siatce 10 m wystaje przy pasie
+    10 m do ok. 11 m poza działkę), bands = średnie odbicie pasm (np. B04, B06, B8A, B12), bez awaryjnego all_touched;
+    obiekt bez pikseli dostaje rekord z n_pixels = 0 (żeby nie był liczony ponownie przy każdym uruchomieniu).
     """
     from rasterio.features import geometry_mask
 
     res = abs(profile["transform"].a)
     shape = arr.shape[1:]
-    idx = compute_indices(arr)
+    idx = compute_indices(arr, crswir_w)
     clear = (cloud == 0) & np.isfinite(arr).all(axis=0)
     out = []
     for s in sites.itertuples():
-        geom = s.geometry.buffer(-res) if s.inner_buffer else s.geometry
-        if geom.is_empty:
-            continue
-        mask = geometry_mask([geom], out_shape=shape, transform=profile["transform"], invert=True)
+        geom = s.geometry.buffer(-(inner_m if inner_m is not None else res)) if s.inner_buffer else s.geometry
+        mask = (np.zeros(shape, bool) if geom.is_empty else
+                geometry_mask([geom], out_shape=shape, transform=profile["transform"], invert=True))
         method = "centre"
-        if mask.sum() == 0:
+        if mask.sum() == 0 and all_touched_fallback and not geom.is_empty:
             mask = geometry_mask([geom], out_shape=shape, transform=profile["transform"], invert=True, all_touched=True)
             method = "all_touched"
         n = int(mask.sum())
-        if n == 0:
+        if n == 0 and all_touched_fallback:
             continue
         ok = mask & clear
         rec = {"site_id": s.site_id, "product": product, "time": t, "n_pixels": n,
-               "clear_frac": float(ok.sum() / n), "px_method": method}
+               "clear_frac": float(ok.sum() / n) if n else 0.0, "px_method": method}
         for k, v in idx.items():
             rec[k] = float(np.nanmean(v[ok])) if ok.any() else np.nan
+        for b in bands:
+            rec[b.lower()] = float(np.nanmean(arr[S2_BANDS.index(b)][ok])) if ok.any() else np.nan
         out.append(rec)
     return out
+
+
+def load_parcels(cfg: Dict[str, Any], crs: Any):
+    """Działki W3b: wszystkie obiekty `Typ == PARCEL_TYPE` z pliku działek; site_id = VINEYARD_{fid:02d}
+    (VINEYARD_06 zachowuje id), pas wewnętrzny jak winnice potoku (szerokość podaje site_stats(inner_m=...))."""
+    import geopandas as gpd
+
+    p = gpd.read_file(cfg["PARCELS_PATH"]).to_crs(crs)
+    p = p[p["Typ"] == cfg["PARCEL_TYPE"]].sort_values("fid")
+    return gpd.GeoDataFrame({"site_id": [f"VINEYARD_{int(f):02d}" for f in p["fid"]],
+                             "fid": p["fid"].astype(int).to_numpy(), "site_type": "vineyard", "inner_buffer": True,
+                             "area_ha": (p.geometry.area / 1e4).round(3).to_numpy()},
+                            geometry=p.geometry.to_numpy(), crs=p.crs)
 
 
 # ==============================================================================
@@ -259,11 +279,11 @@ def scene_anomaly(df: pd.DataFrame, col: str, cfg: Dict[str, Any]) -> pd.DataFra
 
     d = df[(df["clear_frac"] >= cfg["VEG_MIN_CLEAR_FRAC"]) & df[col].notna()].sort_values("time").copy()
     if d.empty:
-        return d.assign(clim_mean=np.nan, clim_std=np.nan, z=np.nan, n_ref=0, track=0, ref_mode="")
+        return d.assign(clim_mean=np.nan, clim_std=np.nan, z=np.nan, n_ref=0, track=0, ref_mode="", n_ref_years=0)
     causal, by_track = cfg.get("VEG_CAUSAL", True), cfg.get("VEG_BY_TRACK", True)
     doy, yr, v = d["time"].dt.dayofyear.to_numpy(), d["time"].dt.year.to_numpy(), d[col].to_numpy(float)
     trk = track_ids(d["time"])
-    mu, sd, n, mode = [], [], [], []
+    mu, sd, n, mode, n_years = [], [], [], [], []
     for i in range(len(d)):
         m = (yr < yr[i]) if causal else (yr != yr[i])
         if causal and cfg.get("VEG_REF_YEARS"):
@@ -278,7 +298,9 @@ def scene_anomaly(df: pd.DataFrame, col: str, cfg: Dict[str, Any]) -> pd.DataFra
         sd.append(pool.std(ddof=1) if ok else np.nan)
         n.append(len(pool))
         mode.append(ref if ok else "")
+        n_years.append(len(np.unique(yr[m])) if ok else 0)     # lata w puli normy (protokół W3b §2)
     d["clim_mean"], d["clim_std"], d["n_ref"], d["track"], d["ref_mode"] = mu, sd, n, trk, mode
+    d["n_ref_years"] = n_years
     if cfg.get("VEG_PREDICTIVE_Z", True):
         nn = d["n_ref"].to_numpy(float)
         t = (d[col] - d["clim_mean"]).to_numpy() / (d["clim_std"].to_numpy() * np.sqrt(1 + 1 / np.maximum(nn, 1)))
