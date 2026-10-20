@@ -58,6 +58,12 @@ Policzone z `w3c_summary.csv` po zobaczeniu wyników; służy tylko do planowani
 - **Działki:** różnice między winnicami są duże. Dwie z „niespokojnych” (13 i 22) miały już flagę „możliwa zmiana
   gospodarowania” w W3b. Najbardziej prawdopodobne przyczyny to zmiany w uprawie części działki: koszenie albo
   uprawa co drugiego międzyrzędzia, okrywa, dosadzenia. Satelita widzi to tak samo jak zmianę kondycji.
+- **Czy to na pewno winnice?** Tak. Rejestr upraw RPG (deklaracje rolników, IGN `apicarto.ign.fr/api/rpg/v2`,
+  punkt w środku każdej działki, lata 2018, 2020, 2022, 2023): wszystkie 15 to **VRC** (winorośl na wino).
+  Wyjątki potwierdzają przyczynę: winnica 13 w 2020 r. **VRN** (winorośl jeszcze nie owocująca, czyli młode
+  nasadzenie), winnica 22 w 2018 r. **RVI** (restrukturyzacja winnicy: wykarczowanie i ponowne nasadzenie),
+  a w 2022 r. VRN. Obie należą do „niespokojnych”. Sprawdzono jeden punkt na działkę, więc część działki mogła
+  mieć inną deklarację.
 - **Nawet „spokojne” winnice** (3–7%) są powyżej ok. 1% oczekiwanego przy samym szumie.
 
 ## Co pokazujemy
