@@ -686,7 +686,12 @@ function drawMap() {
     ov = L.imageOverlay('data:image/png;base64,' + src.png[pk()], PX.bounds,
       {pane: 'pixels', opacity: S.op, className: 'pxl'}).addTo(map);
   styleParcels();
-  esri.setOpacity(S.base === 'esri' ? 1 : 0);
+  setBase();
+}
+function setBase() {        // Esri zdejmowane z mapy (nie tylko ukryte), żeby nie pobierać kafli i nie podpisywać ich
+  if (!map) return;
+  if (S.base === 'esri') { if (!map.hasLayer(esri)) esri.addTo(map); }
+  else if (map.hasLayer(esri)) map.removeLayer(esri);
 }
 function styleParcels() {
   D.map.shapes.forEach(s => {
@@ -751,7 +756,7 @@ function step(k) {   // k = +1 newer, −1 older
 $('older').addEventListener('click', () => step(-1));
 $('newer').addEventListener('click', () => step(1));
 $('op').addEventListener('input', e => { S.op = +e.target.value / 100; if (ov) ov.setOpacity(S.op); if (map) styleParcels(); });
-$('base').addEventListener('change', e => { S.base = e.target.value; if (esri) esri.setOpacity(S.base === 'esri' ? 1 : 0); });
+$('base').addEventListener('change', e => { S.base = e.target.value; setBase(); });
 function select(id) {
   S.site = id;
   if (map) { if (id === 'ALL') map.fitBounds(D.map.bounds, {padding: [24, 24]});

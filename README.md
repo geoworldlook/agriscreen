@@ -1,134 +1,120 @@
-# AgriScreen: vineyard drought monitoring from open Copernicus data
+# AgriScreen: vineyards against their own history, from open Copernicus data
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/geoworldlook/agriscreen/blob/main/notebooks/AgriWatch_Monitor.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/geoworldlook/agriscreen/blob/main/notebooks/AgriScreen_Monitor.ipynb)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![Status](https://img.shields.io/badge/status-v1.2-green)
+![Version](https://img.shields.io/badge/version-1.0.0-green)
 
-AgriScreen (pipeline name: **AgriWatch**) issues a 10-day drought status for one vineyard in Condom (Gers, France):
-`VINEYARD_06`, 2.9 ha, 136 m from the ISMN SMOSMANIA soil-moisture station.
-Every layer is validated against independent ground measurements. Each number on the dashboard comes with its error,
-and anything that has not been validated is labelled as not validated.
+AgriScreen tells a winegrower near Condom (Gers, south-west France) whether a vineyard parcel is **unusual right now
+compared with its own history**, and how far that answer can be trusted. It covers 15 vineyards (0.7–4.1 ha) and
+uses only open data: Copernicus Sentinel-2, ERA5-Land and the CLMS Soil Water Index. It gives no irrigation or
+treatment advice and does not diagnose vine water stress.
 
-**Skills shown:** EO time series · climate reanalysis · in-situ validation · drought indicators ·
-deep-learning super-resolution (SEN2SR) · reproducible pipelines in Google Earth Engine and Colab.
+![AgriScreen panel: 15 vineyards, 10 m greenness zones on a Sentinel-2 background, soil dryness and weather](docs/showcase/agriscreen_panel.jpg)
 
-## What it does
+*Panel with the Sentinel-2 background (contains modified Copernicus Sentinel data 2026). The interactive version is
+[`docs/showcase/agriscreen_panel.html`](docs/showcase/agriscreen_panel.html); the story with results is
+[`notebooks/AgriScreen_story.ipynb`](notebooks/AgriScreen_story.ipynb).*
 
-The status logic is a simplified version of the European Drought Observatory's
-[Combined Drought Indicator (CDI)](https://edo.jrc.ec.europa.eu/), computed per 10-day period:
+## What the panel shows
 
-| Status | Condition | Action |
+- **Map** on a satellite photo, with a semi-transparent layer:
+  10 m pixels inside each vineyard (NDVI, NDRE, NDMI);
+  zones (each pixel minus the median of the same parcel on the same day);
+  or the whole parcel against the same parcel in the previous five years (z-score, same time of year, same orbit).
+- **Card for each vineyard:**
+  (1) soil in the area — dry / near normal / wet (ERA5-Land 0–100 cm percentile vs 1991–2020);
+  (2) the parcel's vegetation water index (SWIR) below / within / above its own normal, and how many vineyards
+  nearby are in the same state;
+  (3) whether area vegetation follows soil water — shown only if a pre-registered test confirms it (so far it has not).
+- **Statistics, season curve, weather** (7-day forecast, frost and heat) and a **“How far to trust it”** table where
+  every line says what it was checked against and what kind of check it was.
+
+## How far to trust it
+
+All tests below were written down and hashed (SHA-256) before any number was computed, and run on data frozen on
+2026-10-18 (419 Sentinel-2 scenes, 2016–2026). Protocols and results: [`docs/evidence/`](docs/evidence/)
+(summary: [`karta_wynikow.md`](docs/evidence/karta_wynikow.md)).
+
+| What | Result | Status |
 |---|---|---|
-| `watch` | SPI-1 ≤ −2 or SPI-3 ≤ −1 (rainfall deficit) | watch |
-| `warning` | ERA5-Land root-zone (0–100 cm) soil-moisture anomaly ≤ −1 | watch |
-| `alert` | `warning` and vineyard NDVI anomaly ≤ −1 | inspect the vineyard |
-| `recovery` | after `warning`/`alert`: back above thresholds, anomalies still negative | normal |
+| Soil moisture 0–100 cm (ERA5-Land) vs in situ sensors at 3 stations | anomaly correlation 0.57 Condom (ISMN), 0.57 Auradé, 0.68 Lusignan (ICOS, 35-day anomalies); same dry/normal/wet class on 55–65% of days | checked (no pass threshold) |
+| Soil water index (ASCAT satellite) | 0.57 / 0.52 / 0.53 | checked |
+| 30-day rainfall (ERA5-Land) vs rain gauge | R 0.90 | checked |
+| Parcel index: noise between close scenes | smallest clear change (MDC95) 1.0 z same orbit, 1.1 z different orbits | descriptive |
+| Parcel index: share of scenes “below its own normal” (expected 16%) | 28% [4; 52]; from 1% (2021) to 76% (2022); 14% [0; 30] with near-normal soil | descriptive — no gross miscalibration, weak test |
+| Area vegetation follows soil water of the previous 30 days | ρ 0.55 [−0.02; 1.00] (criterion: lower bound > 0) | **not confirmed** — sentence 3 hidden |
+| 4-band model (red, red-edge, NIR, SWIR) instead of the simple index | Δρ −0.01 [−0.18; 0.16] | **not adopted** |
+| Vine water stress | no measurements inside the vineyards | not validated |
 
-- **Vegetation:** Sentinel-2 L2A NDVI, NDMI and NDRE, super-resolved from 10 m to 2.5 m with SEN2SR.
-  Anomalies are computed against the previous 5 years only (no future years) and from the same orbit track.
-- **Soil moisture:** ERA5-Land, with a soil-drought probability attached to each status:
-  p = Φ((−1 − ρz)/√(1−ρ²)), where ρ = 0.58 is the measured ERA5-to-station correlation.
-- **Weather:** frost and heat-day warnings from ERA5-Land, validated against Météo-France stations.
-- **Output:** an HTML dashboard (NDVI map, status, risk, weather, season curve, signal matrix), a text bulletin and a JSON summary.
+**Negative results, reported as such:**
+- **Places inside a parcel against their own history did not pass.** “Zones weaker than usual” (W3c) would light up
+  about 15% of the parcel area on ordinary days (limit 5%). “Lowest in five years” for 30 m squares (W3d) could not
+  be checked for calibration with only four years of normal-soil months. Neither is drawn on the map; both will be
+  re-tested after the 2027 season with the same rules.
+- Vegetation and soil agree mostly **between years** (ρ of seasonal means 0.64) but not **within a season** (0.06).
+- An earlier experiment used a normal that included later years; with the causal normal the agreement with the
+  sensor on the same days fell from 0.57 to 0.44 (several things changed at once, so not all of it is leakage).
+- Super-resolution to 2.5 m (SEN2SR) gave the same validation result as 10 m and was removed in 1.0.
 
-Satellite data come only from the Copernicus programme.
+Before 1.0 an independent recomputation from the output files checked every number above
+([`docs/STAN_I_PLAN.md`](docs/STAN_I_PLAN.md) §4).
 
-## Validation
-
-All numbers come from pipeline runs or from offline experiments that were repeated independently
-([`docs/MIGRACJA_PODSUMOWANIE.md`](docs/MIGRACJA_PODSUMOWANIE.md), section 5; evidence in [`docs/evidence/`](docs/evidence/)).
-
-| Layer | Result | Reference | Verdict |
-|---|---|---|---|
-| Root-zone soil moisture (ERA5-Land 0–100 cm) | R = 0.58 [0.50; 0.67], n = 2,976 days (2016–2024) | ISMN station, 20–30 cm | strong for reanalysis vs a point |
-| Dry 10-day periods (soil z ≤ −1) | 57% detected, 57% false alarms | ISMN 20–30 cm | limited: this is the ceiling at R = 0.58 for a yes/no rule |
-| Soil-drought probability | Brier 0.10, vs 0.17 for the yes/no rule and 0.13 for climatology | ISMN | strong, but evaluated offline and not yet in the pipeline's validation table |
-| Vineyard NDVI (2.5 m) | R = 0.38 [0.16; 0.58], n = 200 days | ISMN 20–30 cm (indirect) | limited: vegetation lags soil moisture |
-| 30-day rainfall / SPI-3 | R = 0.90 / 0.87; dry periods: 66% detected, 30% false alarms | Météo-France rain gauge, Condom | strong |
-| Daily Tmin / Tmax | mean absolute error 1.04 / 1.09 °C | Météo-France, Condom | strong |
-| Heat days (Tmax ≥ 35.5 °C) | 68% detected, 9% false alarms, n = 73 days (held-out years 2021+) | Météo-France, Condom | strong |
-| Spring frost | 4 event days in the test years | Météo-France, Condom | not confirmed: too few events |
-| `alert` (soil + vegetation) | 0 hits against dry ISMN periods in 2018–2024 | ISMN | not confirmed: vegetation responds 1–1.5 months later |
-
-**Negative results, also reported:**
-- No other index (NDMI, NDRE, CRSWIR, composites) and no multi-index agreement rule improves the vegetation layer.
-  The indices are nearly redundant (z-score correlation 0.92–0.97). This was replicated twice.
-- An FAO-56 water balance does not beat ERA5-Land. EnKF assimilation of Sentinel-1 does not improve it either.
-- An earlier NDVI climatology used future years (data leakage). After the fix in v1.1, R dropped from 0.43 to 0.38.
-- SEN2SR at 2.5 m gives the same validation result as 10 m, so it is used for map readability only.
-
-**Limitations:**
-- One reference station, under grass, with ISMN data only up to 2024-12-31.
-- One vineyard, so there is no comparison with neighbouring plots yet.
-- The `alert` layer has not been validated against vine water status.
-
-## Architecture
+## Code
 
 ```text
-GitHub (code) ──► Google Colab (GPU + Google Earth Engine) ──► Google Drive (data, CSV registry, outputs)
+agriscreen/                 Python package (docs/ARCHITEKTURA.md)
+├── config.py               all settings; method values come from the registered protocols
+├── runtime.py              Colab / local setup, CSV registry, run_task
+├── ingest.py               Sentinel-2 L2A (Earth Engine), ERA5-Land, CLMS SWI (Copernicus Data Space)
+├── metrics.py              indices, parcel statistics with a 20 m inner strip, anomalies, SPI
+├── parcel.py               15 vineyards vs their own history; pre-registered tests T1–T3, 4-band model
+├── stations.py             ISMN Condom sensor, quality-control rules
+├── reference.py            ICOS stations and the shared soil-layer validation
+├── weather.py              Météo-France: ERA5-Land validation, frost and heat
+├── card.py                 card sentences
+├── panel.py                the product: panel.html + panel_data.json
+├── pipeline.py             tasks in order, run_all
+├── experiments/            W3c zones, W3d months (off by default)
+└── selftest.py             offline end-to-end test on synthetic data
+notebooks/                  AgriScreen_Monitor (Colab), AgriScreen_story (blog), and their generators
+docs/                       status, architecture, protocols and results (in Polish), showcase files
+data/                       vineyard polygons, ISMN SMOSMANIA sensors, RPG crop register
 ```
-
-```text
-├── step_01_ingest.py            # GEE: Sentinel-2 L2A (incremental, manifest) + cloud mask, ERA5-Land at the point
-├── step_03_super_resolve.py     # SEN2SR 10 m -> 2.5 m with quality checks (no silent fallback to interpolation)
-├── step_04_metrics_alert.py     # indices, causal anomalies, SPI, 10-day status, bulletin
-├── step_05_colab_run.py         # notebook control: setup_runtime, run_task, CSV registry, monitoring tasks, --selftest
-├── step_06_dashboard.py         # vineyard dashboard
-├── step_07_station_pipeline.py  # ISMN station: in-situ QC, anomaly validation with CIs; experimental Sentinel-1 branch
-├── step_08_weather.py           # frost and heat, ERA5-Land validation on Météo-France stations
-├── step_09_panels.py            # v1.2 panels: vineyard condition, season curve, signal matrix
-├── step_10_reference.py         # ICOS reference stations (FR-Lus, FR-Aur): QC and one shared validation protocol
-├── build_colab_master.py        # generates the notebook (the .ipynb is never edited by hand)
-├── notebooks/AgriWatch_Monitor.ipynb
-├── data/                        # AOI polygons, ISMN SMOSMANIA 2016–2024 (21 stations)
-├── docs/                        # architecture, plans (D-xxx decisions), evidence (in Polish)
-└── legacy/                      # previous version (v2.5: LST, ATPRK, TCARI/OSAVI, TVDI), not used
-```
-
-Step numbering is not continuous: step 2 of v2.5 lives in `legacy/`. Details: [`docs/ARCHITEKTURA.md`](docs/ARCHITEKTURA.md).
 
 ## How to run
 
-1. Open `notebooks/AgriWatch_Monitor.ipynb` in Colab **from GitHub** (badge above), not from a Drive copy.
-   A GPU runtime is needed only for new scenes (super-resolution).
-2. Choose *Run all*. The notebook mounts Drive, clones or updates the repository, installs packages,
-   initialises Earth Engine and runs:
-   `ingest_s2 → ingest_era5 → scene_stats → anomalies → validate → weather → bulletin → dashboard → summary`.
-3. Outputs: `data/05_Final_Outputs/agriwatch/` (`dashboard.html`, bulletin, plots, `agriwatch_latest.json`)
-   and the registry tables `data/registry/gwl_*.csv`.
+**In Colab (full pipeline):** open [`notebooks/AgriScreen_Monitor.ipynb`](notebooks/AgriScreen_Monitor.ipynb) from
+GitHub (badge above) and choose *Run all*. It mounts Google Drive, updates the code, installs packages, initialises
+Earth Engine and runs `ingest → parcel statistics → soil → tests → anomalies → validation → weather → panel →
+summary`. Keys are read only from a folder on Drive. Outputs: `data/05_Final_Outputs/agriwatch/` and the registry
+`data/registry/gwl_*.csv`.
 
-Offline tests (no GEE or GPU; real ISMN data and plots, synthetic satellite and Météo-France data):
+**Locally, without network or keys:**
 
 ```bash
-python step_05_colab_run.py --selftest --out <dir>   # about 6 min
-python step_08_weather.py
-python step_07_station_pipeline.py --selftest         # Sentinel-1 branch (needs pytesmo)
+pip install -r requirements.txt
+python -m agriscreen.selftest --out /tmp/agriscreen_selftest   # synthetic data, all tasks, a few minutes
+ruff check agriscreen
 ```
 
-**Dependencies:** `earthengine-api geemap geedim rasterio geopandas numpy pandas scipy matplotlib pytesmo ismn`;
-for super-resolution also `sen2sr mlstac torch`.
+**In a script:**
 
-## Versions and roadmap
-
-| Version | Scope |
-|---|---|
-| 1.0 (2026-10-07) | EDO-style status from SPI, ERA5-Land soil moisture and 2.5 m NDVI; ISMN validation; dashboard |
-| 1.1 (2026-10-09) | causal vegetation climatology, same orbit track, predictive z-scores, soil-drought probability; frost and heat with Météo-France validation |
-| 1.2 (2026-10-09) | vineyard condition panel (NDVI, NDRE, NDMI), season curve, signal matrix |
-
-Next ([`docs/plans/Plan_v8_cloud_native_dl.md`](docs/plans/Plan_v8_cloud_native_dl.md)):
-- a cloud-native pipeline (STAC from Copernicus Data Space, xarray, Docker, GitHub Actions) that runs without Colab;
-- a deep-learning stage: super-resolution validated against orthophotos, and a U-Net for vine rows on IGN CIR 20 cm imagery.
+```python
+from agriscreen.runtime import setup_runtime
+from agriscreen.config import make_config
+from agriscreen.pipeline import run_all
+rt = setup_runtime(PROJECT_DIR)
+run_all(rt, make_config(PROJECT_DIR), ingest_data=True, experiments=False)
+```
 
 ## Data and attribution
 
-Copernicus Sentinel-2 (ESA), ERA5-Land (Copernicus Climate Change Service), ISMN SMOSMANIA (Météo-France / ISMN),
-Météo-France station data, SEN2SR super-resolution model.
+Copernicus Sentinel-2 L2A (ESA), ERA5-Land (Copernicus Climate Change Service), CLMS Soil Water Index (Copernicus
+Land Monitoring Service); in situ: ISMN SMOSMANIA (Météo-France / ISMN), ICOS stations FR-Aur and FR-Lus (CC BY 4.0);
+rain gauges Météo-France; crop register RPG (IGN); 7-day forecast Open-Meteo; background imagery in the browser
+Esri World Imagery; map library Leaflet.
 
 ## License
 
-[MIT](LICENSE)
-
----
-
-Documentation in [`docs/`](docs/) is in Polish; a Polish version of this page is in [`docs/README_pl.md`](docs/README_pl.md).
+[MIT](LICENSE). Documentation in [`docs/`](docs/) is in Polish; the Polish README from before 1.0 is in
+[`docs/archive/`](docs/archive/). Changes: [`CHANGELOG.md`](CHANGELOG.md).

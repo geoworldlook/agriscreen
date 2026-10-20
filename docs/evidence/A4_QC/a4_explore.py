@@ -12,7 +12,7 @@ import pandas as pd
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 sys.path.insert(0, REPO)
-from step_07_station_pipeline import read_ismn_stm  # noqa: E402
+from agriscreen.stations import read_ismn_stm  # noqa: E402  (do v1: step_07_station_pipeline)
 
 D = os.path.join(REPO, "data/7_isismn_data/SMOSMANIA/Condom")
 
