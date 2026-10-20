@@ -2,25 +2,36 @@
 ================================================================================
 AgriWatch - KROK 12: PANEL „AGRISCREEN” DO PUBLIKACJI (15 WINNIC, EN)
 ================================================================================
-Jeden samodzielny plik HTML (bez zewnętrznych bibliotek i kafli mapy): mapa 15 winnic w SVG kolorowana wybraną warstwą
-(woda w roślinności SWIR, NDVI, NDRE, NDMI, CRSWIR) w wybranym dniu sceny, karta „My vineyard” wybranej winnicy
-(zdania ze step_09.parcel_card_lines, ta sama logika co dashboard), przebieg sezonu na tle pozostałych winnic, wilgotność
-gleby ERA5-Land i tabela „How far to trust it” z wynikami walidacji (W2 + REF, protokół W3b).
+Panel w układzie aplikacji Wago (projekt ESA WineEO, eo4society 2021): lista winnic po lewej, mapa na zdjęciu
+satelitarnym (Esri World Imagery, jak w dashboardzie step_06) z półprzezroczystą warstwą, po prawej stan działki,
+gleba w okolicy, pogoda i dane działki. Pod mapą statystyki, sezon, zdania karty i tabela „How far to trust it”.
+
+Warstwy mapy:
+  - wnętrze działki: piksele 10 m NDVI / NDRE / NDMI z ostatnich bezchmurnych scen archiwum S2_DIR (opis miejsc
+    w działce, bez normy i bez walidacji),
+  - wobec własnej historii: z całej działki z parcel_anomalies.csv (woda w roślinności SWIR, NDVI, NDRE, NDMI, CRSWIR).
+Pod kaflami Esri leży obraz Sentinel-2 w barwach naturalnych (widoczny, gdy kafle są niedostępne, np. bez sieci).
+Pogoda dla całej okolicy (jedno oczko ERA5-Land): prognoza Open-Meteo z chwili budowy, ostatnie 10 dni i opad
+30 / 90 dni z ERA5-Land, przymrozki i upały sezonu (task_weather).
 Ten sam plik pokazuje notatnik Colab (show_dashboard) i trafia na blog GeoWorldLook.
-Dane: wyniki zadań step_05 w OUTPUT_DIR (parcel_anomalies.csv, parcel_area.csv, parcel_flags.csv, w3b_tests.csv,
-era5_daily_anomalies.csv, validation_reference.csv, validation_weather.csv) i plik działek.
 ================================================================================
 """
 
 from __future__ import annotations
 
+import base64
+import glob
 import html
+import io
 import json
+import logging
 import os
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger("AgriWatch_Panel")
 
 LAYERS = (("water", "Vegetation water (SWIR)", 1.0,
            "Mean of NDMI and sign-flipped CRSWIR anomalies: water in the whole parcel's vegetation (vines and inter-rows)"),
@@ -28,6 +39,15 @@ LAYERS = (("water", "Vegetation water (SWIR)", 1.0,
           ("ndre", "Chlorophyll (NDRE)", 1.0, "Red-edge index, leaf greenness"),
           ("ndmi", "NDMI (SWIR/NIR)", 1.0, "Short-wave infrared moisture index"),
           ("crswir", "CRSWIR (sign flipped)", -1.0, "Continuum-removed SWIR; sign flipped so that lower = less water"))
+
+# Mapy pikseli: stała skala dla wszystkich dat (porównywalne kolory), rampa brąz -> zieleń jak „Vegetation index” w Wago
+VEG_RAMP = ("#8b5a2b", "#c9a45c", "#ece0a0", "#8cc152", "#2f8f3a", "#145a24")
+WATER_RAMP = ("#8b5a2b", "#d6b98a", "#efe9d6", "#8fc1dc", "#2f75b5", "#173f7a")
+PIXEL_LAYERS = (("ndvi", "Greenness (NDVI)", 0.10, 0.80, VEG_RAMP, "bare soil", "dense leaves"),
+                ("ndre", "Chlorophyll (NDRE)", 0.05, 0.45, VEG_RAMP, "low", "high"),
+                ("ndmi", "Water in vegetation (NDMI)", -0.20, 0.40, WATER_RAMP, "dry", "moist"))
+PIXEL_UPSCALE = 3            # obraz 10 m rysowany w siatce ~3,3 m (najbliższy sąsiad) — ostre brzegi działek
+CLUSTER_MARGIN_M = 600       # obraz w barwach naturalnych sięga 600 m poza skupisko winnic
 
 
 def _opt(path: str, **kw) -> Optional[pd.DataFrame]:
@@ -42,8 +62,27 @@ def _r(x: Any, nd: int = 2) -> Optional[float]:
     return round(x, nd) if np.isfinite(x) else None
 
 
+def _ramp(stops, v: np.ndarray) -> np.ndarray:
+    """Wartości 0–1 -> RGB uint8 wg listy kolorów (interpolacja liniowa między stopniami)."""
+    c = np.array([[int(h[i:i + 2], 16) for i in (1, 3, 5)] for h in stops], float)
+    x = np.clip(np.nan_to_num(v, nan=0.0), 0, 1) * (len(stops) - 1)
+    i = np.minimum(np.floor(x).astype(int), len(stops) - 2)
+    f = (x - i)[..., None]
+    return (c[i] * (1 - f) + c[i + 1] * f).round().astype(np.uint8)
+
+
+def _b64_image(arr: np.ndarray, fmt: str = "PNG") -> str:
+    from PIL import Image
+    buf = io.BytesIO()
+    img = Image.fromarray(arr, "RGBA" if arr.shape[-1] == 4 else "RGB")
+    if fmt == "PNG":                     # paleta 64 barw z przezroczystością: ok. 10× mniej bajtów, rampa bez zmian
+        img = img.quantize(64, method=Image.Quantize.FASTOCTREE)
+    img.save(buf, format=fmt, **({"optimize": True} if fmt == "PNG" else {"quality": 85}))
+    return base64.b64encode(buf.getvalue()).decode()
+
+
 def _parcel_shapes(cfg: Dict[str, Any], sites: List[str]) -> Dict[str, Any]:
-    """Obrysy winnic jako ścieżki SVG (rzut równoodległościowy z cos(φ), skala wspólna dla wszystkich działek)."""
+    """Obrysy winnic: ścieżki SVG (wspólna skala; notatnik na blog) i pierścienie [lat, lon] (mapa Leaflet)."""
     import geopandas as gpd
     p = gpd.read_file(cfg["PARCELS_PATH"]).to_crs(4326)
     p = p[p["Typ"] == cfg["PARCEL_TYPE"]].copy()
@@ -68,13 +107,158 @@ def _parcel_shapes(cfg: Dict[str, Any], sites: List[str]) -> Dict[str, Any]:
         cx, cy = xy(c.x, c.y)
         area = float(gpd.GeoSeries([r.geometry], crs=4326).to_crs(cfg["EPSG"]).area.iloc[0] / 1e4)
         shapes.append({"id": r.site_id, "fid": int(r.fid), "d": d, "cx": round(cx, 1), "cy": round(cy, 1),
-                       "area_ha": round(area, 2)})
+                       "area_ha": round(area, 2), "c": [round(c.y, 6), round(c.x, 6)],
+                       "ll": [[[round(lat, 6), round(lon, 6)] for lon, lat in poly.exterior.coords] for poly in polys]})
     return {"shapes": sorted(shapes, key=lambda s: s["fid"]), "width": round(pad * 2 + w * scale),
-            "height": round(pad * 2 + h * scale)}
+            "height": round(pad * 2 + h * scale), "bounds": [[round(y0, 6), round(x0, 6)], [round(y1, 6), round(x1, 6)]]}
 
 
-def panel_data(out_dir: str, cfg: Dict[str, Any]) -> Dict[str, Any]:
-    """Dane panelu z plików wynikowych: warstwy z dla 15 winnic w dniach scen, karty (EN), gleba, walidacja."""
+def pixel_maps(cfg: Dict[str, Any], n_dates: Optional[int] = None) -> Dict[str, Any]:
+    """
+    Mapy pikseli 10 m wewnątrz winnic (NDVI, NDRE, NDMI) z ostatnich PANEL_PIXEL_DATES bezchmurnych scen sezonu
+    w S2_DIR (≥ VEG_MIN_CLEAR_FRAC pikseli winnic bez chmur, jedna scena na dzień) i obraz w barwach naturalnych
+    z najnowszej z nich. Statystyki działki (średnia, 10. i 90. percentyl, liczba pikseli) liczone jak produkt
+    S2_10m_buf20: piksele bezchmurne w pasie PARCEL_INNER_M od brzegu. Mapa pokazuje całą działkę.
+    """
+    import rasterio
+    from rasterio.features import rasterize
+    from rasterio.transform import from_origin
+    from rasterio.warp import Resampling, reproject
+    from rasterio.windows import from_bounds
+
+    import step_04_metrics_alert as s4
+    layers = [{"key": k, "label": lab, "lo": lo, "hi": hi, "ramp": list(ramp), "low": low, "high": high}
+              for k, lab, lo, hi, ramp, low, high in PIXEL_LAYERS]
+    res: Dict[str, Any] = {"dates": [], "rgb": None, "layers": layers, "bounds": None}
+    scenes = sorted(glob.glob(os.path.join(cfg["S2_DIR"], "S2_L2A_*.tif")))
+    if not scenes:
+        return res
+    n_dates = int(n_dates or cfg.get("PANEL_PIXEL_DATES", 16))
+    parcels = s4.load_parcels(cfg, cfg["EPSG"]).to_crs(4326)
+    m0, m1 = cfg["S2_MONTHS"]
+    inner_m = float(cfg.get("PARCEL_INNER_M", 20))
+
+    # siatka wynikowa w EPSG:4326 (Leaflet rozciąga obraz między narożnikami; dla ~1 km różnica wobec 3857 pomijalna)
+    def ll_grid(bounds, step_m):
+        w, s, e, n = bounds
+        dlat = step_m / 111320.0
+        dlon = dlat / np.cos(np.radians((s + n) / 2))
+        width, height = int(np.ceil((e - w) / dlon)), int(np.ceil((n - s) / dlat))
+        return from_origin(w, n, dlon, dlat), (height, width), [[n - height * dlat, w], [n, w + width * dlon]]
+    pad = 20 / 111320.0
+    w, s, e, n = parcels.total_bounds
+    px_t, px_shape, px_bounds = ll_grid((w - pad, s - pad, e + pad, n + pad), 10.0 / PIXEL_UPSCALE)
+    px_mask = rasterize(((g, 1) for g in parcels.geometry), out_shape=px_shape, transform=px_t, fill=0).astype(bool)
+    res["bounds"] = [[round(v, 6) for v in c] for c in px_bounds]
+
+    geo, box = None, None
+    seen = set()
+    for path in reversed(scenes):
+        if len(res["dates"]) >= n_dates:
+            break
+        t = s4.scene_time(path)
+        if not (m0 <= t.month <= m1) or t.normalize() in seen:
+            continue
+        with rasterio.open(path) as src:
+            if geo is None:
+                geo = parcels.to_crs(src.crs)
+                x0, y0, x1, y1 = geo.total_bounds
+                box = (x0 - CLUSTER_MARGIN_M, y0 - CLUSTER_MARGIN_M, x1 + CLUSTER_MARGIN_M, y1 + CLUSTER_MARGIN_M)
+            win = from_bounds(*box, src.transform).round_offsets().round_lengths()
+            data = src.read(window=win, boundless=True, fill_value=np.nan).astype("float32")
+            if src.nodata is not None and np.isfinite(src.nodata):
+                data[data == src.nodata] = np.nan
+            tr, crs = src.window_transform(win), src.crs
+        cloud = np.nan_to_num(data[s4.RASTER_CLOUD_BAND], nan=1.0)
+        whole = rasterize(((g, 1) for g in geo.geometry), out_shape=cloud.shape, transform=tr, fill=0).astype(bool)
+        clear = (cloud == 0) & np.isfinite(data[:10]).all(axis=0)
+        if not whole.any() or clear[whole].mean() < float(cfg["VEG_MIN_CLEAR_FRAC"]):
+            continue
+        seen.add(t.normalize())
+        idx = s4.compute_indices(data[:10])
+        stats: Dict[str, Dict[str, Any]] = {}
+        for r in geo.itertuples():
+            g = r.geometry.buffer(-inner_m)
+            inner = (rasterize([(g, 1)], out_shape=cloud.shape, transform=tr, fill=0).astype(bool)
+                     if not g.is_empty else np.zeros(cloud.shape, bool)) & clear
+            stats[r.site_id] = {}
+            for lay in layers:
+                v = idx[lay["key"]][inner]
+                v = v[np.isfinite(v)]
+                stats[r.site_id][lay["key"]] = ([_r(v.mean(), 3), _r(np.percentile(v, 10), 3),
+                                                 _r(np.percentile(v, 90), 3), int(v.size)] if v.size else None)
+        pngs = {}
+        for lay in layers:
+            a = np.where(clear, idx[lay["key"]], np.nan).astype("float32")
+            dst = np.full(px_shape, np.nan, "float32")
+            reproject(a, dst, src_transform=tr, src_crs=crs, dst_transform=px_t, dst_crs="EPSG:4326",
+                      resampling=Resampling.nearest, src_nodata=np.nan, dst_nodata=np.nan)
+            rgba = np.zeros(px_shape + (4,), np.uint8)
+            rgba[..., :3] = _ramp(lay["ramp"], (dst - lay["lo"]) / (lay["hi"] - lay["lo"]))
+            rgba[..., 3] = np.where(px_mask & np.isfinite(dst), 255, 0)
+            pngs[lay["key"]] = _b64_image(rgba)
+        res["dates"].append({"date": t.strftime("%Y-%m-%d"), "clear": _r(clear[whole].mean(), 2), "png": pngs,
+                             "stats": stats})
+        if res["rgb"] is None:                       # najnowsza scena: barwy naturalne (B04, B03, B02) pod mapą
+            m = CLUSTER_MARGIN_M / 111320.0
+            rgb_t, rgb_shape, rgb_bounds = ll_grid((w - m * 1.4, s - m, e + m * 1.4, n + m), 5.0)
+            out = np.zeros((3,) + rgb_shape, "float32")
+            for k, b in enumerate((2, 1, 0)):
+                reproject(np.nan_to_num(data[b], nan=0.0), out[k], src_transform=tr, src_crs=crs, dst_transform=rgb_t,
+                          dst_crs="EPSG:4326", resampling=Resampling.bilinear)
+            rgb = (np.clip(out * 3.2, 0, 1) ** (1 / 1.25) * 255).round().astype(np.uint8).transpose(1, 2, 0)
+            res["rgb"] = {"date": t.strftime("%Y-%m-%d"), "jpg": _b64_image(np.ascontiguousarray(rgb), "JPEG"),
+                          "bounds": [[round(v, 6) for v in c] for c in rgb_bounds]}
+    return res
+
+
+def weather_data(out_dir: str, cfg: Dict[str, Any], lat: float, lon: float, forecast: Any = "fetch") -> Dict[str, Any]:
+    """
+    Pogoda okolicy: prognoza 7 dni (Open-Meteo; forecast="fetch" pobiera, DataFrame z kolumnami date, tmax, tmin,
+    precip_mm, et0_mm podaje gotową, None pomija), ostatnie 10 dni ERA5-Land, opad 30 / 90 dni z SPI, gleba 0–7 cm
+    i przymrozki / upały sezonu z task_weather.
+    """
+    w: Dict[str, Any] = {"thr": {"frost": cfg["FROST_TMIN"], "heat": cfg["HEAT_TMAX"]},
+                         "fc_thr": {"frost": cfg["FROST_TMIN"], "heat": cfg["HEAT_TMAX"]},
+                         "frost_season": list(cfg["FROST_SEASON"])}
+    fc = forecast
+    if isinstance(forecast, str) and forecast == "fetch":
+        import step_06_dashboard as s6
+        fc = s6.fetch_forecast(lat, lon)
+    if fc is not None and len(fc):
+        w["forecast"] = [{"date": pd.Timestamp(r.date).strftime("%Y-%m-%d"), "tmax": _r(r.tmax, 1), "tmin": _r(r.tmin, 1),
+                          "rain": _r(r.precip_mm, 1), "et0": _r(r.et0_mm, 1)} for r in fc.itertuples()]
+    e = _opt(os.path.join(cfg["ERA5_DIR"], "era5_land_daily.csv"), parse_dates=["time"])
+    if e is not None and {"precip_mm", "t2m_min_c", "t2m_max_c"} <= set(e.columns):
+        e = e.dropna(subset=["precip_mm"]).sort_values("time").tail(10)
+        w["last10"] = [{"date": r.time.strftime("%Y-%m-%d"), "rain": _r(r.precip_mm, 1), "tmin": _r(r.t2m_min_c, 1),
+                        "tmax": _r(r.t2m_max_c, 1)} for r in e.itertuples()]
+    a = _opt(os.path.join(out_dir, "era5_daily_anomalies.csv"), header=[0, 1], index_col=0, parse_dates=True)
+    if a is not None:
+        def last(col, sub):
+            if (col, sub) not in a:
+                return None
+            s = a[(col, sub)].dropna()
+            return [s.index[-1].strftime("%Y-%m-%d"), _r(s.iat[-1], 1)] if len(s) else None
+        w["drivers"] = {"rain30": last("ERA5L_SPI1", "value"), "spi1": last("ERA5L_SPI1", "z"),
+                        "rain90": last("ERA5L_SPI3", "value"), "spi3": last("ERA5L_SPI3", "z"),
+                        "top_pct": last("ERA5L_SM_L1", "percentile")}
+    q = os.path.join(out_dir, "hazard_thresholds.json")
+    if os.path.exists(q):
+        thr = json.load(open(q, encoding="utf-8"))
+        w["thr"].update({k: thr[k] for k in ("frost", "heat") if k in thr})
+    hz = _opt(os.path.join(out_dir, "hazard_summary.csv"))
+    if hz is not None and len(hz):
+        r = hz.sort_values("year").iloc[-1]
+        w["season"] = {"year": int(r["year"]), "frost_days": int(r["frost_days"]), "heat_days": int(r["heat_days"]),
+                       "last_frost": r["last_frost"] if isinstance(r.get("last_frost"), str) else None,
+                       "max_tmax": _r(r.get("max_tmax"), 1)}
+    return w
+
+
+def panel_data(out_dir: str, cfg: Dict[str, Any], forecast: Any = "fetch") -> Dict[str, Any]:
+    """Dane panelu z plików wynikowych: warstwy z dla 15 winnic w dniach scen, mapy pikseli, karty (EN), gleba,
+    pogoda, walidacja. Mapy pikseli i pogoda są opcjonalne: ich błąd zostawia resztę panelu."""
     import step_09_panels as s9
     import step_11_parcel as s11
     pa = pd.read_csv(os.path.join(out_dir, "parcel_anomalies.csv"), parse_dates=["time"])
@@ -110,7 +294,7 @@ def panel_data(out_dir: str, cfg: Dict[str, Any]) -> Dict[str, Any]:
         soil_pct = e[("ERA5L_SM_RZ", "percentile")].dropna()
         soil_pct = soil_pct[soil_pct.index >= pd.Timestamp(first).replace(month=1, day=1)]
     last = pd.Timestamp(days[-1]) if days else pd.Timestamp.now().normalize()
-    soil = None
+    soil, soil_now = None, None
     if len(soil_pct):
         sd = soil_pct[soil_pct.index <= last + pd.Timedelta(days=1)]
         if len(sd):
@@ -118,6 +302,9 @@ def panel_data(out_dir: str, cfg: Dict[str, Any]) -> Dict[str, Any]:
             code, label, _ = s9.water_category(p, cfg)
             soil = {"soil_class": s9._swi_class(p, cfg), "percentile": p, "category": {"code": code, "label": label},
                     "date": sd.index[-1], "clim_ref": (str(cfg["CLIM_REF"][0])[:4], str(cfg["CLIM_REF"][1])[:4])}
+            soil_now = {"pct": _r(p, 0), "code": code, "label": s9.WATER_LABEL_EN.get(code, ""),
+                        "class": soil["soil_class"], "date": sd.index[-1].strftime("%Y-%m-%d"),
+                        "clim_ref": f"{soil['clim_ref'][0]}–{soil['clim_ref'][1]}"}
 
     cards = {}
     for sid in sites:
@@ -127,15 +314,30 @@ def panel_data(out_dir: str, cfg: Dict[str, Any]) -> Dict[str, Any]:
                       "detail": lines["detail"], "fixed": lines["fixed"], "state": card["state"],
                       "date": card["date"].strftime("%Y-%m-%d") if card["date"] is not None else None}
 
+    shapes = _parcel_shapes(cfg, sites)
+    try:
+        pixels = pixel_maps(cfg)
+    except Exception as ex:                                   # mapa działa dalej na warstwach „wobec historii”
+        logger.warning(f"Panel: mapy pikseli niedostępne: {type(ex).__name__}: {ex}")
+        pixels = {"dates": [], "rgb": None, "layers": [], "bounds": None}
+    lat, lon = np.mean(np.array(shapes["bounds"]), axis=0)
+    try:
+        weather = weather_data(out_dir, cfg, float(lat), float(lon), forecast)
+    except Exception as ex:
+        logger.warning(f"Panel: pogoda niedostępna: {type(ex).__name__}: {ex}")
+        weather = {}
+
     return {"generated": pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d"), "last_scene": last.strftime("%Y-%m-%d"),
             "freeze": (summ or {}).get("freeze", ""), "protocol": ((summ or {}).get("protocol_sha256") or "")[:12],
-            "map": _parcel_shapes(cfg, sites),
+            "region": cfg.get("PANEL_REGION", "Condom · Gers, France"),
+            "map": shapes, "pixels": pixels, "weather": weather, "soil_now": soil_now,
             "sites": {sid: {"qc_ok": bool(qc.get(sid, False)), "n_pixels": _r(npx.get(sid), 0)} for sid in sites},
             "dates": [pd.Timestamp(d).strftime("%Y-%m-%d") for d in days],
             "layers": layers, "layer_info": [{"key": k, "label": lab, "about": about} for k, lab, _, about in LAYERS],
             "soil": {"dates": [d.strftime("%Y-%m-%d") for d in soil_pct.index],
                      "pct": [int(round(v)) for v in soil_pct.to_numpy()]},
             "cards": cards, "trust": trust_rows(out_dir, cfg, summ, tests),
+            "inner_m": int(cfg.get("PARCEL_INNER_M", 20)), "min_px": int(cfg.get("PARCEL_MIN_PX", 40)),
             "main_site": cfg.get("MAIN_SITE", "VINEYARD_06")}
 
 
@@ -206,100 +408,417 @@ def trust_rows(out_dir: str, cfg: Dict[str, Any], summ: Optional[Dict[str, Any]]
 
 
 _CSS = """
-/* Layout: control bar, then map + card side by side, season charts, evidence table. Earth/leaf palette. */
-:root{--bg:#f3f5f0;--panel:#ffffff;--ink:#1d2621;--muted:#5d6a62;--line:#d9dfd6;--accent:#466b35;
---wb:#7a4a0e;--b:#c08a3e;--n:#e9e6dc;--a:#5fa69b;--wa:#1f6a62;--nd:#f0f0ec;--focus:#2d5fa8;
---ok:#2f7a45;--warn:#a26b00;--bad:#9b3b2e;--soil:#8a6a3d;
---display:"Literata",Georgia,"Times New Roman",serif;--body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
---mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a16;--panel:#1c241f;--ink:#e6ece6;
---muted:#9aa89f;--line:#2f3a33;--accent:#9cc47f;--wb:#d39a4f;--b:#a8773a;--n:#3a3f37;--a:#3f8c81;--wa:#7fd1c4;
---nd:#232a25;--focus:#8ab4ff;--ok:#7cc48f;--warn:#e0b45a;--bad:#e08a7c;--soil:#c9a46b;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#141a16;--panel:#1c241f;--ink:#e6ece6;--muted:#9aa89f;--line:#2f3a33;--accent:#9cc47f;
---wb:#d39a4f;--b:#a8773a;--n:#3a3f37;--a:#3f8c81;--wa:#7fd1c4;--nd:#232a25;--focus:#8ab4ff;--ok:#7cc48f;
---warn:#e0b45a;--bad:#e08a7c;--soil:#c9a46b;color-scheme:dark}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;margin:0}
-.wrap{max-width:1180px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));
-padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
-h1{font-family:var(--display);font-weight:600;font-size:1.9rem;margin:0;text-wrap:balance}
-h2{font-family:var(--display);font-weight:600;font-size:1.2rem;margin:0 0 8px;text-wrap:balance}
-.sub{color:var(--muted);max-width:70ch;margin:4px 0 0}
-.bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;background:var(--panel);border:1px solid var(--line);
-border-radius:8px;padding:10px 14px}
-.bar label{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:flex;gap:8px;
-align-items:center}
-select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;
-padding:5px 9px;cursor:pointer}
-input[type=range]{width:min(320px,60vw);accent-color:var(--accent)}
-:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-.date{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:.95rem;min-width:9ch}
-.main{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px}
-@media (max-width:820px){.main{grid-template-columns:1fr}}
-.box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}
-svg text{fill:var(--muted);font-family:var(--mono);font-size:11px}
-.parcel{stroke:var(--ink);stroke-width:1;cursor:pointer;transition:stroke-width .15s}
-.parcel.sel{stroke:var(--focus);stroke-width:7}
-.plabel{font-size:26px;font-weight:500;fill:var(--ink);paint-order:stroke;stroke:var(--panel);stroke-width:5px;stroke-linejoin:round}
-.parcel.small{stroke-dasharray:4 3}
-.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:.8rem;color:var(--muted);margin-top:8px}
-.sw{display:inline-block;width:12px;height:12px;border-radius:2px;border:1px solid var(--line);vertical-align:-2px;margin-right:4px}
-.status{font-size:.92rem;margin-top:6px}
-.card h2 .ha{font-family:var(--mono);font-size:.85rem;color:var(--muted);font-weight:400}
+/* Wago-like product page: green top bar, vineyard list | map + statistics | state, soil, weather, plot data.
+   One light look on purpose (map imagery and the index ramps are tuned for it); every colour set explicitly. */
+:root{--bg:#eef2ea;--panel:#ffffff;--ink:#1f2a22;--muted:#5d695f;--line:#dde3d8;--brand:#6f9b3a;--brand-d:#4b7023;
+--brand-l:#eaf2df;--sel:#f2c230;--wb:#7a4a0e;--b:#c08a3e;--n:#e9e6dc;--a:#5fa69b;--wa:#1f6a62;--nd:#cfd3cc;
+--ok:#2f7a45;--warn:#a26b00;--bad:#b23a2e;--soil:#8a6a3d;--rain:#2f75b5;color-scheme:light;
+--ui:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.45;margin:0}
+.top{background:var(--brand);color:#fff;padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));
+padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-wrap:wrap;gap:4px 18px;align-items:center;
+justify-content:space-between}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:1.25rem;letter-spacing:.01em}
+.logo small{font-weight:400;font-size:.95rem;opacity:.92}
+.top .meta{font-size:.82rem;opacity:.95;font-family:var(--mono)}
+.tabs{background:var(--panel);border-bottom:1px solid var(--line);display:flex;overflow-x:auto;
+padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.tabs a{color:var(--muted);text-decoration:none;font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;
+padding:12px 18px;border-bottom:3px solid transparent;white-space:nowrap}
+.tabs a:first-child{color:var(--brand-d);border-bottom-color:var(--brand)}
+.tabs a:hover{color:var(--brand-d)}
+.app{display:grid;grid-template-columns:240px minmax(0,1fr) 350px;gap:14px;align-items:start;padding-block:14px 32px;
+padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+max-width:1680px;margin:0 auto}
+.side{grid-row:span 2;position:sticky;top:10px}
+.wide{grid-column:2 / 4;display:grid;gap:14px;min-width:0}
+.col{display:grid;gap:14px;min-width:0}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;min-width:0}
+h2{font-size:1.15rem;font-weight:600;margin:0;text-wrap:balance}
+h3{font-size:.74rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px;font-weight:600}
+.side h2{font-size:1.25rem;margin-bottom:6px}
+.region{display:flex;justify-content:space-between;font-size:.74rem;text-transform:uppercase;letter-spacing:.07em;
+color:var(--muted);border-top:1px solid var(--line);padding:10px 2px 6px;margin-top:6px}
+.vlist{display:grid;gap:2px}
+.vlist button{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:5px;
+cursor:pointer;font-size:.95rem}
+.vlist button:hover{background:var(--brand-l)}
+.vlist button[aria-pressed=true]{background:var(--brand);color:#fff}
+.vlist button[aria-pressed=true] .ha{color:#eef6e4}
+.vlist .ha{margin-left:auto;font-family:var(--mono);font-size:.78rem;color:var(--muted)}
+.dot{width:12px;height:12px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.25)}
+.vlist .all{font-weight:600}
+.side .small{margin-top:10px}
+.mhead{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.mhead .ha{font-family:var(--mono);font-size:.9rem;color:var(--muted);font-weight:400}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:end;margin-bottom:10px}
+.ctrl label{display:grid;gap:3px;font-size:.7rem;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+select,button.step{font:inherit;font-size:.92rem;color:var(--ink);background:#fff;border:1px solid #c9d1c4;border-radius:5px;
+padding:6px 8px;cursor:pointer;text-transform:none;letter-spacing:0}
+.datebox{display:flex;gap:4px}
+input[type=range]{accent-color:var(--brand);width:120px}
+:focus-visible{outline:2px solid var(--brand-d);outline-offset:2px}
+#lmap{height:560px;border-radius:4px;background:#d9dfd3;position:relative}
+.legend-box{position:absolute;left:10px;bottom:10px;z-index:500;background:rgba(255,255,255,.94);border-radius:4px;
+padding:8px 10px;font-size:.78rem;min-width:220px;max-width:calc(100% - 20px);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.legend-box b{display:block;text-align:center;font-weight:600;margin-bottom:4px;font-size:.88rem}
+.ramp{height:10px;border-radius:2px;margin:3px 0}
+.rl{display:flex;justify-content:space-between;color:var(--muted);font-family:var(--mono);font-size:.72rem}
+.sw{display:inline-block;width:11px;height:11px;border-radius:2px;border:1px solid rgba(0,0,0,.2);vertical-align:-1px;margin-right:4px}
+.zl{display:flex;flex-wrap:wrap;gap:3px 10px}
+.vlabel{background:rgba(31,42,34,.72);color:#fff;border:0;box-shadow:none;font-family:var(--mono);font-size:11px;
+padding:0 4px;border-radius:3px}
+.vlabel:before{display:none}
+.pxl{image-rendering:pixelated}
+.nomap{padding:20px;color:var(--muted)}
+.note{font-size:.8rem;color:var(--muted);margin:8px 0 0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px}
+.tile{border:1px solid var(--line);border-radius:5px;padding:9px 11px;display:grid;gap:2px}
+.tile span{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.tile b{font-family:var(--mono);font-size:1.45rem;font-weight:500;font-variant-numeric:tabular-nums}
+.tile small{font-size:.78rem;color:var(--muted)}
+.tbl{overflow-x:auto;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.pick{cursor:pointer}tr.pick:hover{background:var(--brand-l)}
+.alert{border:2px solid var(--nd);text-align:center;display:grid;gap:4px;justify-items:center}
+.alert .ic{width:34px;height:34px}
+.chip{display:inline-block;font-family:var(--mono);font-size:.8rem;padding:2px 8px;border-radius:3px}
+.alert .big{font-size:1.6rem;font-weight:600;font-family:var(--mono)}
+.alert p{margin:0;font-size:.92rem}
+.gauge{text-align:center}
+.gauge .lab{font-size:1.15rem;font-weight:600;margin-top:-6px}
+.wx{padding:0;overflow:hidden}
+.wx .in{padding:12px 14px}
+.today{background:var(--brand);color:#fff;padding:12px 14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;
+text-align:center}
+.today .t0{grid-column:1/4;font-weight:600}
+.today .tmax{grid-column:1/4;font-size:2rem;font-weight:600;font-family:var(--mono)}
+.today div small{display:block;font-size:.72rem;opacity:.9}
+.today div b{font-family:var(--mono)}
+.days{display:grid}
+.days div{display:grid;grid-template-columns:7ch 1fr auto;gap:8px;padding:6px 14px;border-bottom:1px solid var(--line);
+font-size:.88rem;align-items:center}
+.days .r{color:var(--rain);font-family:var(--mono);font-size:.82rem}
+.days .t{font-family:var(--mono);text-align:right}
+.flag{font-size:.68rem;padding:1px 6px;border-radius:9px;background:#fde7c8;color:#7a4a0e;margin-left:6px}
+.flag.frost{background:#dbe9f7;color:#1f4f86}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.88rem}
+.kv span{color:var(--muted)}
+.kv b{font-weight:500;text-align:right;font-family:var(--mono);font-size:.86rem}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{border:1px solid #c9d1c4;border-radius:4px;padding:16px 10px 7px;position:relative;font-size:.92rem}
+.field span{position:absolute;top:-8px;left:8px;background:var(--panel);padding:0 4px;font-size:.72rem;color:var(--muted)}
+.field.w2{grid-column:1/3}
 .card ol{padding-left:20px;margin:8px 0;display:grid;gap:6px}
-.chip{display:inline-block;font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;
-border-radius:10px;border:1px solid currentColor}
 .notes{color:var(--warn);font-size:.88rem;margin:6px 0;padding-left:18px}
 .small{color:var(--muted);font-size:.82rem}
-.charts{display:grid;gap:4px}
-.tbl{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:.88rem}
-th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
-th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+svg text{fill:var(--muted);font-family:var(--mono);font-size:11px}
 .st-validated,.st-confirmed,.st-accepted{color:var(--ok)}.st-not-confirmed,.st-not-adopted{color:var(--warn)}
 .st-not-validated{color:var(--bad)}
-footer{color:var(--muted);font-size:.82rem;max-width:90ch}
-footer a,.sub a{color:var(--accent)}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+footer{grid-column:1 / -1;color:var(--muted);font-size:.82rem;max-width:110ch}
+footer a{color:var(--brand-d)}
+.leaflet-container{font-family:var(--ui)}
+/* narrower screens last, so they override the rules above */
+@media (max-width:1240px){.app{grid-template-columns:220px minmax(0,1fr)}.right{grid-column:2}.wide{grid-column:2}}
+@media (max-width:760px){.app{grid-template-columns:minmax(0,1fr)}.side{position:static;grid-row:auto}
+.right,.wide{grid-column:1}.vlist{display:flex;overflow-x:auto;gap:6px}.vlist button{flex:none;white-space:nowrap}
+.region{display:none}#lmap{height:400px}}
 """
 
 _JS = r"""
 const D = JSON.parse(document.getElementById('panel-data').textContent);
 const $ = id => document.getElementById(id);
-const fmt = d => new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC'});
+const fmt = (d, o) => new Date(d + 'T00:00:00Z').toLocaleDateString('en-GB',
+  Object.assign({day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC'}, o || {}));
+const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const num = (v, nd) => v == null ? '—' : (v < 0 ? '−' : '') + Math.abs(v).toFixed(nd);
+const COL = {wb: '#7a4a0e', b: '#c08a3e', n: '#e9e6dc', a: '#5fa69b', wa: '#1f6a62', nd: '#cfd3cc'};
 const cls = z => z == null ? 'nd' : z <= -1.5 ? 'wb' : z <= -1 ? 'b' : z < 1 ? 'n' : z < 1.5 ? 'a' : 'wa';
 const CLS_TXT = {wb: 'well below its normal', b: 'below its normal', n: 'within its normal', a: 'above its normal',
                  wa: 'well above its normal', nd: 'no clear scene'};
-const color = c => `var(--${c})`;
-const esc = t => String(t).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
-let S = {layer: 'water', di: D.dates.length - 1, site: D.main_site};
-const sel = $('layer');
-D.layer_info.forEach(l => { const o = document.createElement('option'); o.value = l.key; o.textContent = l.label; sel.appendChild(o); });
-const rng = $('day'); rng.max = D.dates.length - 1;
+const SH = Object.fromEntries(D.map.shapes.map(s => [s.id, s]));
+const vname = id => 'Vineyard ' + String(SH[id].fid).padStart(2, '0');
+const PX = D.pixels && D.pixels.dates ? D.pixels : {dates: [], layers: []};
+const PXL = Object.fromEntries(PX.layers.map(l => [l.key, l]));
+const ZL = Object.fromEntries(D.layer_info.map(l => [l.key, l]));
+const qc = id => !!(D.sites[id] && D.sites[id].qc_ok);
+const dIndex = Object.fromEntries(D.dates.map((d, i) => [d, i]));
+const zAt = (key, site, i) => i == null ? null : (((D.layers[key] || {})[site] || [])[i] ?? null);
+const median = a => { a = a.filter(v => v != null).sort((x, y) => x - y); if (!a.length) return null;
+  const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
+let S = {site: 'ALL', layer: PX.dates.length ? 'px:ndvi' : 'z:water', pi: 0, di: D.dates.length - 1, op: 0.8, base: 'esri'};
+try { const m = JSON.parse(localStorage.getItem('agriscreen-v2') || '{}');
+  if (m.site && (m.site === 'ALL' || SH[m.site])) S.site = m.site;
+  if (m.layer && (m.layer.startsWith('z:') || PX.dates.length)) S.layer = m.layer; } catch (e) {}
+const mode = () => S.layer.split(':')[0], key = () => S.layer.split(':')[1];
+const curDate = () => mode() === 'px' ? PX.dates[S.pi].date : D.dates[S.di];
 
-// map
-const svg = $('map'); svg.setAttribute('viewBox', `0 0 ${D.map.width} ${D.map.height}`);
-const NS = 'http://www.w3.org/2000/svg';
-D.map.shapes.forEach(s => {
-  const p = document.createElementNS(NS, 'path'); p.setAttribute('d', s.d); p.setAttribute('class', 'parcel');
-  p.setAttribute('id', 'p-' + s.id); p.setAttribute('tabindex', '0'); p.setAttribute('role', 'button');
-  if (!D.sites[s.id] || !D.sites[s.id].qc_ok) p.classList.add('small');
-  const t = document.createElementNS(NS, 'title'); p.appendChild(t);
-  p.addEventListener('click', () => { S.site = s.id; draw(); });
-  p.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { S.site = s.id; draw(); e.preventDefault(); } });
-  svg.appendChild(p);
-  const tx = document.createElementNS(NS, 'text'); tx.setAttribute('x', s.cx); tx.setAttribute('y', s.cy);
-  tx.setAttribute('text-anchor', 'middle'); tx.setAttribute('dominant-baseline', 'middle'); tx.setAttribute('pointer-events', 'none');
-  tx.setAttribute('class', 'plabel');
-  tx.textContent = String(s.fid).padStart(2, '0'); svg.appendChild(tx);
+// latest state of each vineyard (card: latest scene; water index against its own history)
+function stateOf(id) {
+  const c = D.cards[id] || {};
+  if (!qc(id)) return {c: 'nd', txt: 'too small for a reliable anomaly', z: null, date: c.date};
+  const z = c.date ? zAt('water', id, dIndex[c.date]) : null;
+  if (c.state !== 'ok' || z == null) return {c: 'nd', txt: c.state === 'stale' ? 'no clear scene in the last 30 days' : 'no clear scene', z, date: c.date};
+  return {c: cls(z), txt: CLS_TXT[cls(z)], z, date: c.date};
+}
+
+// ---------- sidebar ----------
+function side() {
+  const btn = (id, label, extra, dot) => `<button type="button" data-site="${id}" aria-pressed="${S.site === id}"${id === 'ALL' ? ' class="all"' : ''}>` +
+    `<span class="dot" style="background:${dot}"></span>${label}<span class="ha">${extra}</span></button>`;
+  let h = btn('ALL', 'All vineyards', D.map.shapes.length, 'linear-gradient(135deg,#c08a3e,#5fa69b)');
+  h += `<div class="region"><span>${esc(D.region)}</span><span>${D.map.shapes.length}</span></div>`;
+  D.map.shapes.forEach(s => { const st = stateOf(s.id); h += btn(s.id, vname(s.id), s.area_ha.toFixed(1) + ' ha', COL[st.c]); });
+  $('vlist').innerHTML = h;
+  $('vlist').querySelectorAll('button').forEach(b => b.addEventListener('click', () => select(b.dataset.site)));
+}
+
+// ---------- map ----------
+let map = null, ov = null, esri = null;
+const polys = {};
+if (window.L) {
+  map = L.map('lmap', {zoomSnap: 0.25, scrollWheelZoom: false});
+  map.createPane('fallback').style.zIndex = 150;
+  map.createPane('pixels').style.zIndex = 350;
+  if (PX.rgb) L.imageOverlay('data:image/jpeg;base64,' + PX.rgb.jpg, PX.rgb.bounds,
+    {pane: 'fallback', attribution: `Sentinel-2 ${PX.rgb.date} (Copernicus)`}).addTo(map);
+  esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {maxZoom: 19, maxNativeZoom: 18, attribution: 'Imagery © Esri, Maxar, Earthstar Geographics'}).addTo(map);
+  D.map.shapes.forEach(s => {
+    const p = L.polygon(s.ll, {weight: 1.5, color: '#fff', fillOpacity: 0}).addTo(map);
+    p.on('click', () => select(s.id));
+    p.bindTooltip(String(s.fid).padStart(2, '0'), {permanent: true, direction: 'center', className: 'vlabel'});
+    polys[s.id] = p;
+  });
+  map.fitBounds(D.map.bounds, {padding: [24, 24]});
+} else {
+  $('lmap').innerHTML = '<p class="nomap">The map library could not load here. Lists, statistics and charts still work.</p>';
+}
+
+function drawMap() {
+  if (!map) return;
+  if (ov) { map.removeLayer(ov); ov = null; }
+  if (mode() === 'px' && PX.dates[S.pi])
+    ov = L.imageOverlay('data:image/png;base64,' + PX.dates[S.pi].png[key()], PX.bounds,
+      {pane: 'pixels', opacity: S.op, className: 'pxl'}).addTo(map);
+  styleParcels();
+  esri.setOpacity(S.base === 'esri' ? 1 : 0);
+}
+function styleParcels() {
+  D.map.shapes.forEach(s => {
+    const sel = s.id === S.site, z = mode() === 'z' ? zAt(key(), s.id, S.di) : null;
+    polys[s.id].setStyle({color: sel ? '#f2c230' : '#ffffff', weight: sel ? 3.5 : 1.5, dashArray: qc(s.id) ? null : '4 3',
+      fillColor: COL[qc(s.id) ? cls(z) : 'nd'], fillOpacity: mode() === 'z' ? S.op : 0});
+    if (sel) polys[s.id].bringToFront();
+  });
+}
+function legend() {
+  let h;
+  if (mode() === 'px') {
+    const l = PXL[key()];
+    h = `<b>${esc(l.label)}</b><div class="ramp" style="background:linear-gradient(90deg,${l.ramp.join(',')})"></div>` +
+      `<div class="rl"><span>${num(l.lo, 2)} ${esc(l.low)}</span><span>${esc(l.high)} ${num(l.hi, 2)}</span></div>` +
+      `<div class="rl"><span>10 m pixels · ${fmt(curDate())}</span></div>`;
+  } else {
+    h = `<b>${esc(ZL[key()].label)} vs its own normal</b><div class="zl">` +
+      [['wb', '≤ −1.5'], ['b', '−1.5…−1'], ['n', 'normal'], ['a', '+1…+1.5'], ['wa', '≥ +1.5'], ['nd', 'no data / too small']]
+        .map(([c, t]) => `<span><span class="sw" style="background:${COL[c]}"></span>${t}</span>`).join('') + '</div>';
+  }
+  $('legend').innerHTML = h;
+}
+
+// ---------- controls ----------
+function fillLayers() {
+  const og = (label, items) => `<optgroup label="${label}">` + items.map(([v, t]) => `<option value="${v}">${esc(t)}</option>`).join('') + '</optgroup>';
+  let h = '';
+  if (PX.dates.length) h += og('Inside the parcel · 10 m pixels', PX.layers.map(l => ['px:' + l.key, l.label]));
+  h += og('Against its own history · whole parcel', D.layer_info.map(l => ['z:' + l.key, l.label + ' — anomaly']));
+  $('layer').innerHTML = h;
+}
+function fillDates() {
+  const list = mode() === 'px' ? PX.dates.map(p => p.date) : D.dates;
+  const cur = mode() === 'px' ? S.pi : S.di;
+  const idx = list.map((d, i) => i);
+  const order = mode() === 'px' ? idx : idx.slice().reverse();
+  $('date').innerHTML = order.map(i => `<option value="${i}"${i === cur ? ' selected' : ''}>${fmt(list[i])}</option>`).join('');
+}
+function nearest(list, d) {
+  const t = Date.parse(d); let best = 0, bd = Infinity;
+  list.forEach((x, i) => { const dd = Math.abs(Date.parse(x) - t); if (dd < bd) { bd = dd; best = i; } });
+  return best;
+}
+$('layer').addEventListener('change', e => {
+  const before = curDate(); S.layer = e.target.value;
+  if (mode() === 'px') S.pi = nearest(PX.dates.map(p => p.date), before); else S.di = nearest(D.dates, before);
+  render(true);
 });
-const shape = id => D.map.shapes.find(s => s.id === id);
-const val = (site, i) => ((D.layers[S.layer] || {})[site] || [])[i] ?? null;
-const qcSites = () => Object.keys(D.sites).filter(s => D.sites[s].qc_ok);
-function median(a) { a = a.filter(v => v != null).sort((x, y) => x - y); if (!a.length) return null;
-  const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; }
+$('date').addEventListener('change', e => { if (mode() === 'px') S.pi = +e.target.value; else S.di = +e.target.value; render(true); });
+function step(k) {   // k = +1 newer, −1 older
+  if (mode() === 'px') S.pi = Math.min(PX.dates.length - 1, Math.max(0, S.pi - k));
+  else S.di = Math.min(D.dates.length - 1, Math.max(0, S.di + k));
+  render(true);
+}
+$('older').addEventListener('click', () => step(-1));
+$('newer').addEventListener('click', () => step(1));
+$('op').addEventListener('input', e => { S.op = +e.target.value / 100; if (ov) ov.setOpacity(S.op); if (map) styleParcels(); });
+$('base').addEventListener('change', e => { S.base = e.target.value; if (esri) esri.setOpacity(S.base === 'esri' ? 1 : 0); });
+function select(id) {
+  S.site = id;
+  if (map) { if (id === 'ALL') map.fitBounds(D.map.bounds, {padding: [24, 24]});
+             else map.fitBounds(polys[id].getBounds(), {padding: [70, 70], maxZoom: 18}); }
+  render(false);
+}
 
+// ---------- statistics under the map ----------
+function stats() {
+  const d = curDate(), di = dIndex[d];
+  const zline = id => ['water', 'ndvi', 'ndre'].map(k => { const z = zAt(k, id, di);
+    return `${esc(ZL[k].label)} ${z == null ? '—' : num(z, 1)}`; }).join(' · ');
+  let h = '';
+  if (S.site !== 'ALL') {
+    const id = S.site;
+    if (mode() === 'px') {
+      const st = ((PX.dates[S.pi].stats || {})[id] || {})[key()], l = PXL[key()];
+      h += `<h3>${esc(l.label)} inside ${vname(id)} · ${fmt(d)}</h3>`;
+      h += st ? `<div class="tiles"><div class="tile"><span>Mean</span><b>${num(st[0], 2)}</b><small>pixels ≥ ${D.inner_m} m from the edge</small></div>` +
+        `<div class="tile"><span>Weakest 10%</span><b>${num(st[1], 2)}</b><small>10th percentile</small></div>` +
+        `<div class="tile"><span>Strongest 10%</span><b>${num(st[2], 2)}</b><small>90th percentile</small></div>` +
+        `<div class="tile"><span>Spread</span><b>${num(st[2] - st[1], 2)}</b><small>how uneven the parcel is</small></div>` +
+        `<div class="tile"><span>Pixels</span><b>${st[3]}</b><small>10 m, cloud-free</small></div></div>`
+        : `<p class="small">No cloud-free pixels left after removing the ${D.inner_m} m edge strip.</p>`;
+      h += `<p class="note">Same day against its own history (z): ${di == null ? 'not in the anomaly series' : zline(id)}.</p>`;
+    } else {
+      h += `<h3>${vname(id)} against its own history · ${fmt(d)}</h3><div class="tiles">` +
+        D.layer_info.map(l => { const z = zAt(l.key, id, S.di), c = qc(id) ? cls(z) : 'nd';
+          return `<div class="tile" style="border-left:5px solid ${COL[c]}"><span>${esc(l.label)}</span><b>${num(z, 1)}</b><small>${qc(id) ? CLS_TXT[c] : 'parcel too small'}</small></div>`; }).join('') + '</div>';
+      const others = D.map.shapes.map(s => s.id).filter(s => s !== id && qc(s));
+      const m = median(others.map(s => zAt(key(), s, S.di)));
+      h += `<p class="note">Other vineyards that day (median, ${esc(ZL[key()].label)}): ${m == null ? '—' : num(m, 1)}.</p>`;
+    }
+  } else {
+    const rows = D.map.shapes.map(s => {
+      const z = zAt('water', s.id, di), st = mode() === 'px' ? ((PX.dates[S.pi].stats || {})[s.id] || {})[key()] : null;
+      const zk = mode() === 'z' ? zAt(key(), s.id, S.di) : null;
+      return `<tr class="pick" data-site="${s.id}"><td>${vname(s.id)}</td><td class="num">${s.area_ha.toFixed(2)}</td>` +
+        (mode() === 'px' ? `<td class="num">${st ? num(st[0], 2) : '—'}</td><td class="num">${st ? num(st[1], 2) + ' – ' + num(st[2], 2) : '—'}</td>`
+                         : `<td class="num">${num(zk, 1)}</td><td>${qc(s.id) ? CLS_TXT[cls(zk)] : 'too small'}</td>`) +
+        `<td class="num" style="color:${qc(s.id) && z != null && z <= -1 ? 'var(--wb)' : 'inherit'}">${qc(s.id) ? num(z, 1) : '—'}</td></tr>`;
+    }).join('');
+    const below = D.map.shapes.filter(s => qc(s.id) && (zAt('water', s.id, di) ?? 0) <= -1).length;
+    const n = D.map.shapes.filter(s => qc(s.id) && zAt('water', s.id, di) != null).length;
+    h += `<h3>All vineyards · ${fmt(d)}</h3>`;
+    h += `<div class="tiles"><div class="tile"><span>Below own normal</span><b>${n ? below + ' / ' + n : '—'}</b><small>vegetation water (SWIR), z ≤ −1</small></div>` +
+      `<div class="tile"><span>Vineyards</span><b>${D.map.shapes.length}</b><small>${Object.values(D.sites).filter(s => s.qc_ok).length} large enough for an anomaly</small></div>` +
+      `<div class="tile"><span>Area</span><b>${D.map.shapes.reduce((a, s) => a + s.area_ha, 0).toFixed(1)}</b><small>hectares</small></div></div>`;
+    h += `<div class="tbl"><table><thead><tr><th>Vineyard</th><th>ha</th>` +
+      (mode() === 'px' ? `<th>${esc(PXL[key()].label)} mean</th><th>10–90%</th>` : `<th>z ${esc(ZL[key()].label)}</th><th>class</th>`) +
+      `<th>z water</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+  $('stats').innerHTML = h;
+  $('stats').querySelectorAll('tr.pick').forEach(r => r.addEventListener('click', () => select(r.dataset.site)));
+}
+
+// ---------- right column ----------
+function alertBox() {
+  let c, title, chip, big, txt;
+  if (S.site === 'ALL') {
+    const d = D.last_scene, di = dIndex[d];
+    const ids = D.map.shapes.map(s => s.id).filter(qc);
+    const zs = ids.map(id => zAt('water', id, di)).filter(v => v != null);
+    const below = zs.filter(z => z <= -1).length;
+    c = below > zs.length / 2 ? 'b' : 'n'; chip = fmt(d); big = `${below} of ${zs.length}`;
+    title = 'vineyards below their own normal'; txt = 'Vegetation water (SWIR), latest scene';
+  } else {
+    const st = stateOf(S.site); c = st.c; chip = st.date ? fmt(st.date) : '—';
+    big = st.z == null ? '—' : 'z ' + num(st.z, 1); title = st.txt; txt = `${vname(S.site)} · vegetation water (SWIR) against its own history`;
+  }
+  const col = c === 'n' ? '#3a7d44' : c === 'nd' ? '#7b8579' : COL[c];
+  $('alert').style.borderColor = col;
+  $('alert').innerHTML = `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 21h20L12 3z" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v5M12 17.5v.5" stroke="${col}" stroke-width="2" stroke-linecap="round"/></svg>` +
+    `<span class="chip" style="background:${col}1f;color:${col}">${chip}</span><p>${esc(txt)}</p><div class="big" style="color:${col}">${big}</div><p><b>${esc(title)}</b></p>`;
+}
+function gauge() {
+  const s = D.soil_now;
+  if (!s) { $('gauge').innerHTML = '<h3>Soil dryness · area</h3><p class="small">No ERA5-Land soil data.</p>'; return; }
+  const cx = 110, cy = 100, r = 80, zones = [[0, .7, '#3a9d4f'], [.7, .8, '#e0b400'], [.8, .9, '#f08a24'], [.9, 1, '#d63a2f']];
+  const pt = (f, rr) => [cx + rr * Math.cos(Math.PI * (1 - f)), cy - rr * Math.sin(Math.PI * (1 - f))];
+  let svg = zones.map(([a, b, col]) => { const [x0, y0] = pt(a, r), [x1, y1] = pt(b, r);
+    return `<path d="M${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 0 1 ${x1.toFixed(1)},${y1.toFixed(1)}" stroke="${col}" stroke-width="16" fill="none"/>`; }).join('');
+  const f = Math.max(0, Math.min(1, 1 - s.pct / 100)), [nx, ny] = pt(f, r - 20);
+  svg += `<line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="#1f2a22" stroke-width="4" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="6" fill="#1f2a22"/>` +
+    `<text x="22" y="116">wet</text><text x="176" y="116">dry</text>`;
+  const lab = s.label.charAt(0).toUpperCase() + s.label.slice(1);
+  $('gauge').innerHTML = `<h3>Soil dryness · area</h3><svg viewBox="0 0 220 122" width="100%" style="max-width:260px" role="img" aria-label="Soil dryness gauge">${svg}</svg>` +
+    `<div class="lab">${esc(lab)}${s.code && s.code.startsWith('D') ? ' (' + s.code + ')' : ''}</div>` +
+    `<p class="small">Soil 0–100 cm, ERA5-Land (~9 km): percentile ${s.pct} vs ${s.clim_ref} · ${fmt(s.date)}. Checked against soil sensors at 3 stations (R about 0.6). Drought classes after the US Drought Monitor.</p>`;
+}
+function weather() {
+  const W = D.weather || {}, F = W.forecast || [], t = W.fc_thr || {frost: 0, heat: 35};
+  const day = d => fmt(d, {weekday: 'short', day: 'numeric', month: 'short', year: undefined});
+  let h = '';
+  if (F.length) {
+    const f0 = F[0];
+    h += `<div class="today"><div class="t0">${esc(day(f0.date))}</div><div class="tmax">${num(f0.tmax, 0)} °C</div>` +
+      `<div><b>${num(f0.tmin, 0)} °C</b><small>min</small></div><div><b>${num(f0.rain, 1)} mm</b><small>rain</small></div>` +
+      `<div><b>${num(f0.et0, 1)} mm</b><small>ET0</small></div></div><div class="days">` +
+      F.slice(1).map(f => `<div><b>${esc(fmt(f.date, {weekday: 'short', day: undefined, month: undefined, year: undefined}))} ${new Date(f.date).getUTCDate()}</b>` +
+        `<span class="r">${num(f.rain, 1)} mm${f.tmin != null && f.tmin <= t.frost ? '<span class="flag frost">frost</span>' : ''}${f.tmax != null && f.tmax >= t.heat ? '<span class="flag">heat</span>' : ''}</span>` +
+        `<span class="t">${num(f.tmax, 0)}° / ${num(f.tmin, 0)}°</span></div>`).join('') + '</div>' +
+      `<div class="in small">7-day forecast, Open-Meteo, issued ${fmt(F[0].date)}. Frost: Tmin ≤ ${t.frost} °C; heat: Tmax ≥ ${t.heat} °C (nominal thresholds, forecast not validated).</div>`;
+  } else {
+    h += '<div class="in small">Forecast not available (no connection to Open-Meteo when the panel was built).</div>';
+  }
+  h += '<div class="in">';
+  const L10 = W.last10 || [];
+  if (L10.length) {
+    const sum = L10.reduce((a, r) => a + (r.rain || 0), 0), mx = Math.max(...L10.map(r => r.rain || 0), 5);
+    const bars = L10.map((r, i) => `<rect x="${i * 26 + 2}" y="${50 - (r.rain || 0) / mx * 44}" width="20" height="${(r.rain || 0) / mx * 44}" fill="var(--rain)"><title>${fmt(r.date)}: ${num(r.rain, 1)} mm</title></rect>`).join('');
+    h += `<h3>Last 10 days · ERA5-Land</h3><svg viewBox="0 0 262 54" width="100%" style="max-width:300px" role="img" aria-label="Daily rain, last 10 days">${bars}<line x1="0" x2="262" y1="50.5" y2="50.5" stroke="var(--line)"/></svg>` +
+      `<div class="kv"><span>Rain ${fmt(L10[0].date, {year: undefined})} – ${fmt(L10[L10.length - 1].date, {year: undefined})}</span><b>${num(sum, 1)} mm</b>` +
+      `<span>Warmest day</span><b>${num(Math.max(...L10.map(r => r.tmax ?? -99)), 1)} °C</b><span>Coldest night</span><b>${num(Math.min(...L10.map(r => r.tmin ?? 99)), 1)} °C</b></div>`;
+  }
+  const dr = W.drivers || {};
+  if (dr.rain30 || dr.rain90) {
+    h += `<h3 style="margin-top:12px">Rain against 1991–2020</h3><div class="kv">` +
+      (dr.rain30 ? `<span>30 days to ${fmt(dr.rain30[0], {year: undefined})}</span><b>${num(dr.rain30[1], 0)} mm · SPI ${dr.spi1 ? num(dr.spi1[1], 1) : '—'}</b>` : '') +
+      (dr.rain90 ? `<span>90 days</span><b>${num(dr.rain90[1], 0)} mm · SPI ${dr.spi3 ? num(dr.spi3[1], 1) : '—'}</b>` : '') +
+      (dr.top_pct ? `<span>Topsoil 0–7 cm</span><b>percentile ${num(dr.top_pct[1], 0)}</b>` : '') + '</div>' +
+      `<p class="small">SPI below −1: drier than usual; below −2: extremely dry. Rain checked against the Météo-France gauge at Condom.</p>`;
+  }
+  const se = W.season;
+  if (se) {
+    const th = W.thr || {};
+    h += `<h3 style="margin-top:12px">Season ${se.year}</h3><div class="kv">` +
+      `<span>Spring frost days (Tmin ≤ ${num(th.frost, 1)} °C)</span><b>${se.frost_days}${se.last_frost ? ' · last ' + fmt(se.last_frost, {year: undefined}) : ''}</b>` +
+      `<span>Heat days (Tmax ≥ ${num(th.heat, 1)} °C)</span><b>${se.heat_days}</b>` +
+      (se.max_tmax != null ? `<span>Hottest day</span><b>${num(se.max_tmax, 1)} °C</b>` : '') + '</div>';
+  }
+  $('wx').innerHTML = h + '</div>';
+}
+function info() {
+  let f;
+  const fld = (k, v, w) => `<div class="field${w ? ' w2' : ''}"><span>${k}</span>${v}</div>`;
+  if (S.site === 'ALL') {
+    const pd = PX.dates.map(p => p.date);
+    f = fld('Crop', 'Grapevine') + fld('Vineyards', `${D.map.shapes.length} (${Object.values(D.sites).filter(s => s.qc_ok).length} with anomaly)`) +
+      fld('Region', esc(D.region), true) +
+      fld('Scene days', `${D.dates.length} · ${fmt(D.dates[0], {day: undefined})} – ${fmt(D.dates[D.dates.length - 1])}`, true) +
+      fld('Pixel maps', pd.length ? `${pd.length} cloud-free scenes · ${fmt(pd[pd.length - 1], {year: undefined})} – ${fmt(pd[0])}` : 'none', true);
+  } else {
+    const s = SH[S.site], site = D.sites[S.site] || {};
+    f = fld('Crop', 'Grapevine') + fld('Area', s.area_ha.toFixed(2) + ' ha') + fld('Region', esc(D.region), true) +
+      fld('Irrigation', 'unknown') + fld('Quality check', qc(S.site) ? 'passed' : 'too small') +
+      fld('Pixels used', `${site.n_pixels ?? '—'} (10 m, ≥ ${D.inner_m} m from edge; min ${D.min_px})`, true) +
+      fld('Normal', 'same parcel, previous 5 years, same orbit', true);
+  }
+  $('info').innerHTML = `<h3>${S.site === 'ALL' ? 'Area information' : 'Plot information'}</h3><div class="fields">${f}</div>`;
+}
+
+// ---------- season, card, trust ----------
 function chart(el, pts, med, year, opt) {
-  // pts: [{d, v}] for the vineyard; med: [{d, v}] others' median; x = day of season (1 Apr–31 Oct)
   const W = 720, H = opt.h, L = 38, R = 10, T = 10, B = 22;
   const t0 = Date.UTC(year, 3, 1), t1 = Date.UTC(year, 9, 31);
   const X = d => L + (Date.parse(d + 'T00:00:00Z') - t0) / (t1 - t0) * (W - L - R);
@@ -309,134 +828,141 @@ function chart(el, pts, med, year, opt) {
   opt.ticks.forEach(v => s += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" ${v === 0 ? '' : 'stroke-dasharray="3 3"'}/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`);
   ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'].forEach((m, i) => { const d = `${year}-${String(i + 4).padStart(2, '0')}-01`;
     s += `<text x="${X(d)}" y="${H - 6}">${m}</text>`; });
-  if (opt.marker) s += `<line x1="${X(opt.marker)}" x2="${X(opt.marker)}" y1="${T}" y2="${H - B}" stroke="var(--focus)" stroke-width="1.5"/>`;
+  if (opt.marker) s += `<line x1="${X(opt.marker)}" x2="${X(opt.marker)}" y1="${T}" y2="${H - B}" stroke="#4b7023" stroke-width="1.5"/>`;
   if (med && med.length) s += `<polyline fill="none" stroke="var(--muted)" stroke-width="1.5" points="${med.map(p => `${X(p.d).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ')}"/>`;
   if (opt.line) s += `<polyline fill="none" stroke="${opt.line}" stroke-width="2" points="${pts.map(p => `${X(p.d).toFixed(1)},${Y(p.v).toFixed(1)}`).join(' ')}"/>`;
-  else pts.forEach(p => s += `<circle cx="${X(p.d).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="4" fill="${color(cls(p.v))}" stroke="var(--ink)" stroke-width=".6"><title>${fmt(p.d)}: z ${p.v.toFixed(1)}</title></circle>`);
-  return el.innerHTML = s + '</svg>';
+  else pts.forEach(p => s += `<circle cx="${X(p.d).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="4" fill="${COL[cls(p.v)]}" stroke="#1f2a22" stroke-width=".6"><title>${fmt(p.d)}: z ${p.v.toFixed(1)}</title></circle>`);
+  el.innerHTML = s + '</svg>';
 }
-
-function draw() {
-  const i = S.di, day = D.dates[i], year = +day.slice(0, 4);
-  $('dlabel').textContent = fmt(day); rng.value = i; sel.value = S.layer;
-  const info = D.layer_info.find(l => l.key === S.layer);
-  $('about').textContent = info.about;
-  let n = 0, below = 0;
-  D.map.shapes.forEach(s => {
-    const z = val(s.id, i), c = cls(z), p = $('p-' + s.id), qc = D.sites[s.id] && D.sites[s.id].qc_ok;
-    p.style.fill = qc ? color(c) : 'var(--nd)';
-    p.classList.toggle('sel', s.id === S.site);
-    p.firstChild.textContent = `Vineyard ${String(s.fid).padStart(2, '0')} · ${s.area_ha} ha · ` +
-      (qc ? (z == null ? 'no clear scene' : `z ${z.toFixed(1)}, ${CLS_TXT[c]}`) : 'too small for a reliable anomaly');
-    if (qc && z != null) { n++; if (z <= -1) below++; }
-  });
-  $('status').textContent = n ? `${fmt(day)}: ${below} of ${n} vineyards below their own normal (${info.label}).` : `${fmt(day)}: no clear scene for this layer.`;
-  // card
-  const sh = shape(S.site), C = D.cards[S.site] || {sentences: [], notes: [], trust: [], fixed: [], detail: ''};
-  $('cname').innerHTML = `Vineyard ${String(sh.fid).padStart(2, '0')} <span class="ha">${sh.area_ha} ha</span>`;
-  const z = val(S.site, i), qc = D.sites[S.site] && D.sites[S.site].qc_ok;
-  $('cnow').innerHTML = qc ? (z == null ? `${fmt(day)}: no clear scene.` :
-     `${fmt(day)} · ${info.label}: <span class="chip" style="color:${color(cls(z))}">${CLS_TXT[cls(z)]}</span> z ${z.toFixed(1)}`) :
-     'Too small for a reliable anomaly (fewer than 40 pixels after removing the 20 m edge strip).';
-  $('clatest').textContent = C.date ? `Latest scene ${fmt(C.date)}` : 'Latest scene';
-  $('csent').innerHTML = C.sentences.map(t => `<li>${esc(t)}</li>`).join('');
-  $('cnotes').innerHTML = C.notes.map(t => `<li>${esc(t)}</li>`).join(''); $('cnotes').hidden = !C.notes.length;
-  $('cfixed').textContent = C.fixed.join(' ');
-  $('cdetail').textContent = C.detail || '';
-  // season chart
-  const yi = D.dates.map((d, k) => [d, k]).filter(([d]) => +d.slice(0, 4) === year);
-  const pts = yi.map(([d, k]) => ({d, v: val(S.site, k)})).filter(p => p.v != null);
-  const others = qcSites().filter(s => s !== S.site);
-  const med = yi.map(([d, k]) => ({d, v: median(others.map(s => val(s, k)))})).filter(p => p.v != null);
-  $('stitle').textContent = `${year} season · ${info.label}: vineyard ${String(sh.fid).padStart(2, '0')} (dots) and the median of the other vineyards (grey line)`;
-  chart($('season'), pts, med, year, {h: 230, min: -3, max: 3, ticks: [-2, -1, 0, 1, 2], marker: day, label: 'season chart',
+function season() {
+  const day = curDate(), year = +day.slice(0, 4);
+  const k = D.layers[key()] ? key() : 'water', lab = ZL[k].label;
+  const yi = D.dates.map((d, i) => [d, i]).filter(([d]) => +d.slice(0, 4) === year);
+  const ids = D.map.shapes.map(s => s.id).filter(qc);
+  let pts, med = null, title;
+  if (S.site === 'ALL') {
+    pts = yi.map(([d, i]) => ({d, v: median(ids.map(s => zAt(k, s, i)))})).filter(p => p.v != null);
+    title = `${year} season · ${lab}: median of the ${ids.length} vineyards (dots coloured by class)`;
+  } else {
+    pts = yi.map(([d, i]) => ({d, v: zAt(k, S.site, i)})).filter(p => p.v != null);
+    med = yi.map(([d, i]) => ({d, v: median(ids.filter(s => s !== S.site).map(s => zAt(k, s, i)))})).filter(p => p.v != null);
+    title = `${year} season · ${lab}: ${vname(S.site)} (dots) and the median of the other vineyards (grey line)`;
+  }
+  $('stitle').textContent = title;
+  chart($('seasonc'), pts, med, year, {h: 230, min: -3, max: 3, ticks: [-2, -1, 0, 1, 2], marker: day, label: 'season chart',
     bands: [[-3, -1, 'var(--b)'], [1, 3, 'var(--a)']]});
-  const sp = D.soil.dates.map((d, k) => ({d, v: D.soil.pct[k]}))
+  const sp = D.soil.dates.map((d, i) => ({d, v: D.soil.pct[i]}))
     .filter(p => +p.d.slice(0, 4) === year && +p.d.slice(5, 7) >= 4 && +p.d.slice(5, 7) <= 10);
   $('soiltitle').textContent = `${year} · soil moisture 0–100 cm in the area (ERA5-Land percentile vs 1991–2020; ≤ 30 dry, ≥ 70 wet)`;
   chart($('soil'), sp, null, year, {h: 150, min: 0, max: 100, ticks: [0, 30, 70, 100], marker: day, line: 'var(--soil)',
     label: 'soil moisture chart', bands: [[0, 30, 'var(--b)'], [70, 100, 'var(--a)']]});
-  try { localStorage.setItem('agriscreen', JSON.stringify({layer: S.layer, site: S.site})); } catch (e) {}
 }
-try { const m = JSON.parse(localStorage.getItem('agriscreen') || '{}'); if (m.layer) S.layer = m.layer; if (m.site && D.cards[m.site]) S.site = m.site; } catch (e) {}
-sel.addEventListener('change', () => { S.layer = sel.value; draw(); });
-rng.addEventListener('input', () => { S.di = +rng.value; draw(); });
-$('prev').addEventListener('click', () => { S.di = Math.max(0, S.di - 1); draw(); });
-$('next').addEventListener('click', () => { S.di = Math.min(D.dates.length - 1, S.di + 1); draw(); });
-$('latest').addEventListener('click', () => { S.di = D.dates.length - 1; draw(); });
-// trust table
+function cardText() {
+  if (S.site === 'ALL') {
+    $('cname').textContent = 'What the panel says';
+    $('csent').innerHTML = `<li>${esc(D.region)}: ${D.map.shapes.length} vineyards, each compared with itself in the previous five years at the same time of year.</li>` +
+      `<li>Pick a vineyard in the list or on the map to read its card.</li>`;
+    $('cnotes').hidden = true; $('cfixed').textContent = ''; $('cdetail').textContent = ''; return;
+  }
+  const C = D.cards[S.site] || {sentences: [], notes: [], fixed: [], detail: ''};
+  $('cname').textContent = `${vname(S.site)} · latest scene ${C.date ? fmt(C.date) : '—'}`;
+  $('csent').innerHTML = C.sentences.map(t => `<li>${esc(t)}</li>`).join('');
+  $('cnotes').innerHTML = C.notes.map(t => `<li>${esc(t)}</li>`).join(''); $('cnotes').hidden = !C.notes.length;
+  $('cfixed').textContent = C.fixed.join(' ');
+  $('cdetail').textContent = C.detail || '';
+}
+
+function render(mapOnly) {
+  const m = mode();
+  $('layer').value = S.layer;
+  fillDates();
+  $('older').disabled = m === 'px' ? S.pi >= PX.dates.length - 1 : S.di <= 0;
+  $('newer').disabled = m === 'px' ? S.pi <= 0 : S.di >= D.dates.length - 1;
+  $('pxnote').hidden = m !== 'px';
+  $('znote').hidden = m !== 'z';
+  $('mtitle').innerHTML = S.site === 'ALL' ? `All vineyards <span class="ha">${esc(D.region)}</span>`
+    : `${vname(S.site)} <span class="ha">${SH[S.site].area_ha.toFixed(2)} ha</span>`;
+  drawMap(); legend(); stats(); season();
+  if (!mapOnly) { side(); alertBox(); info(); cardText(); }
+  try { localStorage.setItem('agriscreen-v2', JSON.stringify({layer: S.layer, site: S.site})); } catch (e) {}
+}
+fillLayers();
+if (PX.rgb) $('base').options[1].textContent = `Sentinel-2 natural colour, ${fmt(PX.rgb.date)}`; else $('base').options[1].disabled = true;
+gauge(); weather();
 $('trust').innerHTML = D.trust.map(r => `<tr><td>${esc(r.what)}</td><td>${esc(r.against)}</td><td>${esc(r.result)}</td><td class="st-${r.status.replace(/ /g, '-')}">${esc(r.status)}</td></tr>`).join('');
-draw();
+if (S.site !== 'ALL' && map) map.fitBounds(polys[S.site].getBounds(), {padding: [70, 70], maxZoom: 18});
+render(false);
 """
+
+_LEAF = ('<svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20c0-9 6-15 16-16-1 10-7 16-16 '
+         '16z" fill="#fff" opacity=".95"/><path d="M4 20 14 10" stroke="#6f9b3a" stroke-width="1.6"/></svg>')
+
+
+def _leaflet_css() -> str:
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "leaflet-1.9.4.css")
+    return open(p, encoding="utf-8").read() if os.path.exists(p) else ""
 
 
 def panel_html(data: Dict[str, Any], standalone: bool = True) -> str:
-    """Strona panelu. standalone=True: pełny dokument (Colab, blog); False: bez szkieletu (podgląd Artifact)."""
+    """Strona panelu. standalone=True: pełny dokument (Colab, blog); False: bez szkieletu (podgląd Artifact).
+    Leaflet 1.9.4: skrypt z unpkg, arkusz stylów wbudowany (assets/), bo część przeglądarek treści blokuje CSS z CDN."""
     esc = html.escape
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"), default=str).replace("</", "<\\/")
-    legend = "".join(f'<span><span class="sw" style="background:var(--{c})"></span>{t}</span>' for c, t in (
-        ("wb", "≤ −1.5"), ("b", "−1.5 to −1 (below normal)"), ("n", "within normal"), ("a", "+1 to +1.5"), ("wa", "≥ +1.5"),
-        ("nd", "no clear scene or parcel too small")))
     body = f"""<title>AgriScreen Vineyard Panel</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Literata:opsz,wght@7..72,600&family=Public+Sans:wght@400;600&display=swap">
-<style>{_CSS}</style>
-<div class="wrap">
-<header>
-<h1>AgriScreen · vineyards near Condom, Gers</h1>
-<p class="sub">How each of 15 vineyards compares with its own recent history (the previous five years, same time of
-year), from Sentinel-2 satellite images. Soil moisture comes from the ERA5-Land model for the area. Last scene
-{esc(fmt_date(data['last_scene']))}. Tests were registered before computing (protocol {esc(data['protocol'])}…,
-frozen {esc(data['freeze'])}).</p>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>{_leaflet_css()}
+{_CSS}</style>
+<header class="top"><div class="logo">{_LEAF}AgriScreen <small>· vineyards against their own history</small></div>
+<div class="meta">{esc(data.get('region', ''))} · last scene {esc(fmt_date(data['last_scene']))} · tests frozen {esc(data['freeze'])}</div>
 </header>
-<div class="bar" role="group" aria-label="Map controls">
-<label for="layer">Layer <select id="layer"></select></label>
-<label for="day">Scene <input id="day" type="range" min="0" step="1"></label>
-<span class="date" id="dlabel"></span>
-<button id="prev" type="button" aria-label="Previous scene">◀</button>
-<button id="next" type="button" aria-label="Next scene">▶</button>
-<button id="latest" type="button">Latest</button>
+<nav class="tabs" aria-label="Sections"><a href="#map">Overview</a><a href="#season">Season</a><a href="#weather">Weather</a><a href="#trust-sec">Trust</a></nav>
+<div class="app">
+<aside class="box side" aria-label="Vineyards"><h2>Vineyards</h2><div class="vlist" id="vlist"></div>
+<p class="small">Dot colour: vegetation water at the latest scene against the vineyard's own normal. Grey: parcel too small
+or no clear scene.</p></aside>
+<div class="col">
+<section class="box" id="map" aria-labelledby="mtitle">
+<div class="mhead"><h2 id="mtitle"></h2></div>
+<div class="ctrl" role="group" aria-label="Map controls">
+<label>Layer <select id="layer"></select></label>
+<label>Date <span class="datebox"><button class="step" id="older" type="button" aria-label="Older scene">◀</button><select id="date"></select><button class="step" id="newer" type="button" aria-label="Newer scene">▶</button></span></label>
+<label>Opacity <input id="op" type="range" min="20" max="100" value="80"></label>
+<label>Background <select id="base"><option value="esri">Satellite photo (Esri)</option><option value="s2">Sentinel-2 natural colour</option></select></label>
 </div>
-<div class="main">
-<section class="box" aria-labelledby="maph">
-<h2 id="maph">Vineyards against their own normal</h2>
-<svg id="map" width="100%" role="img" aria-label="Map of 15 vineyards coloured by anomaly"></svg>
-<div class="legend">{legend}</div>
-<p class="status" id="status"></p>
-<p class="small" id="about"></p>
-<p class="small">Click a vineyard to open its card. Dashed outline: parcel too small after removing a 20 m edge strip.
-Values are z-scores against the same parcel in the previous five years.</p>
-</section>
-<section class="box card" aria-labelledby="cname">
-<h2 id="cname"></h2>
-<p id="cnow"></p>
-<div class="small" id="clatest"></div>
-<ol id="csent"></ol>
-<ul class="notes" id="cnotes"></ul>
-<p class="small" id="cfixed"></p>
-<p class="small" id="cdetail"></p>
+<div id="lmap"><div class="legend-box" id="legend"></div></div>
+<p class="note" id="pxnote">Pixel maps show where the parcel is greener, weaker, wetter or drier on that day. They describe the
+parcel; they are not compared with a normal and are not validated. Inter-rows and soil count too.</p>
+<p class="note" id="znote">Whole-parcel value against the same parcel in the previous five years (same time of year, same
+orbit), as a z-score: −1 means clearly below its own normal.</p>
+<div id="stats"></div>
 </section>
 </div>
-<section class="box charts" aria-labelledby="stitle">
-<h2>Season</h2>
-<p class="small" id="stitle"></p>
-<div id="season"></div>
-<p class="small" id="soiltitle"></p>
-<div id="soil"></div>
-</section>
-<section class="box" aria-labelledby="trusth">
-<h2 id="trusth">How far to trust it</h2>
+<div class="col right">
+<section class="box alert" id="alert" aria-live="polite"></section>
+<section class="box gauge" id="gauge"></section>
+<section class="box wx" id="weather" aria-label="Weather"><div id="wx"></div></section>
+<section class="box" id="info"></section>
+</div>
+<div class="wide">
+<section class="box card" aria-labelledby="cname"><h2 id="cname"></h2><ol id="csent"></ol><ul class="notes" id="cnotes"></ul>
+<p class="small" id="cfixed"></p><p class="small" id="cdetail"></p></section>
+<section class="box" id="season" aria-labelledby="sh"><h2 id="sh">Season</h2><p class="small" id="stitle"></p><div id="seasonc"></div>
+<p class="small" id="soiltitle"></p><div id="soil"></div></section>
+<section class="box" id="trust-sec" aria-labelledby="trusth"><h2 id="trusth">How far to trust it</h2>
 <div class="tbl"><table><thead><tr><th>What</th><th>Checked against</th><th>Result</th><th>Status</th></tr></thead>
-<tbody id="trust"></tbody></table></div>
-</section>
-<footer>Data: Copernicus Sentinel-2 L2A, ERA5-Land and CLMS Soil Water Index; reference sensors ISMN (SMOSMANIA
-Condom) and ICOS (Auradé, Lusignan); rain gauges Météo-France. The vegetation index sees the whole parcel (vines,
-inter-rows and soil), so it is not a diagnosis of vine water stress and gives no irrigation advice. Method, protocol and
-code: <a href="https://github.com/geoworldlook/agriscreen" rel="noopener">github.com/geoworldlook/agriscreen</a>.
-Generated {esc(data['generated'])}.</footer>
+<tbody id="trust"></tbody></table></div></section>
+</div>
+<footer>Data: Copernicus Sentinel-2 L2A, ERA5-Land and CLMS Soil Water Index; reference sensors ISMN (SMOSMANIA Condom)
+and ICOS (Auradé, Lusignan); rain gauges Météo-France; forecast Open-Meteo; background imagery Esri World Imagery.
+The vegetation index sees the whole parcel (vines, inter-rows and soil), so it is not a diagnosis of vine water stress
+and gives no irrigation advice. Tests registered before computing (protocol {esc(data['protocol'])}…). Method and code:
+<a href="https://github.com/geoworldlook/agriscreen" rel="noopener">github.com/geoworldlook/agriscreen</a>. Generated
+{esc(data['generated'])}.</footer>
 </div>
 <script type="application/json" id="panel-data">{payload}</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>{_JS}</script>"""
     if not standalone:
         return body
@@ -448,13 +974,18 @@ def fmt_date(d: str) -> str:
     return pd.Timestamp(d).strftime("%-d %B %Y") if d else ""
 
 
-def build_panel(out_dir: str, cfg: Dict[str, Any], path: Optional[str] = None, standalone: bool = True) -> str:
-    """Zapisuje panel (panel.html w OUTPUT_DIR) i dane (panel_data.json) — te same dane czyta notatnik na blog."""
-    data = panel_data(out_dir, cfg)
+def build_panel(out_dir: str, cfg: Dict[str, Any], path: Optional[str] = None, standalone: bool = True,
+                forecast: Any = "fetch") -> str:
+    """Zapisuje panel (panel.html w OUTPUT_DIR) i dane (panel_data.json) — te same dane czyta notatnik na blog.
+    forecast: "fetch" (Open-Meteo), None (bez prognozy) albo gotowa tabela (date, tmax, tmin, precip_mm, et0_mm)."""
+    data = panel_data(out_dir, cfg, forecast)
     path = path or os.path.join(out_dir, "panel.html")
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         f.write(panel_html(data, standalone))
     with open(os.path.join(os.path.dirname(path), "panel_data.json"), "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, separators=(",", ":"), default=str)
+    n_px = len((data.get("pixels") or {}).get("dates", []))
+    logger.info(f"Panel: {path} ({os.path.getsize(path) // 1024} kB, map pikseli: {n_px}, prognoza: "
+                f"{'tak' if (data.get('weather') or {}).get('forecast') else 'nie'})")
     return path
