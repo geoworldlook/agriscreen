@@ -14,4 +14,4 @@ stations (czujniki ISMN), reference (walidacja gleby), weather (pogoda), parcel 
 panel (produkt), pipeline (zadania), experiments (W3c, W3d; wyłączone), selftest (test na danych syntetycznych).
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"

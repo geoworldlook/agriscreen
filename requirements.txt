@@ -6,6 +6,7 @@ rasterio
 geopandas
 requests
 pillow
+matplotlib     # notatnik na blog (notebooks/build_story.py)
 # tylko pobieranie Sentinel-2 (task_ingest_s2)
 earthengine-api
 geemap

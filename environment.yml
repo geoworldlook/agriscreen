@@ -1,0 +1,22 @@
+# Środowisko AgriScreen dla conda / Miniforge (Windows, macOS, Linux):
+#   conda env create -f environment.yml      (aktualizacja: conda env update -f environment.yml --prune)
+name: agriscreen
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - pandas
+  - scipy
+  - rasterio
+  - geopandas
+  - requests
+  - pillow
+  - matplotlib
+  - ipython
+  - earthengine-api
+  - git
+  - pip
+  - pip:
+      - geemap
+      - geedim

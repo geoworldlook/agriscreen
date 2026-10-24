@@ -11,7 +11,9 @@ ani zabiegów. Każda liczba ma wynik sprawdzenia i jego rodzaj (status) albo na
   warstwą: piksele 10 m (NDVI, NDRE, NDMI), strefy wobec reszty działki tego samego dnia albo cała działka wobec
   własnej historii (z). Obok: statystyki, stan działki, gleba w okolicy, pogoda (prognoza, ostatnie dni, przymrozki
   i upały), karta, sezon i „How far to trust it”. Jeden plik `panel.html` + dane `panel_data.json`.
-- **Notatnik monitoringu** (Colab, `notebooks/AgriScreen_Monitor.ipynb`) uruchamia cały potok na danych z Dysku.
+- **Obliczenia na własnym komputerze (1.1):** folder `GeoWorldLook` na pulpicie (projekty, dane z Dysku Google,
+  skrypty), przebieg co poniedziałek z Harmonogramu zadań, panel sam trafia na GitHub (`docs/URUCHOMIENIE_LOKALNE.md`).
+- **Notatnik monitoringu** (Colab, `notebooks/AgriScreen_Monitor.ipynb`) zostaje jako zapas.
 - **Notatnik na blog** (`notebooks/AgriScreen_story.ipynb`) czyta tylko `docs/showcase/` (bez kluczy).
 - **Kod:** pakiet `agriscreen/` (`docs/ARCHITEKTURA.md`), test bez sieci `python -m agriscreen.selftest`.
   Przebudowa z modułów `step_*` niczego nie zmieniła w wynikach (regresja na tych samych danych syntetycznych:

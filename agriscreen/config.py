@@ -132,18 +132,29 @@ CONFIG: Dict[str, Any] = {
     "MONTHS_MAX_RATIO": 1.5,
 }
 
-PATH_KEYS = ("PARCELS_PATH", "AOI_PATH", "RPG_PATH", "S2_DIR", "S2_MANIFEST", "ERA5_DIR", "SWI_DIR", "SECRETS_DIR",
-             "ISMN_DIR", "REF_DIR", "MF_DIR", "OUTPUT_DIR", "W3B_PROTOCOL", "W3C_PROTOCOL", "W3D_PROTOCOL")
+# Ścieżki do plików w repozytorium (kod, działki, czujniki ISMN, protokoły) — względem katalogu kodu
+REPO_KEYS = ("PARCELS_PATH", "AOI_PATH", "RPG_PATH", "ISMN_DIR", "W3B_PROTOCOL", "W3C_PROTOCOL", "W3D_PROTOCOL")
+# Ścieżki do danych poza repozytorium (sceny, cache, klucze, wyniki) — względem katalogu danych
+DATA_KEYS = ("S2_DIR", "S2_MANIFEST", "ERA5_DIR", "SWI_DIR", "SECRETS_DIR", "REF_DIR", "MF_DIR", "OUTPUT_DIR")
+PATH_KEYS = REPO_KEYS + DATA_KEYS
 
 
-def make_config(project_dir: str, overrides: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """CONFIG z nadpisaniami; ścieżki względne -> bezwzględne względem project_dir."""
+def make_config(project_dir: str, overrides: Optional[Dict[str, Any]] = None,
+                data_dir: Optional[str] = None) -> Dict[str, Any]:
+    """
+    CONFIG z nadpisaniami; ścieżki względne -> bezwzględne. project_dir: katalog kodu (klon repozytorium);
+    data_dir: katalog danych (np. zsynchronizowany Dysk Google ...\GeoWorldLook\agriwatch). Bez data_dir dane leżą
+    w katalogu kodu (układ z Colab, gdzie klon jest na Dysku).
+    """
+    data_dir = data_dir or project_dir
     cfg = dict(CONFIG)
     cfg.update(overrides or {})
-    for k in PATH_KEYS:
-        if not os.path.isabs(cfg[k]):
-            cfg[k] = os.path.normpath(os.path.join(project_dir, cfg[k]))
+    for keys, root in ((REPO_KEYS, project_dir), (DATA_KEYS, data_dir)):
+        for k in keys:
+            if not os.path.isabs(cfg[k]):
+                cfg[k] = os.path.normpath(os.path.join(root, cfg[k]))
     cfg["PROJECT_DIR"] = project_dir
+    cfg["DATA_ROOT"] = data_dir
     return cfg
 
 

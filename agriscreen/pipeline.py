@@ -377,7 +377,7 @@ def task_panel(rt: Dict[str, Any], cfg: Dict[str, Any], forecast: bool = True) -
     """Panel AgriScreen (EN, 15 winnic): panel.html (samodzielny, także na blog) i panel_data.json."""
     from agriscreen import panel
     path = panel.build_panel(cfg["OUTPUT_DIR"], cfg, forecast="fetch" if forecast else None)
-    return {"message": f"{os.path.relpath(path, cfg['PROJECT_DIR'])} ({os.path.getsize(path) // 1024} kB)"}
+    return {"message": f"{path} ({os.path.getsize(path) // 1024} kB)"}
 
 
 def _read_csv(cfg: Dict[str, Any], name: str, **kw) -> pd.DataFrame:
@@ -464,7 +464,7 @@ def run_all(rt: Dict[str, Any], cfg: Optional[Dict[str, Any]] = None, ingest_dat
             experiments: bool = False) -> Dict[str, Any]:
     """Wszystkie zadania po kolei (każde zapisane w gwl_runs; błąd jednego nie zatrzymuje kolejnych).
     ingest_data=False: bez pobierania (praca na danych z Dysku). experiments=True: także W3c i W3d przed panelem."""
-    cfg = cfg or make_config(rt["PROJECT_DIR"])
+    cfg = cfg or make_config(rt["PROJECT_DIR"], data_dir=rt.get("DATA_ROOT"))
     results = {}
     for name, fn in TASKS:
         if name in INGEST and not ingest_data:

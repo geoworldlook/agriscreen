@@ -15,7 +15,9 @@ notebooks/AgriScreen_Monitor.ipynb ──▶ runtime.setup_runtime ──▶ run
                    data/registry/gwl_*.csv  +  data/05_Final_Outputs/agriwatch/ (panel.html, panel_data.json, …)
 ```
 
-To samo bez notatnika: `pipeline.run_all(rt, cfg, ingest_data=True, experiments=False)`.
+To samo bez notatnika: `pipeline.run_all(rt, cfg, ingest_data=True, experiments=False)`. Na własnym komputerze:
+`python -m agriscreen weekly` (Harmonogram zadań Windows, `docs/URUCHOMIENIE_LOKALNE.md`); kod leży wtedy w klonie
+na dysku C:, a dane w katalogu danych na Dysku Google (`make_config(..., data_dir=...)`, `setup_runtime(..., data_dir=...)`).
 Każde zadanie zwraca słownik `{"message", "skipped"?, "registry"?}`; `run_task` zapisuje wiersz w `gwl_runs`
 (czas, status, commit z flagą `+dirty`, parametry, liczba nowych wierszy). Błąd jednego zadania nie zatrzymuje
 kolejnych.
@@ -35,6 +37,7 @@ kolejnych.
 | `card.py` | Zdania karty winnicy (EN; PL zachowane w kodzie), kategorie suszy wg progów USDM, klasy SWI | `parcel_card`, `parcel_card_lines`, `parcel_class`, `water_category`, `read_swi`, `swi_agreement` |
 | `panel.py` | Produkt: panel EN (Leaflet na zdjęciu Esri, mapy pikseli 10 m, strefy dnia, warstwy z, statystyki, gleba, pogoda, karta, sezon, „How far to trust it”) i jego dane JSON | `pixel_maps`, `weather_data`, `panel_data`, `trust_rows`, `panel_html`, `build_panel` |
 | `pipeline.py` | Zadania v1 w kolejności uruchamiania | `task_*`, `TASKS`, `run_all` |
+| `local.py`, `__main__.py` | Uruchamianie na własnym komputerze: ustawienia (`local_settings.json`), przebieg tygodniowy (pull → zadania → publikacja panelu na GitHub), blokada, log; polecenia `python -m agriscreen run / weekly / publish / selftest / settings` (`docs/URUCHOMIENIE_LOKALNE.md`) | `load_settings`, `run`, `publish`, `weekly`, `git_pull`, `git_publish`, `Lock` |
 | `experiments/` | W3c (`zones.py`) i W3d (`months.py`): anomalie miejsc wewnątrz winnicy; testy według protokołów; panel pokazuje tylko wynik testu | `task_zones`, `task_months`, `trust_rows`, `run_zones`, `run_months` |
 | `selftest.py` | Test bez sieci: dane syntetyczne, wszystkie zadania, kontrola plików, testy jednostkowe modułów | `make_inputs`, `run_tasks`, `check_*`, `unit_tests`, `main` |
 | `assets/` | Arkusz stylów Leaflet 1.9.4 wbudowywany w panel (BSD-2) | |

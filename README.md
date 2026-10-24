@@ -2,7 +2,7 @@
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/geoworldlook/agriscreen/blob/main/notebooks/AgriScreen_Monitor.ipynb)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![Version](https://img.shields.io/badge/version-1.0.0-green)
+![Version](https://img.shields.io/badge/version-1.1.0-green)
 
 AgriScreen tells a winegrower near Condom (Gers, south-west France) whether a vineyard parcel is **unusual right now
 compared with its own history**, and how far that answer can be trusted. It covers 15 vineyards (0.7–4.1 ha) and
@@ -74,6 +74,7 @@ agriscreen/                 Python package (docs/ARCHITEKTURA.md)
 ├── card.py                 card sentences
 ├── panel.py                the product: panel.html + panel_data.json
 ├── pipeline.py             tasks in order, run_all
+├── local.py                local runs: settings, weekly job, publishing to GitHub (python -m agriscreen)
 ├── experiments/            W3c zones, W3d months (off by default)
 └── selftest.py             offline end-to-end test on synthetic data
 notebooks/                  AgriScreen_Monitor (Colab), AgriScreen_story (blog), and their generators
@@ -83,7 +84,18 @@ data/                       vineyard polygons, ISMN SMOSMANIA sensors, RPG crop 
 
 ## How to run
 
-**In Colab (full pipeline):** open [`notebooks/AgriScreen_Monitor.ipynb`](notebooks/AgriScreen_Monitor.ipynb) from
+**On your own Windows computer (weekly, unattended):** one PowerShell command sets up a `GeoWorldLook` folder on the
+desktop (code, data linked from Google Drive, scripts), a Python environment and a weekly Task Scheduler job that
+updates the code, runs everything and publishes the panel to GitHub:
+
+```powershell
+irm https://raw.githubusercontent.com/geoworldlook/agriscreen/main/scripts/windows/setup_workspace.ps1 | iex
+```
+
+Details (in Polish): [`docs/URUCHOMIENIE_LOKALNE.md`](docs/URUCHOMIENIE_LOKALNE.md). Commands:
+`python -m agriscreen run | weekly | publish | selftest`.
+
+**In Colab (full pipeline, backup):** open [`notebooks/AgriScreen_Monitor.ipynb`](notebooks/AgriScreen_Monitor.ipynb) from
 GitHub (badge above) and choose *Run all*. It mounts Google Drive, updates the code, installs packages, initialises
 Earth Engine and runs `ingest → parcel statistics → soil → tests → anomalies → validation → weather → panel →
 summary`. Keys are read only from a folder on Drive. Outputs: `data/05_Final_Outputs/agriwatch/` and the registry

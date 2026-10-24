@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0 — 2026-10-24
+
+Runs on your own computer instead of Colab.
+
+- `python -m agriscreen run | weekly | publish | selftest | settings` (`agriscreen/local.py`, `agriscreen/__main__.py`).
+- Code and data can live in different folders: `make_config(project_dir, data_dir=...)`,
+  `setup_runtime(..., data_dir=...)`. Colab keeps working with the old layout (data next to the code on Drive).
+- Weekly job: lock against parallel runs, `git pull`, all tasks (Earth Engine without a login window), then a commit
+  of only the published files (panel, its data, W3b tests, blog notebook) and a push to `main`. Log in
+  `data/logs/` on the data drive.
+- Windows setup in one PowerShell command (`scripts/windows/setup_workspace.ps1`): Git, Google Drive and Miniforge,
+  a `GeoWorldLook` folder on the desktop (`projects/`, `data/` linked to Google Drive, `scripts/`), the conda
+  environment (`environment.yml`), logins, and a Task Scheduler job every Monday at 07:30. Guide:
+  `docs/URUCHOMIENIE_LOKALNE.md`.
+- Fix: the panel task message no longer uses a relative path (it failed on Windows when code and data are on
+  different drives).
+
 ## 1.0.0 — 2026-10-20
 
 First product version: an English panel for 15 vineyards near Condom (Gers) and its JSON data, with every number
