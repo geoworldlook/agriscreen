@@ -11,7 +11,7 @@ import glob
 import gzip
 import logging
 import os
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
@@ -333,6 +333,23 @@ def hazard_summary(hz: pd.DataFrame, cfg: Dict[str, Any], years: int = 5) -> pd.
                      "min_tmin_spring": float(d.loc[in_season(d.index, cfg["FROST_SEASON"]), "tmin"].min()),
                      "max_tmax": float(d["tmax"].max())})
     return pd.DataFrame(rows)
+
+
+def fetch_forecast(lat: float, lon: float, days: int = 7, timeout: int = 15) -> Optional[pd.DataFrame]:
+    """Prognoza dzienna Open-Meteo (opad, Tmin, Tmax, ET0 FAO). Brak sieci lub błąd = None."""
+    try:
+        import requests
+        r = requests.get("https://api.open-meteo.com/v1/forecast", timeout=timeout, params={
+            "latitude": lat, "longitude": lon, "forecast_days": days, "timezone": "Europe/Paris",
+            "daily": "precipitation_sum,temperature_2m_max,temperature_2m_min,et0_fao_evapotranspiration"})
+        r.raise_for_status()
+        d = r.json()["daily"]
+        return pd.DataFrame({"date": pd.to_datetime(d["time"]), "precip_mm": d["precipitation_sum"],
+                             "tmax": d["temperature_2m_max"], "tmin": d["temperature_2m_min"],
+                             "et0_mm": d["et0_fao_evapotranspiration"]})
+    except Exception as e:
+        logger.warning(f"Prognoza Open-Meteo niedostępna: {e}")
+        return None
 
 
 def _selftest(out_dir: str) -> None:

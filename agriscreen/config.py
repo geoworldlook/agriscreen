@@ -143,7 +143,7 @@ def make_config(project_dir: str, overrides: Optional[Dict[str, Any]] = None,
                 data_dir: Optional[str] = None) -> Dict[str, Any]:
     """
     CONFIG z nadpisaniami; ścieżki względne -> bezwzględne. project_dir: katalog kodu (klon repozytorium);
-    data_dir: katalog danych (np. zsynchronizowany Dysk Google ...\GeoWorldLook\agriwatch). Bez data_dir dane leżą
+    data_dir: katalog danych (np. zsynchronizowany Dysk Google .../GeoWorldLook/agriwatch). Bez data_dir dane leżą
     w katalogu kodu (układ z Colab, gdzie klon jest na Dysku).
     """
     data_dir = data_dir or project_dir
