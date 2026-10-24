@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0 — 2026-10-24
+
+- Local Jupyter notebook to look at the results, modelled on the Colab notebook: `notebooks/build_local.py` makes
+  `notebooks/AgriScreen_Local.ipynb` (not in git, so saved outputs do not block `git pull` in the weekly job).
+  By default it only reads the outputs from Drive: last run and log, a table of the 15 vineyards (z of the last
+  scene), a z chart for one vineyard, W3b tests, water layer validation, the panel, the run report and the registry.
+  With `RECOMPUTE = True` it runs everything like `python -m agriscreen run` (with the lock, no publishing).
+- `environment.yml`: `jupyterlab`. `setup_workspace.ps1` also writes `scripts\agriscreen_jupyter.cmd`.
+- Guide: `docs/URUCHOMIENIE_LOKALNE.md` §3a.
+
 ## 1.1.2 — 2026-10-24
 
 - Fix: the panel had no 7-day forecast since 1.0. `panel.weather_data` calls `weather.fetch_forecast`, but the

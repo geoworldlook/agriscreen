@@ -77,7 +77,8 @@ agriscreen/                 Python package (docs/ARCHITEKTURA.md)
 ├── local.py                local runs: settings, weekly job, publishing to GitHub (python -m agriscreen)
 ├── experiments/            W3c zones, W3d months (off by default)
 └── selftest.py             offline end-to-end test on synthetic data
-notebooks/                  AgriScreen_Monitor (Colab), AgriScreen_story (blog), and their generators
+notebooks/                  AgriScreen_Monitor (Colab), AgriScreen_story (blog), and their generators;
+                            build_local.py makes AgriScreen_Local (Jupyter on your computer, not in git)
 docs/                       status, architecture, protocols and results (in Polish), showcase files
 data/                       vineyard polygons, ISMN SMOSMANIA sensors, RPG crop register
 ```
@@ -93,7 +94,9 @@ irm https://raw.githubusercontent.com/geoworldlook/agriscreen/main/scripts/windo
 ```
 
 Details (in Polish): [`docs/URUCHOMIENIE_LOKALNE.md`](docs/URUCHOMIENIE_LOKALNE.md). Commands:
-`python -m agriscreen run | weekly | publish | selftest`.
+`python -m agriscreen run | weekly | publish | selftest`. To look at the results in Jupyter, start
+`scripts\agriscreen_jupyter.cmd`: it opens `notebooks/AgriScreen_Local.ipynb`, which by default only reads the
+outputs from Drive (panel, vineyards, W3b tests, validation, run report) and can also run the whole pipeline.
 
 **In Colab (full pipeline, backup):** open [`notebooks/AgriScreen_Monitor.ipynb`](notebooks/AgriScreen_Monitor.ipynb) from
 GitHub (badge above) and choose *Run all*. It mounts Google Drive, updates the code, installs packages, initialises

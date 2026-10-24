@@ -149,6 +149,8 @@ python -m agriscreen weekly
     Write-Utf8 (Join-Path $Scripts 'agriscreen_logi.cmd') "@echo off`r`nstart `"`" `"$Data\data\logs`"`r`n"
     $shell = "@echo off`r`ncall `"$activate`" agriscreen`r`ncd /d `"$Proj`"`r`ncmd /k`r`n"
     Write-Utf8 (Join-Path $Scripts 'agriscreen_konsola.cmd') $shell
+    $jup = "@echo off`r`nrem AgriScreen: notatnik Jupyter z podgladem wynikow. Zamkniecie: Ctrl+C w tym oknie.`r`ncall `"$activate`" agriscreen`r`ncd /d `"$Proj`"`r`nif not exist notebooks\AgriScreen_Local.ipynb python notebooks\build_local.py`r`njupyter lab notebooks\AgriScreen_Local.ipynb`r`n"
+    Write-Utf8 (Join-Path $Scripts 'agriscreen_jupyter.cmd') $jup
 
     $action   = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument "/c `"$(Join-Path $Scripts 'agriscreen_przebieg_teraz.cmd')`"" -WorkingDirectory $Proj
     $trigger  = New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At '07:30'
