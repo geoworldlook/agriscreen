@@ -91,3 +91,4 @@ przebieg (last_weekly.json) i zaproponuj plan na ten tydzień.”
 | Log: „push nieudany” | w konsoli: `git push` (okno logowania GitHub), potem `python -m agriscreen publish` |
 | Log: „inny przebieg trwa” | czy nie liczy Colab? jeśli nie — usuń `data\registry\.agriscreen.lock` |
 | Przebieg wolny | `Mój dysk\GeoWorldLook` → *Dostępne offline* |
+| Środowisko się nie tworzy: „Could not find 'share/conda-launchers/cli-64.exe'” (conda 26.9) | najpierw `conda create -n agriscreen -y python=3.12 conda-launchers`, potem `conda env update -n agriscreen -f environment.yml` (bez `--prune`) |

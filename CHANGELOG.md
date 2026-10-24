@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1 — 2026-10-24
+
+- Fix: the panel failed on Windows (`ValueError: Invalid format string`): the date format `%-d` works only on
+  Linux and macOS. `fmt_date` now builds the date by hand; the text is the same on every system ("5 October 2024").
+- Guide (`docs/URUCHOMIENIE_LOKALNE.md`): what to do when conda 26.9 stops with
+  "Could not find 'share/conda-launchers/cli-64.exe'".
+
 ## 1.1.0 — 2026-10-24
 
 Runs on your own computer instead of Colab.
