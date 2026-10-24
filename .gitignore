@@ -59,3 +59,6 @@ data/_selftest/
 
 # Ustawienia lokalne (ścieżka danych na tym komputerze)
 local_settings.json
+
+# Notatnik lokalny (generowany przez notebooks/build_local.py; wyniki komórek nie blokują git pull)
+notebooks/AgriScreen_Local.ipynb

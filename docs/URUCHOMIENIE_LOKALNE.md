@@ -42,7 +42,8 @@ Pulpit\GeoWorldLook\
     ├── agriscreen_przebieg_teraz.cmd   przebieg tygodniowy na żądanie (to samo co Harmonogram)
     ├── agriscreen_otworz_panel.cmd     otwiera panel.html z ostatniego przebiegu
     ├── agriscreen_logi.cmd             otwiera folder z logami
-    └── agriscreen_konsola.cmd          konsola z aktywnym środowiskiem, w folderze projektu
+    ├── agriscreen_konsola.cmd          konsola z aktywnym środowiskiem, w folderze projektu
+    └── agriscreen_jupyter.cmd          notatnik Jupyter z podglądem wyników (§3a)
 ```
 
 Zasady: kod tylko w `projects\` (GitHub), dane tylko na Dysku (`data\` to łącza), klucze tylko w
@@ -67,6 +68,19 @@ Inne polecenia (w `agriscreen_konsola.cmd`):
 | `python -m agriscreen weekly --no-publish` | przebieg tygodniowy bez wysyłania na GitHub |
 | `python -m agriscreen selftest` | test bez sieci (kilka minut) |
 | `python -m agriscreen settings` | pokaż ustawienia |
+
+## 3a. Podgląd wyników w Jupyter (odpowiednik notatnika z Colab)
+
+Dwuklik `scripts\agriscreen_jupyter.cmd` otwiera w przeglądarce JupyterLab z notatnikiem
+`notebooks\AgriScreen_Local.ipynb`. Uruchom wszystko: *Run → Run All Cells*. Zamknięcie: Ctrl+C w czarnym oknie.
+
+- Domyślnie (`RECOMPUTE = False`) notatnik **tylko czyta wyniki z Dysku**, kilka sekund: ostatni przebieg i log,
+  tabela 15 winnic (z ostatniej sceny), wykres z_woda dla wybranej winnicy (`SITE`), testy W3b, walidacja warstwy
+  wody, panel, raport `run_summary.md`, rejestr i historia uruchomień.
+- `RECOMPUTE = True` liczy wszystko jak `python -m agriscreen run` (z blokadą, bez publikacji); `INGEST`,
+  `RUN_EXPERIMENTS` jak opcje polecenia.
+- Notatnik jest **poza git** (generuje go `notebooks\build_local.py`, gdy go brak). Zapisane wyniki nie blokują więc
+  `git pull` w przebiegu tygodniowym. Nowa wersja notatnika po zmianach w generatorze: usuń plik i uruchom skrypt.
 
 ## 4. Claude na tym komputerze
 
