@@ -75,13 +75,16 @@ def setup_runtime(
     pull: bool = True,
     install: bool = True,
     init_gee: bool = True,
+    data_dir: Optional[str] = None,
+    allow_auth: bool = True,
 ) -> Dict[str, Any]:
     """
     Przygotowuje środowisko (Colab lub lokalnie) i zwraca słownik `rt` przekazywany do zadań.
     Dysk Google montuje komórka notatnika przed importem pakietu (kod leży na Dysku).
 
     Kroki: git pull (tylko fast-forward) -> instalacja brakujących pakietów (tylko Colab)
-    -> inicjalizacja GEE -> katalog rejestru.
+    -> inicjalizacja GEE -> katalog rejestru. data_dir: katalog danych, gdy jest inny niż katalog kodu (rejestr
+    leży w <data_dir>/data/registry; ten sam katalog podaj do make_config).
     """
     if not logging.getLogger().handlers:
         logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -105,12 +108,14 @@ def setup_runtime(
 
     if init_gee:
         from agriscreen.ingest import initialize_earth_engine
-        initialize_earth_engine(project_id=gee_project)
+        initialize_earth_engine(project_id=gee_project, allow_auth=allow_auth)
 
+    data_root = os.path.abspath(data_dir or project_dir)
     rt = {
         "PROJECT_DIR": project_dir,
-        "DATA_DIR": os.path.join(project_dir, "data"),
-        "REGISTRY_DIR": os.path.join(project_dir, "data", "registry"),
+        "DATA_ROOT": data_root,
+        "DATA_DIR": os.path.join(data_root, "data"),
+        "REGISTRY_DIR": os.path.join(data_root, "data", "registry"),
         "GEE_PROJECT": gee_project,
         "IN_COLAB": in_colab,
         "GIT_COMMIT": _git_commit(project_dir),

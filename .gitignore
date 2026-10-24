@@ -56,3 +56,6 @@ data/08_MeteoFrance/
 data/models/
 data/_selftest_monitor/
 data/_selftest/
+
+# Ustawienia lokalne (ścieżka danych na tym komputerze)
+local_settings.json

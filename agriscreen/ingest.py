@@ -97,9 +97,10 @@ def load_aoi_geometry(
     return combined_geom, bbox_dict, epsg_code
 
 
-def initialize_earth_engine(project_id: Optional[str] = "ee-geoworldlook") -> None:
+def initialize_earth_engine(project_id: Optional[str] = "ee-geoworldlook", allow_auth: bool = True) -> None:
     """
-    Inicjalizuje połączenie z Google Earth Engine z automatyczną obsługą uwierzytelnienia i projektu.
+    Inicjalizuje połączenie z Google Earth Engine. allow_auth=False (przebieg bez nadzoru, np. Harmonogram zadań):
+    bez okna logowania — przy braku zapisanych poświadczeń zgłasza błąd (raz: `earthengine authenticate`).
     """
     if ee is None:
         raise ImportError("Biblioteka 'earthengine-api' nie jest zainstalowana. Uruchom: pip install earthengine-api geemap")
@@ -111,6 +112,8 @@ def initialize_earth_engine(project_id: Optional[str] = "ee-geoworldlook") -> No
         ee.Initialize(project=project_id)
         logger.info(f"Pomyślnie zainicjalizowano Google Earth Engine (projekt: {project_id}).")
     except Exception as e:
+        if not allow_auth:
+            raise RuntimeError(f"GEE: brak ważnych poświadczeń ({e}); uruchom raz `earthengine authenticate`") from e
         logger.warning(f"Inicjalizacja GEE z projektem {project_id} wymaga autoryzacji ({e}). Uruchamianie procedury autoryzacji...")
         try:
             ee.Authenticate()
