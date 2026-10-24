@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.2 — 2026-10-24
+
+- Fix: the panel had no 7-day forecast since 1.0. `panel.weather_data` calls `weather.fetch_forecast`, but the
+  function stayed in the old `step_06_dashboard.py` and was not moved to the package. It is now in
+  `agriscreen/weather.py`, unchanged (Open-Meteo: rain, Tmin, Tmax, ET0 FAO). The self-test did not catch it,
+  because it passes a ready forecast.
+- `config.py`: no `SyntaxWarning` from a Windows path in a docstring.
+
 ## 1.1.1 — 2026-10-24
 
 - Fix: the panel failed on Windows (`ValueError: Invalid format string`): the date format `%-d` works only on
