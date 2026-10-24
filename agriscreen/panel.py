@@ -1084,7 +1084,11 @@ and gives no irrigation advice. Tests registered before computing (protocol {esc
 
 
 def fmt_date(d: str) -> str:
-    return pd.Timestamp(d).strftime("%-d %B %Y") if d else ""
+    # "%-d" (day without a leading zero) does not work on Windows; month_name() is English on every system
+    if not d:
+        return ""
+    t = pd.Timestamp(d)
+    return f"{t.day} {t.month_name()} {t.year}"
 
 
 def build_panel(out_dir: str, cfg: Dict[str, Any], path: Optional[str] = None, standalone: bool = True,
