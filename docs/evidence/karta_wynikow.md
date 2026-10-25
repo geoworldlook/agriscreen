@@ -44,6 +44,13 @@ Zasada: „przed” i „po” zawsze na tej samej referencji i w tym samym okre
 | Kalibracja klasy (D1) | miesiące VI–IX z glebą w normie: 12 winnic, 7 miesięcy w 4 latach (2020, 2021, 2023, 2025), 79 miesięcy winnic | oczekiwane 1,0 × przypadek | NDVI najniżej 0,49 [0; 1,92], najwyżej 1,16 [0; 3,23]; NDMI 0,55 [0; 2,32], 1,10 [0; 3,70] | nie potwierdzono ani nie wykluczono (w 2020 „najniżej” 3,1 ×); przedział za szeroki: nie pokazujemy |
 | Kierunek (opisowo) | miesiące suche / wilgotne | — | suche: najniżej ok. 2,9 ×; wilgotne: najwyżej ok. 2,6–3,0 × | reakcja na wodę we właściwą stronę; sygnał głównie całych winnic |
 
+## Winnica wobec sąsiadów (W3e, protokół D-092; `docs/evidence/W3e_wyniki.md`)
+
+| Zmiana | Referencja i okres | Przed | Po | Wniosek |
+|---|---|---|---|---|
+| z_rel = (z_woda − mediana sąsiadów) / skala z lat wcześniejszych | 13 winnic, VI–IX 2020–2026, 1941 scen (te same dla obu) | z_woda: ≤ −1 w 31,1% scen; po latach 1–76%; sucho − wilgotno 49 pp | z_rel: 15,9% [8,9; 22,8]; po latach 5–24%; sucho − wilgotno 4 pp | H1–H3 spełnione: wspólna pogoda usunięta, kalibracja zgodna z 1 na 6 |
+| Sygnał przesadzeń RPG (H4) | sezony winnic z kodem VRN / RVI | — | 2 z 5 zdarzeń mierzalne; ranga 0,81, p = 0,070 | niespełnione (za mało zdarzeń — wada planu); nie dodajemy do karty |
+
 ## Kolejne wiersze
 
 | Krok | Co porównamy |
