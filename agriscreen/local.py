@@ -40,7 +40,8 @@ DEFAULTS: Dict[str, Any] = {"data_dir": None, "gee_project": "ee-geoworldlook", 
 # Pliki publikowane po przebiegu: (plik w OUTPUT_DIR, plik w repozytorium)
 PUBLISH = (("panel.html", "docs/showcase/agriscreen_panel.html"),
            ("panel_data.json", "docs/showcase/agriscreen_data.json"),
-           ("w3b_tests.csv", "docs/showcase/w3b_tests.csv"))
+           ("w3b_tests.csv", "docs/showcase/w3b_tests.csv"),
+           ("w7_tests.csv", "docs/showcase/w7_tests.csv"))
 PUBLISH_EXPERIMENTS = (("w3c_tests.csv", "docs/showcase/w3c_tests.csv"),
                        ("w3d_tests.csv", "docs/showcase/w3d_tests.csv"))
 STORY = "notebooks/AgriScreen_story.ipynb"

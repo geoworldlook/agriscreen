@@ -469,6 +469,8 @@ def trust_rows(out_dir: str, cfg: Dict[str, Any], summ: Optional[Dict[str, Any]]
                      "status": "accepted" if summ["p7"].get("accepted") else "not adopted"})
     from agriscreen import experiments                     # W3c, W3d: tylko wynik testu (warstw nie rysujemy)
     rows += experiments.trust_rows(out_dir)
+    from agriscreen.experiments import w7                  # W7: wskazówki wobec pomiarów naziemnych (D-093)
+    rows += w7.trust_rows(out_dir)
     rows.append({"what": "Vine water stress", "against": "no measurements inside the vineyards",
                  "result": "not assessed; the index sees the whole parcel, vines and inter-rows", "status": "not validated"})
     return rows

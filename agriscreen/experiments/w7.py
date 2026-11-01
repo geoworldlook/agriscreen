@@ -259,6 +259,40 @@ def contingency(df: pd.DataFrame, hint: str, truth: str) -> Dict[str, Any]:
             "POD": a / (a + miss) if a + miss else np.nan, "FAR": fa / (a + fa) if a + fa else np.nan}
 
 
+TESTS_NAME = "w7_tests.csv"
+_TRUST = {
+    "K1": ("Hint “dry soil in the area” (ERA5-Land model)",
+           "measured soil moisture below its usual level for the time of year: 10 ICOS stations in France and the "
+           "ISMN sensor at Condom, April–October"),
+    "K2": ("Hint “vegetation below its own normal” (Sentinel-2)",
+           "measured evapotranspiration below its usual level: 7 ICOS towers in forests and grasslands "
+           "(not vineyards), June–September"),
+}
+
+
+def trust_rows(out_dir: str) -> List[Dict[str, str]]:
+    """§7: wiersze K1 i K2 do tabeli „How far to trust it” z w7_tests.csv (brak pliku = brak wierszy)."""
+    p = os.path.join(out_dir, TESTS_NAME)
+    if not os.path.exists(p) or os.path.getsize(p) < 2:
+        return []
+    t = pd.read_csv(p)
+    rows: List[Dict[str, str]] = []
+    for _, r in t.iterrows():
+        key = str(r["test"])[:2]
+        if key not in _TRUST:
+            continue
+        what, against = _TRUST[key]
+        ok = str(r.get("werdykt", "")) == "potwierdzone"
+        result = (f"confirmed by the measurement on {100 * r['p']:.0f}% of hint days "
+                  f"[{100 * r['p_lo']:.0f}–{100 * r['p_hi']:.0f}%] vs {100 * r['b']:.0f}% by chance "
+                  f"({int(r['n_hint'])} hint days, {int(r['years_hint'])} years)")
+        if not ok and str(r.get("werdykt", "")).startswith("za mało"):
+            result += "; too little data for a verdict"
+        rows.append({"what": what, "against": against + f" (pre-registered W7, {str(r['protocol_sha256'])[:8]}…)",
+                     "result": result, "status": "confirmed" if ok else "not confirmed"})
+    return rows
+
+
 def spearman(a: pd.Series, b: pd.Series) -> float:
     from scipy.stats import spearmanr
     m = a.notna() & b.notna()

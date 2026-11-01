@@ -29,6 +29,21 @@ tydzień. Nie chodzi o dokładną wartość wilgotności gleby, tylko o trafnoś
 5. Końcowe sprawdzenie produktu: działanie, przepływ danych, porządek, prywatność, uczciwość, gotowość pod
    wnioski (lista braków), tylko dane rzeczywiste.
 
+## Stan realizacji (aktualizowany przy każdym kroku; po przerwie zaczynamy od pierwszego niezrobionego)
+
+- [x] Protokół W7 zarejestrowany 2026-11-02 (commit `cf2dfcf`, SHA-256 `a6689c13…`).
+- [x] Kod: `agriscreen/experiments/w7_data.py` (pobieranie, rejestr źródeł), `w7.py` (prawda, wskazówki, testy,
+      wiersze panelu), generator notatnika `notebooks/experiments/build_w7.py`.
+- [x] Deklaracje celne Gers 2016–2025 pobrane (`09_Reference_Stations/douane`).
+- [ ] Archiwa ICOS L2 (10 stacji) → `09_Reference_Stations/<stacja>/`, wpisy w `MANIFEST_W7.csv`.
+- [ ] ERA5-Land w punktach stacji → `W7_stacje/<stacja>_era5_land_daily.csv`.
+- [ ] Sentinel-2 i statystyki kwadratów 7 stacji → `W7_stacje/<stacja>/` (`w7_data.run_s2_station`, przyrostowo).
+- [ ] Notatnik `W7_wskazowki.ipynb` wykonany; `docs/evidence/W7_wyniki.md`; wiersz w `karta_wynikow.md`.
+- [ ] Publikacja: wiersze K1/K2 w panelu (`w7.trust_rows`, `w7_tests.csv` w `docs/showcase/`), README, strona.
+- [ ] Końcowe sprawdzenie produktu (6 obszarów + tylko dane rzeczywiste).
+
+Wznowienie: brakujące dane dociąga ponowne uruchomienie tych samych funkcji (pobierają tylko to, czego brak).
+
 ## Granice (mówimy je wprost)
 
 - Żadna wieża ICOS nie stoi w winnicy. Wieże potwierdzają metodę; o samych winnicach mówią czujnik ISMN w Condom,
