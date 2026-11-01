@@ -1,6 +1,6 @@
 # F5 — asymilacja danych i probabilistyczna decyzja o anomalii (przegląd + eksperyment)
 
-Data: 2026-10-08. Uzupełnia `docs/plans/Plan_v7_precyzja.md`.
+Data: 2026-10-08. Uzupełnia `docs/archive/plans/Plan_v7_precyzja.md`.
 Źródła: 3 przeglądy literatury (systemy operacyjne; asymilacja na poziomie działki; łączenie wielu źródeł w jedną decyzję),
 eksperyment EnKF na danych z Condom (`docs/evidence/F4_eksperymenty/D_asymilacja_EnKF/`) i własna kontrola obliczeń.
 Uwaga o dostępie: strony wydawców były blokowane przez proxy, więc **żaden artykuł nie był czytany w pełnym tekście**.

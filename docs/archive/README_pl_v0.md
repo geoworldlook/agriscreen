@@ -66,7 +66,7 @@ Numeracja kroków nie jest ciągła: krok 2 z v2.5 jest w `legacy/`.
 | 1.1 (2026-10-09) | Plan v7, etap A: klimatologia roślinności tylko z lat wcześniejszych, ten sam tor orbity, z predykcyjne, prawdopodobieństwo suszy gleby; przymrozki i upały z walidacją Météo-France |
 | 1.2 (2026-10-09) | prezentacja: panel kondycji winnicy (NDVI, NDRE, NDMI), krzywa sezonu, matryca sygnałów; okres ISMN z plików (`END_DATE = "auto"`) |
 
-Otwarte: QC czujników ISMN (A4) i protokół walidacji z Brierem w kodzie (A5) — `plans/Plan_v7_precyzja.md`.
+Otwarte: QC czujników ISMN (A4) i protokół walidacji z Brierem w kodzie (A5) — `archive/plans/Plan_v7_precyzja.md`.
 Stan projektu, audyt wyników i kolejność dalszych prac: [`docs/MIGRACJA_PODSUMOWANIE.md`](MIGRACJA_PODSUMOWANIE.md).
 Architektura i metoda: [`docs/ARCHITEKTURA.md`](ARCHITEKTURA.md).
 

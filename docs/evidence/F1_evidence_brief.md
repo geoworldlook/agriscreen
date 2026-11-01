@@ -2,7 +2,7 @@
 
 > **Status:** `Draft` (2026-09-26) — wymaga przeczytania kluczowych prac w pełnym tekście przed zmianą na `Approved for implementation`
 > **Autor przeglądu:** Claude Code (na zlecenie użytkownika)
-> **Powiązany plan:** `docs/plans/F1_system_wilgotnosci_plan.md`
+> **Powiązany plan:** `docs/archive/plans/F1_system_wilgotnosci_plan.md`
 
 ---
 
@@ -113,7 +113,7 @@ Nie jest to przegląd systematyczny. Część prac oceniono **tylko na podstawie
 
 ## Decyzja dla etapu
 
-- **`POTRZEBNA ZMIANA DECYZJI`** — plan v2 przesunął Sentinel-1 do backlogu i opierał produkt na stresie cieplnym z LST. Przegląd wskazuje, że wiarygodne narzędzie do **anomalii wilgotności** wymaga S-1 jako rdzenia, a LST i SR jako warstw uzupełniających. Propozycja: decyzja **D-013** (opisana w `docs/plans/F1_system_wilgotnosci_plan.md`, sekcja 0).
+- **`POTRZEBNA ZMIANA DECYZJI`** — plan v2 przesunął Sentinel-1 do backlogu i opierał produkt na stresie cieplnym z LST. Przegląd wskazuje, że wiarygodne narzędzie do **anomalii wilgotności** wymaga S-1 jako rdzenia, a LST i SR jako warstw uzupełniających. Propozycja: decyzja **D-013** (opisana w `docs/archive/plans/F1_system_wilgotnosci_plan.md`, sekcja 0).
 - Pozostałe ustalenia: zgodne z planem v2 (walidacja ISMN, QA4SM jako benchmark, podział po czasie i stacjach, SR tylko po bramce).
 
 ## Do zrobienia przed `Approved for implementation`

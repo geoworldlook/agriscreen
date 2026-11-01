@@ -295,5 +295,5 @@ Pracy Gao nie czytaliśmy w całości [—]; opis pasma pochodzi z bazy indeksó
 - Pantaleoni Reluy N. i in. 2022. *OENO One* 56(1): 145–159. doi:10.20870/oeno-one.2022.56.1.4632 [F3]
 - Gao B.-C. 1996. *Remote Sensing of Environment* 58(3): 257–266. doi:10.1016/S0034-4257(96)00067-3 [—]
 - Dane własne: `docs/evidence/F4_eksperymenty/A_roslinnosc/` (`a2_variant_series.csv`, `a2_variants_eval.csv`,
-  `a3_lag.csv`, `a5_decomposition.csv`), `docs/plans/Plan_v7_precyzja.md` (ustalenia 1 i 8),
+  `a3_lag.csv`, `a5_decomposition.csv`), `docs/archive/plans/Plan_v7_precyzja.md` (ustalenia 1 i 8),
   `docs/evidence/A4_QC_czujnikow_ISMN.md`.

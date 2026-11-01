@@ -8,7 +8,7 @@
 >   dopiero notatnik w Colab); zmiana któregoś U przed tym przebiegiem = nowa wersja protokołu i nowy skrót.
 > - **Zmiana po rejestracji:** nowa wersja protokołu, nowy skrót i opis, co i dlaczego zmieniono (jak W2+REF, D-083).
 > - **Podstawa:** Plan W3b §1–§4 (D-084–D-088); reguły czujnika A4 §3–4 (D-060–D-063). Wdrożenie:
->   `docs/plans/W3b_plan_wdrozenia.md`, kod `step_11_parcel.py`. Symulacje: `docs/evidence/W3b_symulacje.py` (ziarno 42).
+>   `docs/archive/plans/W3b_plan_wdrozenia.md`, kod `step_11_parcel.py`. Symulacje: `docs/evidence/W3b_symulacje.py` (ziarno 42).
 >
 > **Oznaczenia:** [P] pełny tekst pracy; [D] nasze dane, kod albo dokument; [K] konwencja, nie optimum i nie wynik
 > z danych; [W] wiedza ogólna; **(U1–U8)** — rozstrzygnięcie w §13.

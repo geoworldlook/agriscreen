@@ -1,7 +1,7 @@
 # AgriWatch — podsumowanie projektu do migracji (stan na 2026-10-10)
 
 Dokument dla nowego konta (człowieka lub asystenta AI), które przejmuje projekt. Zawiera cel, stan prac, sposób
-uruchomienia, audyt wyników i listę otwartych spraw. Czytaj go razem z `docs/plans/Plan_v7_precyzja.md` (decyzje D-040…D-051)
+uruchomienia, audyt wyników i listę otwartych spraw. Czytaj go razem z `docs/archive/plans/Plan_v7_precyzja.md` (decyzje D-040…D-051)
 i `docs/evidence/` (dowody do każdej liczby).
 
 ---

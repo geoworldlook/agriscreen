@@ -1,6 +1,6 @@
 # F4 — eksperymenty precyzji (2026-10-08)
 
-Dowody do `docs/plans/Plan_v7_precyzja.md`. Wszystko liczone offline na danych z rejestru na Dysku
+Dowody do `docs/archive/plans/Plan_v7_precyzja.md`. Wszystko liczone offline na danych z rejestru na Dysku
 (`gwl_observations.csv`, `era5_land_daily.csv`, `gwl_anomalies.csv`, `gwl_status.csv`; przebieg z commita `277d162`,
 pełna historia SR 414 scen) i surowych plikach ISMN Condom z `data/7_isismn_data`.
 

@@ -1,7 +1,7 @@
 # F3 — Przegląd literatury dla platformy anomalii wilgotności (v6)
 
 > **Data:** 2026-10-07 · **Status:** `Draft` — wnioski i propozycje zmian do zatwierdzenia (sekcja 5).
-> **Powiązane:** `docs/plans/Plan_v6_platforma_anomalii_wilgotnosci.md`, `docs/evidence/F1_evidence_brief.md`, `docs/plans/Plan_v3_monitoring_winnic_SR.md` (część A).
+> **Powiązane:** `docs/archive/plans/Plan_v6_platforma_anomalii_wilgotnosci.md`, `docs/evidence/F1_evidence_brief.md`, `docs/archive/plans/Plan_v3_monitoring_winnic_SR.md` (część A).
 
 **Poziomy weryfikacji źródeł:**
 - `pełny tekst` — przeczytane w całości. Dotyczy czterech dokumentów przekazanych przez użytkownika; tabelę 2a factsheetu EDO odczytano z obrazu strony.
