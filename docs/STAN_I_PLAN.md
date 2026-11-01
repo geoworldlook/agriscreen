@@ -1,6 +1,10 @@
 # AgriScreen — stan i plan
 
-Stan na 2026-10-20, wersja 1.0. Jedna strona do orientacji; szczegóły w dokumentach z §7.
+Stan na 2026-11-01, wersja 1.2.1. Jedna strona do orientacji; szczegóły w dokumentach z §7.
+
+**Przepływ danych (jedno zdanie):** dane otwarte (Copernicus, stacje) → co poniedziałek komputer liczy wszystko sam
+→ dane i wyniki na Dysku Google → panel na GitHub → panel publiczny (GitHub Pages) i strona geoworldlook.vercel.app
+(„Live demo”). Eksperymenty: notatniki w `notebooks/experiments/`, wyniki w `docs/evidence/`.
 
 **Cel:** winiarz widzi, czy jego działka jest teraz nietypowa wobec własnej historii. Nie dajemy zaleceń podlewania
 ani zabiegów. Każda liczba ma wynik sprawdzenia i jego rodzaj (status) albo napis „not validated”.
@@ -13,6 +17,8 @@ ani zabiegów. Każda liczba ma wynik sprawdzenia i jego rodzaj (status) albo na
   i upały), karta, sezon i „How far to trust it”. Jeden plik `panel.html` + dane `panel_data.json`.
 - **Obliczenia na własnym komputerze (1.1):** folder `GeoWorldLook` na pulpicie (projekty, dane z Dysku Google,
   skrypty), przebieg co poniedziałek z Harmonogramu zadań, panel sam trafia na GitHub (`docs/URUCHOMIENIE_LOKALNE.md`).
+- **Panel publiczny (1.2.1):** https://geoworldlook.github.io/agriscreen/showcase/agriscreen_panel.html (GitHub Pages
+  z `docs/`), na stronie jako „Live demo”. **CI:** ruff i test bez sieci przy każdej zmianie kodu.
 - **Notatnik monitoringu** (Colab, `notebooks/AgriScreen_Monitor.ipynb`) zostaje jako zapas.
 - **Notatnik na blog** (`notebooks/AgriScreen_story.ipynb`) czyta tylko `docs/showcase/` (bez kluczy).
 - **Kod:** pakiet `agriscreen/` (`docs/ARCHITEKTURA.md`), test bez sieci `python -m agriscreen.selftest`.
@@ -43,6 +49,7 @@ Przymrozki: za mało zdarzeń do sprawdzenia. Wszystkie testy W3b według protok
 |---|---|---|---|
 | W3c (D-090) | czy to miejsce jest dziś słabsze niż zwykle, względem reszty działki? | szum mały, ale w zwykłe dni mapa świeciłaby na ok. 15% powierzchni (limit 5%) | `docs/evidence/W3c_wyniki.md` |
 | W3d (D-091) | czy kwadrat 30 m jest najniżej od 5 lat w tym miesiącu? | kierunek suchy / wilgotny poprawny; kalibracji nie da się ocenić (4 lata, 7 miesięcy z glebą w normie) | `docs/evidence/W3d_wyniki.md` |
+| W3e (D-092, cała winnica) | czy winnica jest słabsza niż zwykle na tle sąsiadów tego dnia? | kalibracja i niezależność od roku i gleby spełnione; sygnał przesadzeń (H4) niepokazany — 2 z 5 zdarzeń mierzalne | `docs/evidence/W3e_wyniki.md` |
 
 W 1.0 to moduł eksperymentalny (`agriscreen/experiments/`, domyślnie wyłączony). Panel nie rysuje tych warstw;
 pokazuje tylko wynik testu. Powtórka po sezonie 2027 z tymi samymi regułami.

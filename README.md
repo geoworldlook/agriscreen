@@ -1,13 +1,30 @@
 # AgriScreen: vineyards against their own history, from open Copernicus data
 
+[![Live panel](https://img.shields.io/badge/live_panel-weekly-2ea44f)](https://geoworldlook.github.io/agriscreen/showcase/agriscreen_panel.html)
+[![selftest](https://github.com/geoworldlook/agriscreen/actions/workflows/selftest.yml/badge.svg)](https://github.com/geoworldlook/agriscreen/actions/workflows/selftest.yml)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/geoworldlook/agriscreen/blob/main/notebooks/AgriScreen_Monitor.ipynb)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![Version](https://img.shields.io/badge/version-1.1.0-green)
+![Version](https://img.shields.io/badge/version-1.2.1-green)
 
 AgriScreen tells a winegrower near Condom (Gers, south-west France) whether a vineyard parcel is **unusual right now
 compared with its own history**, and how far that answer can be trusted. It covers 15 vineyards (0.7–4.1 ha) and
 uses only open data: Copernicus Sentinel-2, ERA5-Land and the CLMS Soil Water Index. It gives no irrigation or
 treatment advice and does not diagnose vine water stress.
+
+**[Open the live panel](https://geoworldlook.github.io/agriscreen/showcase/agriscreen_panel.html)** — it updates
+itself every week.
+
+## Product card
+
+| | |
+|---|---|
+| **Problem** | A winegrower sees one season at a time. A dry summer makes every vineyard look worse, so it is hard to tell “my parcel has a problem” from “the whole area is dry”. |
+| **User** | Winegrowers and advisers in one wine area (now: 15 vineyards near Condom, Gers). |
+| **Solution** | Each vineyard compared with its own past seasons (Sentinel-2, 10 m), next to soil moisture in the area (ERA5-Land, satellite SWI) and weather. One weekly panel, no field visit needed. |
+| **Evidence** | Every layer checked against ground measurements, with test rules written down before computing (pre-registration). Soil layer vs sensors at 3 stations: R 0.57–0.68; rainfall vs rain gauge: R 0.90. Failed tests are reported and hidden from the map (see below). |
+| **Status** | Runs every week without manual work (download, compute, publish). Self-assessed technology readiness: TRL 4–5 (working end to end on real data in its area; not yet tested with users). |
+| **Limits** | No vine water stress diagnosis and no advice: there are no measurements inside the vineyards. The vegetation index follows dry vs wet seasons, not week-by-week soil water. |
+| **Next** | Re-test all rules on the 2027 season; any parcel from a user-drawn outline; cloud-native pipeline (STAC, Docker); deep learning to separate vine rows from inter-rows. |
 
 ![AgriScreen panel: 15 vineyards, 10 m greenness zones on a Sentinel-2 background, soil dryness and weather](docs/showcase/agriscreen_panel.jpg)
 
@@ -55,6 +72,12 @@ All tests below were written down and hashed (SHA-256) before any number was com
 - An earlier experiment used a normal that included later years; with the causal normal the agreement with the
   sensor on the same days fell from 0.57 to 0.44 (several things changed at once, so not all of it is leakage).
 - Super-resolution to 2.5 m (SEN2SR) gave the same validation result as 10 m and was removed in 1.0.
+- **Vineyard against its neighbours (W3e, exploratory).** Comparing a vineyard with the median of the other
+  vineyards on the same day removes the shared weather: the “below” class is calibrated (15.9% of scenes, expected
+  15.9%) and no longer depends on the year or the soil. But the test that it points to events in the vineyard
+  itself (replanting in the crop register) did not pass — only 2 of 5 events could be measured. Not added to the
+  panel ([`W3e_wyniki.md`](docs/evidence/W3e_wyniki.md), notebook
+  [`W3e_sasiedzi.ipynb`](notebooks/experiments/W3e_sasiedzi.ipynb)).
 
 Before 1.0 an independent recomputation from the output files checked every number above
 ([`docs/STAN_I_PLAN.md`](docs/STAN_I_PLAN.md) §4).
@@ -76,10 +99,12 @@ agriscreen/                 Python package (docs/ARCHITEKTURA.md)
 ├── pipeline.py             tasks in order, run_all
 ├── local.py                local runs: settings, weekly job, publishing to GitHub (python -m agriscreen)
 ├── experiments/            W3c zones, W3d months (off by default)
-└── selftest.py             offline end-to-end test on synthetic data
+└── selftest.py             offline end-to-end test on synthetic data (runs in CI on every push)
 notebooks/                  AgriScreen_Monitor (Colab), AgriScreen_story (blog), and their generators;
-                            build_local.py makes AgriScreen_Local (Jupyter on your computer, not in git)
-docs/                       status, architecture, protocols and results (in Polish), showcase files
+                            build_local.py makes AgriScreen_Local (Jupyter on your computer, not in git);
+                            experiments/ holds executed experiment notebooks (W3e)
+docs/                       status, architecture, protocols and results (in Polish); showcase/ is the live
+                            panel served by GitHub Pages; archive/ keeps older plans
 data/                       vineyard polygons, ISMN SMOSMANIA sensors, RPG crop register
 ```
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.1 — 2026-11-01
+
+- Live panel: `docs/` is served by GitHub Pages; the weekly job already updates `docs/showcase/`, so
+  https://geoworldlook.github.io/agriscreen/showcase/agriscreen_panel.html is always the latest panel. The website
+  links to it as “Live demo”.
+- CI (`.github/workflows/selftest.yml`): ruff and the offline end-to-end test on every push and pull request
+  (weekly panel commits are skipped).
+- README: product card (problem, user, solution, evidence, status, limits, next), W3e result.
+- Docs: older plans moved to `docs/archive/plans/` (protocol hashes unchanged); experiment W3e (D-092) notebook and
+  results in `notebooks/experiments/` and `docs/evidence/`.
+
 ## 1.2.0 — 2026-10-24
 
 - Local Jupyter notebook to look at the results, modelled on the Colab notebook: `notebooks/build_local.py` makes
