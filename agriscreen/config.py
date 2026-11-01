@@ -35,7 +35,7 @@ CONFIG: Dict[str, Any] = {
     "SWI_PRODUCT": "v4_0.1deg",           # CLMS SWI 0,1° v4 (2007 – dziś)
     "SWI_1KM": True,                      # zbieramy też SWI 1 km v2 (od VII 2025), bez normy
     "SECRETS_DIR": "../secrets",          # klucze tylko z folderu na Dysku obok projektu (np. cdse.env)
-    "ISMN_DIR": "data/7_isismn_data",     # czujniki ISMN (SMOSMANIA Condom)
+    "ISMN_DIR": "data/ismn",              # czujniki ISMN (SMOSMANIA Condom), poza repo: licencja ISMN zabrania redystrybucji
     "NETWORK": "SMOSMANIA",
     "STATION": "Condom",
     "STATION_BUFFER_M": 50,
@@ -132,10 +132,11 @@ CONFIG: Dict[str, Any] = {
     "MONTHS_MAX_RATIO": 1.5,
 }
 
-# Ścieżki do plików w repozytorium (kod, działki, czujniki ISMN, protokoły) — względem katalogu kodu
-REPO_KEYS = ("PARCELS_PATH", "AOI_PATH", "RPG_PATH", "ISMN_DIR", "W3B_PROTOCOL", "W3C_PROTOCOL", "W3D_PROTOCOL")
-# Ścieżki do danych poza repozytorium (sceny, cache, klucze, wyniki) — względem katalogu danych
-DATA_KEYS = ("S2_DIR", "S2_MANIFEST", "ERA5_DIR", "SWI_DIR", "SECRETS_DIR", "REF_DIR", "MF_DIR", "OUTPUT_DIR")
+# Ścieżki do plików w repozytorium (kod, działki, protokoły) — względem katalogu kodu
+REPO_KEYS = ("PARCELS_PATH", "AOI_PATH", "RPG_PATH", "W3B_PROTOCOL", "W3C_PROTOCOL", "W3D_PROTOCOL")
+# Ścieżki do danych poza repozytorium (sceny, cache, klucze, czujniki ISMN, wyniki) — względem katalogu danych
+DATA_KEYS = ("S2_DIR", "S2_MANIFEST", "ERA5_DIR", "SWI_DIR", "SECRETS_DIR", "REF_DIR", "MF_DIR", "OUTPUT_DIR",
+             "ISMN_DIR")
 PATH_KEYS = REPO_KEYS + DATA_KEYS
 
 

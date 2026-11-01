@@ -4,7 +4,8 @@ Test AgriScreen v1 bez sieci i bez kluczy:  python -m agriscreen.selftest [--out
 1. Dane syntetyczne (stałe ziarna): ERA5-Land 1991–2024, stacja Météo-France 5 km od winnicy, SWI z udawanego
    Copernicus Data Space, poziomy wilgotności z udawanego portalu ICOS i 126 scen Sentinel-2 (IV–X 2016–2024, dwie
    w miesiącu) na prawdziwych granicach 15 winnic. W 2024 r. winnica fid 7 dostaje sygnał (B11 +0,10), który ma
-   wywołać flagę zmiany gospodarowania. Czujnik ISMN Condom i działki są prawdziwe (z repozytorium).
+   wywołać flagę zmiany gospodarowania. Działki są prawdziwe (z repozytorium); czujnik ISMN Condom jest syntetyczny
+   w formacie ISMN (licencja ISMN zabrania dalszego udostępniania prawdziwych danych, więc nie ma ich w repozytorium).
 2. Zadania v1 przez run_task, tak jak w Colab, oraz eksperymenty W3c i W3d.
 3. Sprawdzenie plików wynikowych (check_*) i testy jednostkowe modułów (unit_tests).
 Wyniki trafiają wyłącznie do KATALOG (domyślnie data/_selftest).
@@ -37,6 +38,28 @@ FORBIDDEN = ("stres wodny", "wczesne ostrzeżenie", "early warning", "irrigate",
 # I. DANE SYNTETYCZNE
 # ==============================================================================
 
+def write_synthetic_ismn(ismn_dir: str, network: str, station: str, rng: np.random.Generator) -> str:
+    """Syntetyczny czujnik w formacie ISMN Header+values (.stm): 4 głębokości, godzinowo 2016–2024, cykl roczny + AR(1),
+    flaga G. Tylko do testu kodu (odczyt, QC A4, warianty W1–W3); wyniki produktu liczymy wyłącznie z prawdziwych danych."""
+    d = os.path.join(ismn_dir, network, station)
+    os.makedirs(d, exist_ok=True)
+    t = pd.date_range("2016-01-01 00:00", "2024-12-31 23:00", freq="h")
+    seas = np.cos(2 * np.pi * (t.dayofyear.to_numpy() - 30) / 365.25)
+    for depth in (0.05, 0.10, 0.20, 0.30):
+        ar = np.zeros(len(t))
+        e = rng.normal(0, 0.0015, len(t))
+        for i in range(1, len(t)):
+            ar[i] = 0.999 * ar[i - 1] + e[i]
+        sm = np.clip(0.30 + 0.06 * seas + ar + rng.normal(0, 0.002, len(t)), 0.10, 0.50).round(4)
+        name = (f"{network}_{network}_{station}_sm_{depth:.6f}_{depth:.6f}_DeltaT-ThetaProbe-ML2x_1_1_"
+                f"20160101_20250101.stm")
+        lines = [f"{network} {network} {station} 43.97 0.34 120.0 {depth:.4f} {depth:.4f} 'DeltaT-ThetaProbe-ML2x'"]
+        lines += [f"{a} {v:.4f} G M" for a, v in zip(t.strftime("%Y/%m/%d %H:%M"), sm)]
+        with open(os.path.join(d, name), "w", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n")
+    return ismn_dir
+
+
 def make_inputs(out_dir: str) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     """Katalog testu z danymi wejściowymi. Zwraca (rt, cfg, atrapy usług: cdse, icos, era5_fetch)."""
     import geopandas as gpd
@@ -64,6 +87,9 @@ def make_inputs(out_dir: str) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str,
                          "t2m_max_c": 18 - 9 * seas + rng.normal(0, 3, len(days))})
     os.makedirs(cfg["ERA5_DIR"], exist_ok=True)
     era5.to_csv(era5_csv(cfg), index=False)
+
+    # Czujnik ISMN Condom: syntetyczny, w formacie ISMN (.stm); prawdziwych danych ISMN nie wolno udostępniać dalej
+    cfg["ISMN_DIR"] = write_synthetic_ismn(os.path.join(out_dir, "ismn"), cfg["NETWORK"], cfg["STATION"], rng)
 
     # Stacja Météo-France 5 km od winnicy: Tmin 1 °C chłodniej niż ERA5; ERA5 w jej punkcie w cache
     os.makedirs(os.path.join(cfg["MF_DIR"], "era5_32999001"), exist_ok=True)

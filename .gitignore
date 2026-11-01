@@ -44,7 +44,8 @@ credentials.json
 Thumbs.db
 .DS_Store
 scratch/
-data/7_isismn_data/python_metadata/
+data/7_isismn_data/
+data/ismn/
 
 # Rejestr gwl_* (baza danych na Dysku Google, nie w repo)
 data/registry/*

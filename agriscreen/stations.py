@@ -23,7 +23,7 @@ STATION_CONFIG: Dict[str, Any] = {
     "PROJECT_DIR": ".",
     "NETWORK": "SMOSMANIA",
     "STATION": "Condom",
-    "ISMN_DIR": "data/7_isismn_data",
+    "ISMN_DIR": "data/ismn",
     "STATION_OUTPUT_DIR": "data/08_Station_Validation",
     "GEE_PROJECT": "ee-geoworldlook",
 

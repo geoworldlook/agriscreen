@@ -264,7 +264,8 @@ def task_reference(rt: Dict[str, Any], cfg: Dict[str, Any], cdse_session: Any = 
     out = cfg["OUTPUT_DIR"]
     os.makedirs(out, exist_ok=True)
     overrides = {"PROJECT_DIR": cfg["PROJECT_DIR"], "NETWORK": cfg["NETWORK"], "STATION": cfg["STATION"],
-                 "BOOTSTRAP_N": cfg["BOOTSTRAP_N"], "STATION_BUFFER_M": cfg["STATION_BUFFER_M"]}
+                 "ISMN_DIR": cfg["ISMN_DIR"], "BOOTSTRAP_N": cfg["BOOTSTRAP_N"],
+                 "STATION_BUFFER_M": cfg["STATION_BUFFER_M"]}
     s7cfg = stations.build_config(overrides)
     hw = int(cfg["CLIM_HALF_WINDOW_DAYS"])
     era5_fetch = era5_fetch or ingest.sync_era5_land_point

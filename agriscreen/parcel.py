@@ -268,7 +268,7 @@ def sensor_daily(cfg: Dict[str, Any]) -> Dict[str, pd.DataFrame]:
     from agriscreen import stations
     p0, p1 = cfg["PARCEL_ISMN_PERIOD"]
     ov = {"PROJECT_DIR": cfg["PROJECT_DIR"], "NETWORK": cfg["NETWORK"], "STATION": cfg["STATION"],
-          "START_DATE": p0, "END_DATE": p1}
+          "ISMN_DIR": cfg["ISMN_DIR"], "START_DATE": p0, "END_DATE": p1}
     v20, v30 = stations.a4_variants(0.20, ov), stations.a4_variants(0.30, ov)
     out = {}
     for var in SENSOR_VARIANTS:
@@ -868,7 +868,7 @@ def tests_summary(tests: Optional[pd.DataFrame]) -> Optional[Dict[str, Any]]:
 
 
 def _selftest(cfg: Dict[str, Any]) -> None:
-    """Testy jednostkowe funkcji W3b na danych syntetycznych (stałe ziarno) i na prawdziwym czujniku ISMN z repo."""
+    """Testy jednostkowe funkcji W3b na danych syntetycznych (stałe ziarno), w tym na czujniku ISMN z selftestu."""
     from scipy import stats
     rng = np.random.default_rng(42)
     # jackknife: ręcznie policzony przykład i brak przedziału przy < 3 latach
@@ -940,7 +940,7 @@ def _selftest(cfg: Dict[str, Any]) -> None:
                        "clear_frac": [0.95, 0.99]})
     kept, n_d = one_scene_per_day(pd.concat([wd, wd.assign(site_id="V2")], ignore_index=True))
     assert n_d == 1 and (kept["clear_frac"] == 0.99).all() and len(kept) == 2, kept      # 1 dzień, 2 działki
-    # Cel T3 z prawdziwego czujnika: wartość dnia t wpływa na y(t) tylko przez normę (< 0,01 z)
+    # Cel T3 z czujnika (w selftest syntetyczny, format ISMN): wartość dnia t wpływa na y(t) tylko przez normę (< 0,01 z)
     sen = sensor_daily(cfg)
     sm = sen["W1"]["sm"]
     y_a = window_mean(anomaly_daily(sm, cfg), cfg)

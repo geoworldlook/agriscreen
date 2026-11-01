@@ -105,7 +105,7 @@ notebooks/                  AgriScreen_Monitor (Colab), AgriScreen_story (blog),
                             experiments/ holds executed experiment notebooks (W3e)
 docs/                       status, architecture, protocols and results (in Polish); showcase/ is the live
                             panel served by GitHub Pages; archive/ keeps older plans
-data/                       vineyard polygons, ISMN SMOSMANIA sensors, RPG crop register
+data/                       vineyard polygons, RPG crop register (ISMN sensor data are not stored here, see below)
 ```
 
 ## How to run
@@ -150,9 +150,16 @@ run_all(rt, make_config(PROJECT_DIR), ingest_data=True, experiments=False)
 ## Data and attribution
 
 Copernicus Sentinel-2 L2A (ESA), ERA5-Land (Copernicus Climate Change Service), CLMS Soil Water Index (Copernicus
-Land Monitoring Service); in situ: ISMN SMOSMANIA (Météo-France / ISMN), ICOS stations FR-Aur and FR-Lus (CC BY 4.0);
-rain gauges Météo-France; crop register RPG (IGN); 7-day forecast Open-Meteo; background imagery in the browser
-Esri World Imagery; map library Leaflet.
+Land Monitoring Service); in situ: ICOS ecosystem stations in France (CC BY 4.0), ISMN SMOSMANIA (Météo-France /
+ISMN); rain gauges Météo-France; wine production declarations (French customs, open data); crop register RPG (IGN);
+7-day forecast Open-Meteo; background imagery in the browser Esri World Imagery; map library Leaflet.
+
+**ISMN data** are used only for scientific validation and are **not redistributed**: the ISMN terms allow scientific
+use only and forbid passing the data on. To rerun the validation, download the SMOSMANIA Condom station with your own
+ISMN account into `<data folder>/data/ismn/`. The automatic test (CI) uses a synthetic sensor in the ISMN file format.
+References: Dorigo et al. (2021), *Hydrology and Earth System Sciences* 25, 5749–5804,
+https://doi.org/10.5194/hess-25-5749-2021; Dorigo et al. (2011), *Hydrology and Earth System Sciences* 15,
+1675–1698; SMOSMANIA network: Calvet et al. (2007), IGARSS 2007, 1196–1199.
 
 ## How it is built
 

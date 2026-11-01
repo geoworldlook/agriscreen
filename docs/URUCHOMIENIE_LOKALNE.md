@@ -37,7 +37,8 @@ Pulpit\GeoWorldLook\
 │   └── agriscreen\          kod (git): pakiet agriscreen\, notebooks\, docs\, scripts\
 ├── data\
 │   └── agriscreen  ──▶      łącze do Dysku Google: Mój dysk\GeoWorldLook\agriwatch
-│                             (data\01_Raw_Sentinel2, data\registry, data\05_Final_Outputs\agriwatch, data\logs …)
+│                             (data\01_Raw_Sentinel2, data\registry, data\05_Final_Outputs\agriwatch, data\logs,
+│                              data\ismn — czujniki ISMN, data\09_Reference_Stations i data\W7_stacje — W7 …)
 └── scripts\
     ├── agriscreen_przebieg_teraz.cmd   przebieg tygodniowy na żądanie (to samo co Harmonogram)
     ├── agriscreen_otworz_panel.cmd     otwiera panel.html z ostatniego przebiegu
@@ -48,6 +49,8 @@ Pulpit\GeoWorldLook\
 
 Zasady: kod tylko w `projects\` (GitHub), dane tylko na Dysku (`data\` to łącza), klucze tylko w
 `Mój dysk\GeoWorldLook\secrets`. Kolejny projekt: `projects\<nazwa>` + `data\<nazwa>`.
+Dane ISMN (czujnik Condom) są tylko na Dysku (`data\ismn`): licencja ISMN pozwala na użycie naukowe, ale zabrania
+dalszego udostępniania, więc nie trafiają do publicznego repozytorium. Nowe lata pobiera się z kontem na portalu ISMN.
 
 ## 3. Co robi przebieg tygodniowy (`python -m agriscreen weekly`)
 
