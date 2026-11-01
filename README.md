@@ -154,6 +154,12 @@ Land Monitoring Service); in situ: ISMN SMOSMANIA (Météo-France / ISMN), ICOS 
 rain gauges Météo-France; crop register RPG (IGN); 7-day forecast Open-Meteo; background imagery in the browser
 Esri World Imagery; map library Leaflet.
 
+## How it is built
+
+I build this project with help from Claude, an AI assistant made by Anthropic. Claude helps with code, analysis runs
+and documentation. I set the goals and the methods, review the results and make the decisions. Every result is
+checked against ground measurements, as described above.
+
 ## License
 
 [MIT](LICENSE). Documentation in [`docs/`](docs/) is in Polish; the Polish README from before 1.0 is in
