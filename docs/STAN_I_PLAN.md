@@ -66,6 +66,12 @@ nie werdykty:
 
 Szczegóły: sekcje „Audyt” w `W3b_wyniki.md`, `W3c_wyniki.md`, `W3d_wyniki.md`.
 
+## 4a. Teraz: wskazówki potwierdzone pomiarami (Plan v10, D-093)
+
+Cel: pokazać na rzeczywistych pomiarach (10 stacji ICOS we Francji, czujnik ISMN Condom, Météo-France), że
+wskazówki panelu trafiają częściej niż przypadek, i opublikować historię trafień. Protokół
+`docs/evidence/W7_protokol_wskazowki.md` (szkic → rejestracja przed liczeniem).
+
 ## 5. Później (osobne decyzje)
 
 | Co | Po czym | Uwagi |
@@ -93,4 +99,4 @@ Szczegóły: sekcje „Audyt” w `W3b_wyniki.md`, `W3c_wyniki.md`, `W3d_wyniki.
 | Wszystkie wyniki w jednej tabeli | `docs/evidence/karta_wynikow.md` |
 | Protokoły i wyniki | `docs/evidence/W2_REF_*`, `W3b_*`, `W3c_*`, `W3d_*` |
 | Publikacja na blogu | `docs/showcase/README.md` |
-| Plany | `docs/plans/` (Plan v9, Plan W3b, Plan v8) |
+| Plany | `docs/plans/` (Plan v10 — teraz, Plan v9, Plan W3b, Plan v8) |
