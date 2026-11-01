@@ -1,7 +1,8 @@
 # W7 — protokół „Wskazówki AgriScreen potwierdzone pomiarami” (pre-rejestracja)
 
-> **Status:** `DRAFT` 2026-11-01 — czeka na akceptację autora. Po akceptacji: `REGISTERED` (D-093) i SHA-256 sekcji
-> 0–9 (`sed -n '/^## 0\./,$p' docs/evidence/W7_protokol_wskazowki.md | sha256sum`).
+> **Status:** `REGISTERED` 2026-11-02 (D-093, akceptacja autora) · SHA-256 sekcji 0–9: `a6689c13870ca7a087af5f38e5430789027579ec1912afea67303cd8672b375d`
+> - Skrót liczy `sed -n '/^## 0\./,$p' docs/evidence/W7_protokol_wskazowki.md | sha256sum` (plik z końcami linii LF);
+>   notatnik W7 liczy go i sprawdza przed testami. Szkic bez zmian treści: commit `a198773` (2026-11-01).
 > - Plan: `docs/plans/Plan_v10_wskazowki_potwierdzone.md`.
 > - **Pytanie:** czy wskazówki z panelu („sucho w okolicy”, „roślinność poniżej swojej normy”, przymrozek, upał)
 >   trafiają częściej niż przypadek, sprawdzone na rzeczywistych pomiarach naziemnych? Nie sprawdzamy dokładności
