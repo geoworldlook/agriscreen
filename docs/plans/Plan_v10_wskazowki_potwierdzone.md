@@ -35,8 +35,8 @@ tydzień. Nie chodzi o dokładną wartość wilgotności gleby, tylko o trafnoś
 - [x] Kod: `agriscreen/experiments/w7_data.py` (pobieranie, rejestr źródeł), `w7.py` (prawda, wskazówki, testy,
       wiersze panelu), generator notatnika `notebooks/experiments/build_w7.py`.
 - [x] Deklaracje celne Gers 2016–2025 pobrane (`09_Reference_Stations/douane`).
-- [ ] Archiwa ICOS L2 (10 stacji) → `09_Reference_Stations/<stacja>/`, wpisy w `MANIFEST_W7.csv`.
-- [ ] ERA5-Land w punktach stacji → `W7_stacje/<stacja>_era5_land_daily.csv`.
+- [x] Archiwa ICOS L2 (10 stacji) → `09_Reference_Stations/<stacja>/`, wpisy w `MANIFEST_W7.csv` (2026-11-02).
+- [x] ERA5-Land w punktach stacji → `W7_stacje/<stacja>_era5_land_daily.csv` (10 stacji).
 - [ ] Sentinel-2 i statystyki kwadratów 7 stacji → `W7_stacje/<stacja>/` (`w7_data.run_s2_station`, przyrostowo).
 - [ ] Notatnik `W7_wskazowki.ipynb` wykonany; `docs/evidence/W7_wyniki.md`; wiersz w `karta_wynikow.md`.
 - [ ] Publikacja: wiersze K1/K2 w panelu (`w7.trust_rows`, `w7_tests.csv` w `docs/showcase/`), README, strona.
