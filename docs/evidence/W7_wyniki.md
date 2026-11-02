@@ -1,7 +1,7 @@
 # W7 „Wskazówki AgriScreen potwierdzone pomiarami” — wyniki (zamrożenie 2026-09-30)
 
 > **Status:** wynik protokołu `docs/evidence/W7_protokol_wskazowki.md` (D-093, SHA-256 `a6689c13…`, status
-> `REGISTERED`, zarejestrowany w commicie `cf2dfcf` przed liczeniem), bez zmian protokołu po rejestracji.
+> `REGISTERED`, zarejestrowany w commicie `6907f27` przed liczeniem), bez zmian protokołu po rejestracji.
 > - Przebieg 2026-11-02 na komputerze lokalnym; notatnik z wynikami: `notebooks/experiments/W7_wskazowki.ipynb`
 >   (generator `build_w7.py`, kod `agriscreen/experiments/w7.py` i `w7_data.py`).
 > - Dane: archiwa ICOS L2 10 stacji, czujnik ISMN Condom (A4 W1), Météo-France, deklaracje celne Gers 2016–2025;

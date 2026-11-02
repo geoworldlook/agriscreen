@@ -29,7 +29,7 @@ ani zabiegów. Każda liczba ma wynik sprawdzenia i jego rodzaj (status) albo na
   Przebudowa z modułów `step_*` niczego nie zmieniła w wynikach (regresja na tych samych danych syntetycznych:
   26 plików wynikowych identycznych; `CHANGELOG.md`).
 - **Wycofane w 1.0:** super-rozdzielczość SEN2SR, status dekadowy w stylu EDO CDI, polski dashboard i biuletyn,
-  gałąź Sentinel-1 (wszystko w historii git, ostatni commit przed 1.0: `82844ae`).
+  gałąź Sentinel-1 (wszystko w historii git, ostatni commit przed 1.0: `c914747`).
 
 ## 2. Co jest sprawdzone
 
@@ -107,3 +107,4 @@ Dalej: sezon 2027 jako potwierdzenie (te same reguły) i nowy protokół dla ro�
 | Protokoły i wyniki | `docs/evidence/W2_REF_*`, `W3b_*`, `W3c_*`, `W3d_*` |
 | Publikacja na blogu | `docs/showcase/README.md` |
 | Plany | `docs/plans/` (Plan v10 — teraz, Plan v9, Plan W3b, Plan v8) |
+| Historia repozytorium (przepisana 2026-11-02, D-094) | `docs/evidence/historia_git.md` |

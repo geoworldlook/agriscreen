@@ -2,9 +2,9 @@
 
 > **Status:** wynik protokołu `docs/evidence/W3b_protokol_walidacji.md` (D-089, SHA-256 `f01b74a8…`, status
 > `REGISTERED`, skrót w wynikach zgodny z zarejestrowanym), bez zmian protokołu po rejestracji.
-> - Przebieg w Colab 2026-10-20, kod `54cc586`; notatnik z wynikami: commit `2d2fcbe`.
+> - Przebieg w Colab 2026-10-20, kod `428c731`; notatnik z wynikami: commit `3ba54a2`.
 > - Flaga `+dirty`: kopia repozytorium na Dysku miała lokalne zmiany (zapisany notatnik). Pochodzenie wyniku
->   potwierdza co innego: testy policzone od nowa przez kolejne commity (`a52d7a1`, `ddf26dd`) dały te same wartości
+>   potwierdza co innego: testy policzone od nowa przez kolejne commity (`0555649`, `1b0f674`) dały te same wartości
 >   co ten przebieg (kopia w `docs/showcase/w3b_tests.csv`).
 > - Zamrożenie: 419 scen 2016-04-11 – 2026-10-18; SHA-256 listy scen `96d70cb4…`, bez zmian od zamrożenia.
 > - Pełna tabela: `w3b_tests.csv` (247 wierszy) w `data/05_Final_Outputs/agriwatch/` na Dysku.

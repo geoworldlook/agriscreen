@@ -102,7 +102,7 @@ Zarejestrowane protokoły i notatki wyników odwołują się do modułów `step_
 | `step_03_super_resolve.py`, `step_06_dashboard.py` | wycofane (SEN2SR, dashboard PL) |
 
 Funkcje przeniesiono bez zmian logiki; regresja na danych syntetycznych daje identyczne pliki wynikowe
-(`CHANGELOG.md`). Ostatni commit z modułami `step_*`: `82844ae`.
+(`CHANGELOG.md`). Ostatni commit z modułami `step_*`: `c914747`.
 
 ## 7. Zasady
 

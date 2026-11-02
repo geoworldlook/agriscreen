@@ -13,7 +13,7 @@
 > - **Czego nie mówi:** nie mówi, że winorośl cierpi z braku wody, i nie daje porady nawadniania. Nie mamy pomiarów
 >   w winnicach; warstwa porównuje satelitę z satelitą.
 > - **Podstawa:** W3b (D-084–D-089): te same sceny, działki, pas 20 m, okno normy i reguła toru. Panel: strefy
->   „piksel minus mediana działki” (`step_12`, commit 8d6beb4) — tu dochodzi do nich historia. Kod: `step_13_zones.py`.
+>   „piksel minus mediana działki” (`step_12`, commit d0f657a) — tu dochodzi do nich historia. Kod: `step_13_zones.py`.
 >
 > **Oznaczenia:** [P] praca źródłowa; [D] nasze dane, kod albo dokument; [K] konwencja, nie wynik z danych;
 > [W] wiedza ogólna; **(U1–U7)** — wybory w §9.

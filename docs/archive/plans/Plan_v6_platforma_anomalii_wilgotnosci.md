@@ -3,7 +3,7 @@
 > **Status:** `PROPOSED` (2026-10-07). Wymaga zatwierdzenia (`ZATWIERDZAM v6`).
 > **Wzorzec:** projekt ESA WineEO (TerraNIS + CESBIO, usługa Wago) — [artykuł ESA](https://eo4society.esa.int/2021/10/06/irrigation-scheduling-for-viticulture-using-sentinel-2/), [CESBIO](https://www.cesbio.cnrs.fr/irrigation-scheduling-for-viticulture-using-sentinel-2-wineeo/).
 > **Różnica wobec wzorca:** WineEO mówi rolnikowi, **kiedy i ile nawadniać**. AgriWatch mówi, **czy winnica jest sucha w porównaniu ze swoją normą** i czy warto ją sprawdzić. Bez dawki nawadniania; winnice w Gers są w większości nienawadniane.
-> **Stan wyjściowy (już w kodzie, 2026-10-07):** status dekadowy wg EDO CDI dla jednej winnicy; SEN2SR 2,5 m jako rozdzielczość detekcji (commity `fcf8c64`, `7bf9f0f`); walidacja na ISMN Condom; rejestr `gwl_*` na Dysku. Opis: `docs/ARCHITEKTURA.md`.
+> **Stan wyjściowy (już w kodzie, 2026-10-07):** status dekadowy wg EDO CDI dla jednej winnicy; SEN2SR 2,5 m jako rozdzielczość detekcji (commity `bd1f676`, `c3cf538`); walidacja na ISMN Condom; rejestr `gwl_*` na Dysku. Opis: `docs/ARCHITEKTURA.md`.
 > **Relacja do innych planów:** v3 (`APPROVED`) — przegląd literatury i wzorzec EDO zostają. v5 (`PROPOSED`, bilans wodny FAO-56) — nie wchodzi do v6; zostaje opcjonalnym modułem na później (sekcja 2, wiersz „Model”).
 > **Zasoby:** 1 osoba, około 10 h tygodniowo, darmowe narzędzia; architektura GitHub → Colab → Dysk Google → strona `geoworldlook.vercel.app`.
 

@@ -3,8 +3,8 @@
 > Protokół: `docs/evidence/W3d_protokol_miesiace.md`, zarejestrowany 2026-10-20 (D-091), SHA-256
 > `599a381bb6d15dfe9fa81186a34436815d2d0ea01970828a5aa90730ff6da30a` — ten sam skrót w `w3d_tests.csv`.
 > Dane: archiwum projektu, 419 scen, zamrożenie 2026-10-18 (`w3d_freeze.json`, ta sama lista scen co W3b i W3c,
-> SHA-256 `96d70cb4…`); 13 winnic z QC; żadna scena nie wypadła. Kod `ddf26dd` (oznaczenie `+dirty` pochodzi od
-> zapisanego w Colab notatnika — kolejny commit, c3783a3, zmienia tylko notatnik).
+> SHA-256 `96d70cb4…`); 13 winnic z QC; żadna scena nie wypadła. Kod `1b0f674` (oznaczenie `+dirty` pochodzi od
+> zapisanego w Colab notatnika — kolejny commit, e217894, zmienia tylko notatnik).
 
 ## Wynik w jednym zdaniu
 

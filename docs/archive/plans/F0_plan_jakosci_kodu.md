@@ -26,7 +26,7 @@ F0 **nie poprawia metod naukowych** (downscaling, wskaźnik stresu). To robi F1.
 
 Problemy K-01…K-12 (rejestr: `Plan_pracy/3_AgriWatch Research Notebook.md`, sekcja 5.2) sprowadzają się do trzech przyczyn:
 
-| Przyczyna | Objaw w kodzie (stan `6f41034`) | Problemy |
+| Przyczyna | Objaw w kodzie (stan `f655335`) | Problemy |
 |---|---|---|
 | **A. Brak kontraktu danych z georeferencją** | Moduły wymieniają `Dict[str, np.ndarray]` + osobny `profile`. Rozmiary wyrównywane „na siłę”: 20× `align_raster_shape`, 13× `scipy.ndimage.zoom`. Agregacja 10 m → 1 km robiona interpolacją, nie średnią powierzchniową | K-02, K-04, K-10 |
 | **B. Ciche degradacje** | 32× `except Exception` zwykle kończy się podstawieniem wartości; 16× `np.full` ze stałymi; 9× `nan_to_num`; 6× globalne `warnings.filterwarnings("ignore")`. Potok zawsze kończy się „SUKCESEM” | K-03, K-05, K-06, K-07, K-09, K-11 |
