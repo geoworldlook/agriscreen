@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.0 — 2026-11-02
+
+- **W7 (protocol D-093, registered before computing): product hints vs real ground measurements.**
+  “Dry soil” hint confirmed: in situ sensors below their usual level on 81.2% [74.6; 87.8] of 4,783 hint days vs
+  49.3% by chance (10 ICOS stations in France + ISMN Condom). “Vegetation below its own normal” vs measured
+  evapotranspiration: 67.1% vs 51.7%, interval includes chance — not confirmed. Results:
+  `docs/evidence/W7_wyniki.md`; notebook `notebooks/experiments/W7_wskazowki.ipynb`.
+- Code: `agriscreen/experiments/w7_data.py` (ICOS L2 archives, customs data, station squares, manifest with SHA-256
+  and licence), `w7.py` (measured-only truth, hints, hit rates, panel rows). Panel “How far to trust it” shows K1 and
+  K2; `w7_tests.csv` is published weekly to `docs/showcase/`.
+- **ISMN licence:** raw ISMN sensor files removed from the public repository (ISMN terms forbid redistribution);
+  `ISMN_DIR` now points to the data folder (identical content, frozen W3b results unchanged). Selftest and CI use a
+  synthetic sensor in the ISMN file format. README: licence note and references.
+
 ## 1.2.1 — 2026-11-01
 
 - Live panel: `docs/` is served by GitHub Pages; the weekly job already updates `docs/showcase/`, so

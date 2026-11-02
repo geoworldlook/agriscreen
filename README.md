@@ -4,7 +4,7 @@
 [![selftest](https://github.com/geoworldlook/agriscreen/actions/workflows/selftest.yml/badge.svg)](https://github.com/geoworldlook/agriscreen/actions/workflows/selftest.yml)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/geoworldlook/agriscreen/blob/main/notebooks/AgriScreen_Monitor.ipynb)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![Version](https://img.shields.io/badge/version-1.2.1-green)
+![Version](https://img.shields.io/badge/version-1.3.0-green)
 
 AgriScreen tells a winegrower near Condom (Gers, south-west France) whether a vineyard parcel is **unusual right now
 compared with its own history**, and how far that answer can be trusted. It covers 15 vineyards (0.7–4.1 ha) and
@@ -14,6 +14,11 @@ treatment advice and does not diagnose vine water stress.
 **[Open the live panel](https://geoworldlook.github.io/agriscreen/showcase/agriscreen_panel.html)** — it updates
 itself every week.
 
+**Checked against the ground:** when AgriScreen says *the soil in the area is dry*, soil moisture sensors in the
+ground confirmed it was drier than usual on **81% of those days** (49% by chance) — 4,783 days at 10 ICOS stations
+in France and the ISMN sensor at Condom, 2016–2026, with test rules registered before computing
+([W7 results](docs/evidence/W7_wyniki.md)). The vegetation hint is **not confirmed** yet (see below).
+
 ## Product card
 
 | | |
@@ -21,7 +26,7 @@ itself every week.
 | **Problem** | A winegrower sees one season at a time. A dry summer makes every vineyard look worse, so it is hard to tell “my parcel has a problem” from “the whole area is dry”. |
 | **User** | Winegrowers and advisers in one wine area (now: 15 vineyards near Condom, Gers). |
 | **Solution** | Each vineyard compared with its own past seasons (Sentinel-2, 10 m), next to soil moisture in the area (ERA5-Land, satellite SWI) and weather. One weekly panel, no field visit needed. |
-| **Evidence** | Every layer checked against ground measurements, with test rules written down before computing (pre-registration). Soil layer vs sensors at 3 stations: R 0.57–0.68; rainfall vs rain gauge: R 0.90. Failed tests are reported and hidden from the map (see below). |
+| **Evidence** | Every layer checked against ground measurements, with test rules written down before computing (pre-registration). “Dry soil” hint confirmed by in situ sensors on 81% of days vs 49% by chance (11 sites); rainfall vs rain gauge: R 0.90; heat days at Condom: 70% detected, 15% false alarms. Failed tests are reported and hidden from the map (see below). |
 | **Status** | Runs every week without manual work (download, compute, publish). Self-assessed technology readiness: TRL 4–5 (working end to end on real data in its area; not yet tested with users). |
 | **Limits** | No vine water stress diagnosis and no advice: there are no measurements inside the vineyards. The vegetation index follows dry vs wet seasons, not week-by-week soil water. |
 | **Next** | Re-test all rules on the 2027 season; any parcel from a user-drawn outline; cloud-native pipeline (STAC, Docker); deep learning to separate vine rows from inter-rows. |
@@ -61,9 +66,14 @@ All tests below were written down and hashed (SHA-256) before any number was com
 | Parcel index: share of scenes “below its own normal” (expected 16%) | 28% [4; 52]; from 1% (2021) to 76% (2022); 14% [0; 30] with near-normal soil | descriptive — no gross miscalibration, weak test |
 | Area vegetation follows soil water of the previous 30 days | ρ 0.55 [−0.02; 1.00] (criterion: lower bound > 0) | **not confirmed** — sentence 3 hidden |
 | 4-band model (red, red-edge, NIR, SWIR) instead of the simple index | Δρ −0.01 [−0.18; 0.16] | **not adopted** |
+| Hint “dry soil in the area” vs measured soil moisture below its usual level (W7, 10 ICOS stations + ISMN Condom, April–October, data to 2026-09-30) | right on 81.2% [74.6; 87.8] of 4,783 hint days vs 49.3% by chance | **confirmed** |
+| Hint “vegetation below its own normal” vs measured evapotranspiration (W7, 7 ICOS towers in forests and grasslands, June–September) | 67.1% [33.0; 100] of 82 hint scenes vs 51.7% by chance | **not confirmed** |
 | Vine water stress | no measurements inside the vineyards | not validated |
 
 **Negative results, reported as such:**
+- **Vegetation hint vs measured evapotranspiration (W7 K2) did not pass.** The interval includes chance. After the
+  test (an observation, not a result): it agreed on the three grassland towers (79–94%) but not on the four forest
+  towers (14–50%). A vineyard sits between these two; a new test split by vegetation type is planned before 2027.
 - **Places inside a parcel against their own history did not pass.** “Zones weaker than usual” (W3c) would light up
   about 15% of the parcel area on ordinary days (limit 5%). “Lowest in five years” for 30 m squares (W3d) could not
   be checked for calibration with only four years of normal-soil months. Neither is drawn on the map; both will be
@@ -98,11 +108,11 @@ agriscreen/                 Python package (docs/ARCHITEKTURA.md)
 ├── panel.py                the product: panel.html + panel_data.json
 ├── pipeline.py             tasks in order, run_all
 ├── local.py                local runs: settings, weekly job, publishing to GitHub (python -m agriscreen)
-├── experiments/            W3c zones, W3d months (off by default)
+├── experiments/            W3c zones, W3d months (off by default); W7 hints vs ground measurements
 └── selftest.py             offline end-to-end test on synthetic data (runs in CI on every push)
 notebooks/                  AgriScreen_Monitor (Colab), AgriScreen_story (blog), and their generators;
                             build_local.py makes AgriScreen_Local (Jupyter on your computer, not in git);
-                            experiments/ holds executed experiment notebooks (W3e)
+                            experiments/ holds executed experiment notebooks (W3e, W7)
 docs/                       status, architecture, protocols and results (in Polish); showcase/ is the live
                             panel served by GitHub Pages; archive/ keeps older plans
 data/                       vineyard polygons, RPG crop register (ISMN sensor data are not stored here, see below)

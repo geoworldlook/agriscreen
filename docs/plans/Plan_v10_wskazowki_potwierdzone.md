@@ -37,8 +37,9 @@ tydzień. Nie chodzi o dokładną wartość wilgotności gleby, tylko o trafnoś
 - [x] Deklaracje celne Gers 2016–2025 pobrane (`09_Reference_Stations/douane`).
 - [x] Archiwa ICOS L2 (10 stacji) → `09_Reference_Stations/<stacja>/`, wpisy w `MANIFEST_W7.csv` (2026-11-02).
 - [x] ERA5-Land w punktach stacji → `W7_stacje/<stacja>_era5_land_daily.csv` (10 stacji).
-- [ ] Sentinel-2 i statystyki kwadratów 7 stacji → `W7_stacje/<stacja>/` (`w7_data.run_s2_station`, przyrostowo).
-- [ ] Notatnik `W7_wskazowki.ipynb` wykonany; `docs/evidence/W7_wyniki.md`; wiersz w `karta_wynikow.md`.
+- [x] Sentinel-2 i statystyki kwadratów 7 stacji → `W7_stacje/<stacja>/` (2016–2026; wszystkie pliki czytelne).
+- [x] Notatnik `W7_wskazowki.ipynb` wykonany; `docs/evidence/W7_wyniki.md`; wiersz w `karta_wynikow.md`
+      (K1 potwierdzone 81,2% wobec 49,3%; K2 niepotwierdzone).
 - [ ] Publikacja: wiersze K1/K2 w panelu (`w7.trust_rows`, `w7_tests.csv` w `docs/showcase/`), README, strona.
 - [ ] Końcowe sprawdzenie produktu (6 obszarów + tylko dane rzeczywiste).
 

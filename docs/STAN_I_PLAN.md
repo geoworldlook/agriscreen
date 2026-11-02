@@ -1,6 +1,10 @@
 # AgriScreen — stan i plan
 
-Stan na 2026-11-01, wersja 1.2.1. Jedna strona do orientacji; szczegóły w dokumentach z §7.
+Stan na 2026-11-02, wersja 1.3.0. Jedna strona do orientacji; szczegóły w dokumentach z §7.
+
+**Najważniejszy wynik (W7, D-093):** gdy AgriScreen mówi „gleba w okolicy jest sucha”, czujniki w gruncie
+potwierdziły to w 81% dni (przypadkiem 49%; 11 stanowisk, 4783 dni) — **potwierdzone**. Wskazówka o roślinności
+wobec zmierzonego parowania — **niepotwierdzona** (67% wobec 52%, przedział obejmuje przypadek).
 
 **Przepływ danych (jedno zdanie):** dane otwarte (Copernicus, stacje) → co poniedziałek komputer liczy wszystko sam
 → dane i wyniki na Dysku Google → panel na GitHub → panel publiczny (GitHub Pages) i strona geoworldlook.vercel.app
@@ -38,6 +42,9 @@ ani zabiegów. Każda liczba ma wynik sprawdzenia i jego rodzaj (status) albo na
 | Kalibracja klasy „poniżej swojej normy” (T1) | 28% [4; 52] scen wobec 16%; po latach 1–76%; gleba w normie 14% [0; 30] | descriptive |
 | Roślinność okolicy a czujnik w gruncie (T3, kryterium zdania 3) | ρ 0,55 [−0,02; 1,00] | not confirmed (zdanie 3 ukryte) |
 | Model 4 pasm zamiast prostego wskaźnika (§7) | Δρ −0,01 [−0,18; 0,16] | not adopted |
+| Wskazówka „gleba sucha” wobec czujników w gruncie (W7 K1, 10 stacji ICOS + ISMN Condom) | trafność 81,2% [74,6; 87,8] wobec 49,3% przypadkiem | confirmed (W7) |
+| Wskazówka „roślinność poniżej normy” wobec zmierzonego parowania (W7 K2, 7 wież ICOS) | 67,1% [33,0; 100] wobec 51,7%; łąki tak, lasy nie (obserwacja) | not confirmed |
+| Upał (ERA5-Land) wobec stacji Météo-France CONDOM (W7, opisowo) | wykrycie 70%, fałszywe alarmy 15% | descriptive |
 | Stres wodny winorośli | brak pomiarów w winnicach | not validated |
 
 Przymrozki: za mało zdarzeń do sprawdzenia. Wszystkie testy W3b według protokołu zarejestrowanego przed liczeniem
@@ -66,11 +73,11 @@ nie werdykty:
 
 Szczegóły: sekcje „Audyt” w `W3b_wyniki.md`, `W3c_wyniki.md`, `W3d_wyniki.md`.
 
-## 4a. Teraz: wskazówki potwierdzone pomiarami (Plan v10, D-093)
+## 4a. Wskazówki potwierdzone pomiarami (Plan v10, D-093) — zrobione 2026-11-02
 
-Cel: pokazać na rzeczywistych pomiarach (10 stacji ICOS we Francji, czujnik ISMN Condom, Météo-France), że
-wskazówki panelu trafiają częściej niż przypadek, i opublikować historię trafień. Protokół
-`docs/evidence/W7_protokol_wskazowki.md` (szkic → rejestracja przed liczeniem).
+Protokół `docs/evidence/W7_protokol_wskazowki.md` (zarejestrowany przed liczeniem), wyniki
+`docs/evidence/W7_wyniki.md`, notatnik `notebooks/experiments/W7_wskazowki.ipynb`. K1 potwierdzone, K2 nie.
+Dalej: sezon 2027 jako potwierdzenie (te same reguły) i nowy protokół dla roślinności z podziałem na typ roślinności.
 
 ## 5. Później (osobne decyzje)
 

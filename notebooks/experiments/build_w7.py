@@ -192,7 +192,8 @@ import glob
 mf = weather.read_mf(sorted(glob.glob(os.path.join(cfg['MF_DIR'], 'Q_*RR-T-Vent.csv.gz'))), start='2016-01-01')
 ec = w7.era5_frame(era5_csv(cfg))
 for _, s in mfs.iterrows():
-    st = mf[mf['num_poste'] == s['num_poste']].set_index(pd.to_datetime(mf.loc[mf['num_poste'] == s['num_poste'], 'time']))
+    m = mf['num_poste'].astype(str) == str(s['num_poste'])
+    st = mf[m].set_index(pd.to_datetime(mf.loc[m, 'time']).dt.normalize())
     rows += hazard_rows(f"MF {s.get('name', s['num_poste'])}", ec, st['tn'], st['tx'], thr.get('frost', cfg['FROST_TMIN']),
                         thr.get('heat', cfg['HEAT_TMAX']))
 hz = pd.DataFrame(rows); display(hz.round(2))"""),

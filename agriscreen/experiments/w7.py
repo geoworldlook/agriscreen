@@ -205,16 +205,29 @@ def soil_percentile(e: pd.DataFrame, cfg: Dict[str, Any]) -> pd.Series:
     return metrics.clim_anomaly(metrics.rootzone(e), cfg["CLIM_REF"], int(cfg["CLIM_HALF_WINDOW_DAYS"]))["percentile"]
 
 
+_PA_CACHE: Dict[str, pd.DataFrame] = {}
+
+
+def station_anomalies(station_dir: str, code_dir: str, until: str = FREEZE) -> pd.DataFrame:
+    """§3: anomalie kwadratów stacji z rejestru stacji (produkt bez zmian: parcel_anomalies z water_index);
+    liczone raz na stację i zapamiętane."""
+    key = f"{station_dir}|{until}"
+    if key not in _PA_CACHE:
+        from agriscreen import parcel
+        from agriscreen.config import make_config
+        from agriscreen.runtime import registry_read
+        rt = {"REGISTRY_DIR": os.path.join(station_dir, "data", "registry")}
+        cfg = make_config(code_dir, {"PARCEL_TYPE": w7_data.SQUARE_TYPE}, data_dir=station_dir)
+        w = parcel.parcel_wide(registry_read(rt, "gwl_observations"), cfg["PARCEL_PRODUCT"], until)
+        _PA_CACHE[key] = parcel.parcel_anomalies(w, cfg)[0]
+    return _PA_CACHE[key]
+
+
 def station_water_z(station_dir: str, code_dir: str, site_id: str = "VINEYARD_01",
                     until: str = FREEZE) -> pd.DataFrame:
-    """§3: z_woda kwadratu stacji z rejestru stacji (produkt bez zmian: parcel_anomalies, water_index, qc_ok)."""
+    """§3: z_woda kwadratu stacji (VINEYARD_01 = 300 m; 02 = 200 m; 03 = 500 m), tylko qc_ok."""
     from agriscreen import parcel
-    from agriscreen.config import make_config
-    from agriscreen.runtime import registry_read
-    rt = {"REGISTRY_DIR": os.path.join(station_dir, "data", "registry")}
-    cfg = make_config(code_dir, {"PARCEL_TYPE": w7_data.SQUARE_TYPE}, data_dir=station_dir)
-    w = parcel.parcel_wide(registry_read(rt, "gwl_observations"), cfg["PARCEL_PRODUCT"], until)
-    pa, _ = parcel.parcel_anomalies(w, cfg)
+    pa = station_anomalies(station_dir, code_dir, until)
     z = pa[(pa["index"] == "water") & (pa["site_id"] == site_id) & parcel._bool(pa["qc_ok"])].dropna(subset=["z"])
     z = z.assign(day=pd.to_datetime(z["time"]).dt.normalize())
     return z.set_index("day")[["z", "n_ref_years", "track"]].sort_index()

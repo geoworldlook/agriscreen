@@ -51,6 +51,14 @@ Zasada: „przed” i „po” zawsze na tej samej referencji i w tym samym okre
 | z_rel = (z_woda − mediana sąsiadów) / skala z lat wcześniejszych | 13 winnic, VI–IX 2020–2026, 1941 scen (te same dla obu) | z_woda: ≤ −1 w 31,1% scen; po latach 1–76%; sucho − wilgotno 49 pp | z_rel: 15,9% [8,9; 22,8]; po latach 5–24%; sucho − wilgotno 4 pp | H1–H3 spełnione: wspólna pogoda usunięta, kalibracja zgodna z 1 na 6 |
 | Sygnał przesadzeń RPG (H4) | sezony winnic z kodem VRN / RVI | — | 2 z 5 zdarzeń mierzalne; ranga 0,81, p = 0,070 | niespełnione (za mało zdarzeń — wada planu); nie dodajemy do karty |
 
+## Wskazówki potwierdzone pomiarami (W7, protokół D-093; `docs/evidence/W7_wyniki.md`)
+
+| Zmiana | Referencja i okres | Przed | Po | Wniosek |
+|---|---|---|---|---|
+| Wskazówka „gleba sucha” (ERA5-Land percentyl ≤ 30) wobec czujników w gruncie | 10 stacji ICOS we Francji + ISMN Condom, IV–X do 30.09.2026, 4783 dni ze wskazówką | przypadek 49,3% | trafność 81,2% [74,6; 87,8]; przewaga +31,8 pp [+11,9; +51,8] | **K1 potwierdzone**; każda stacja ICOS 76–94%, Condom 55% (przypadek 38%) |
+| Wskazówka „roślinność poniżej normy” (z_woda ≤ −1) wobec zmierzonego parowania | 7 wież ICOS bez upraw (lasy, łąki), VI–IX, 82 sceny | przypadek 51,7% | trafność 67,1% [33,0; 100]; przewaga +15,3 pp [−4,4; +35,1] | **K2 niepotwierdzone**; po teście: łąki 79–94%, lasy 14–50% (obserwacja) |
+| Upał (ERA5-Land, próg panelu) | Météo-France CONDOM | — | wykrycie 70%, fałszywe alarmy 15% | opisowo |
+
 ## Kolejne wiersze
 
 | Krok | Co porównamy |
