@@ -21,6 +21,8 @@ intermediate → new in `docs/evidence/historia_git_mapa.csv`, details in `docs/
 - Data citations: the 10 ICOS data objects are cited with persistent identifiers in `docs/evidence/W7_wyniki.md` §7,
   and the list of downloaded W7 files with SHA-256 checksums is published as `docs/evidence/W7_zrodla.csv`. README:
   Copernicus and ERA5-Land notices, Météo-France licence; product card: “each layer says how it was checked”.
+- GitHub Pages: the site root (`docs/index.html`) now opens the live panel. Before, it showed “404”, also behind the
+  “View deployment” button on GitHub.
 
 ## 1.3.0 — 2026-11-02
 
