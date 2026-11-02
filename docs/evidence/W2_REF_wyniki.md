@@ -1,11 +1,11 @@
 # W2 + REF — wyniki pierwszego przebiegu (dane do 2026-10-16)
 
 > **Status:** wynik protokołu `docs/evidence/W2_REF_protokol_walidacji.md` (D-083, SHA-256 `e2a1503a…`), bez zmian
-> protokołu po rejestracji. Przebieg w Colab, commit z wynikami `72718af`; tabela pełna: `validation_reference.csv`
+> protokołu po rejestracji. Przebieg w Colab, commit z wynikami `2c453cd`; tabela pełna: `validation_reference.csv`
 > w `data/05_Final_Outputs/agriwatch/` na Dysku. Reguły A4: D-060–D-063 (SHA-256 sekcji 3–4 `e69a6f99…`).
 >
 > Uwaga (audyt 2026-10-20): nagłówek protokołu mówi o skrócie „sekcji 1–7”, a `e2a1503a…` w Planie v9 to skrót
-> całego pliku (skrót sekcji 1–7 to `8e040589…`). Plik protokołu nie zmienił się od rejestracji (commit `f41c539`),
+> całego pliku (skrót sekcji 1–7 to `8e040589…`). Plik protokołu nie zmienił się od rejestracji (commit `c6a1168`),
 > więc integralność jest zachowana; nieścisły jest tylko opis w nagłówku, którego nie poprawiamy, by nie zmieniać skrótu.
 
 ## Wynik w skrócie

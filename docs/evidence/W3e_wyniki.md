@@ -1,7 +1,7 @@
 # W3e „Winnica wobec sąsiadów” — wyniki pierwszego przebiegu
 
 > **Status:** wynik protokołu `docs/evidence/W3e_protokol_sasiedzi.md` (D-092, SHA-256 `ff20baba…`, status
-> `REGISTERED`, zarejestrowany w commicie `b1e86ee` przed liczeniem z_rel), bez zmian protokołu po rejestracji.
+> `REGISTERED`, zarejestrowany w commicie `96fec25` przed liczeniem z_rel), bez zmian protokołu po rejestracji.
 > - Przebieg 2026-10-25 na komputerze lokalnym; notatnik z wynikami: `notebooks/experiments/W3e_sasiedzi.ipynb`
 >   (generator `build_w3e.py`). Dane: `parcel_anomalies.csv` z przebiegu 2026-10-25, sceny VI–IX do zamrożenia W3b
 >   (2026-10-18).

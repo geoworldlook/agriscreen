@@ -32,7 +32,7 @@ Moduły 2 i 3 bez zmian.
 |---|---|---|
 | 1 | NDVI winnicy jest sterowane przez międzyrzędzie (majowe koszenie, sierpniowe zasychanie, jesienny odrost); trend NDVI w kwietniu 0,30 (2016) → 0,62 (2024) | v7 ustalenie 2; F4 `R1` |
 | 2 | Żaden z 15 wariantów roślinności nie bije NDVI; zgodność NDVI/NDRE/NDMI nie poprawia warstwy | v7 ustalenie 5; F7 §1 |
-| 3 | Warstwa roślinności tego samego dnia nie ma umiejętności wobec ISMN z ≤ −1 (FAR NDVI 0,97). Alarm 2018–2024: w F7 (migawka rejestru `f17dcc2`) 9 dekad, 0 trafień; w przebiegu potoku 2026-10-09 jest 11 dekad alarmu (2022: 10, 2023: 1), trafień potok jeszcze nie liczy — przeliczy je krok A5 | F7 §1; `run_summary.md` 2026-10-09 |
+| 3 | Warstwa roślinności tego samego dnia nie ma umiejętności wobec ISMN z ≤ −1 (FAR NDVI 0,97). Alarm 2018–2024: w F7 (migawka rejestru `dcdbea8`) 9 dekad, 0 trafień; w przebiegu potoku 2026-10-09 jest 11 dekad alarmu (2022: 10, 2023: 1), trafień potok jeszcze nie liczy — przeliczy je krok A5 | F7 §1; `run_summary.md` 2026-10-09 |
 | 4 | SR 2,5 m nie rozdziela rzędów rozstawionych co 2,2–3 m (brak sygnału powyżej częstotliwości Nyquista S-2) | v7 §4 |
 | 5 | SR 2,5 m jest równoważny 10 m dla sygnału (ΔR +0,004) | v7 ustalenie 14 |
 | 6 | C3 (atrybuty działek z IGN BD ORTHO 20 cm IRC) jest zaplanowane, ale nie ma metody | v7 etap C |

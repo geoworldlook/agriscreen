@@ -1,14 +1,14 @@
 # F4 — eksperymenty precyzji (2026-10-08)
 
 Dowody do `docs/archive/plans/Plan_v7_precyzja.md`. Wszystko liczone offline na danych z rejestru na Dysku
-(`gwl_observations.csv`, `era5_land_daily.csv`, `gwl_anomalies.csv`, `gwl_status.csv`; przebieg z commita `f17dcc2`,
+(`gwl_observations.csv`, `era5_land_daily.csv`, `gwl_anomalies.csv`, `gwl_status.csv`; przebieg z commita `dcdbea8`,
 pełna historia SR 414 scen) i surowych plikach ISMN Condom (poza repozytorium, bo licencja ISMN nie pozwala ich
 udostępniać; w katalogu danych `data/ismn`). Z tego samego powodu nie publikujemy dziennego szeregu z czujnika
 `A_roslinnosc_weryfikacja/ismn_rz.csv` — tworzy go `A_roslinnosc_weryfikacja/v0_base.py`.
 
 > **Kod z wersji przed v1.** Skrypty importują moduły `step_04_metrics_alert.py` i `step_07_station_pipeline.py`,
 > których od wersji 1.0 nie ma w repozytorium (zastąpił je pakiet `agriscreen/`). Aby je uruchomić, przywróć te
-> pliki z ostatniego commita sprzed v1: `git checkout c914747 -- step_04_metrics_alert.py step_07_station_pipeline.py`.
+> pliki z ostatniego commita sprzed v1: `git checkout 2b8df9d -- step_04_metrics_alert.py step_07_station_pipeline.py`.
 
 Każdy eksperyment najpierw odtwarzał wynik v1.0 tą samą metodą co `step_07.validate_anomalies`
 (wszystkie trzy odtworzyły go dokładnie: ERA5 RZ R = 0,583, n = 2976; POD/FAR 0,574/0,571; NDVI SR R = 0,433, n = 245),

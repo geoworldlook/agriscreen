@@ -416,7 +416,7 @@ def main() -> None:
     print(f"[sanity] ERA5 RZ vs ISMN 20-30 cm: R={np.corrcoef(pe['x'], pe['y'])[0, 1]:.3f} n={len(pe)}")
 
     all_tab, all_boot, all_dr, all_loyo, all_dk, all_dkb, all_sens = [], [], [], [], [], [], []
-    # Rejestr z commita f17dcc2 liczony klimatologią nieprzyczynową ('other_years') — status z rejestru nie jest
+    # Rejestr z commita dcdbea8 liczony klimatologią nieprzyczynową ('other_years') — status z rejestru nie jest
     # punktem odniesienia dla tej konfiguracji; odtwarzamy liczby walidacji (R ERA5 0,58; R NDVI SR 0,38, n = 200)
     reg = pd.read_csv(os.path.join(DATA, "gwl_anomalies.csv"), usecols=["clim_id"])
     print("[info] klimatologie w gwl_anomalies (rejestr):", sorted(reg["clim_id"].dropna().unique()))

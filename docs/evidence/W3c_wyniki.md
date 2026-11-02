@@ -3,8 +3,8 @@
 > Protokół: `docs/evidence/W3c_protokol_strefy.md`, zarejestrowany 2026-10-20 (D-090), SHA-256
 > `45708189b130b6c87edded38b32691b8fc20a9659a772e57693da43424dab326` — ten sam skrót w `w3c_tests.csv`.
 > Dane: archiwum projektu, 419 scen, zamrożenie 2026-10-18 (`w3c_freeze.json`, SHA-256 listy scen `96d70cb4…`);
-> 13 winnic z QC; żadna scena nie wypadła z powodu innej siatki. Kod `0555649` (oznaczenie `+dirty` w pliku wyników
-> pochodzi od zapisanego w Colab notatnika — kolejny commit, 6bc96c2, zmienia tylko notatnik).
+> 13 winnic z QC; żadna scena nie wypadła z powodu innej siatki. Kod `bae990e` (oznaczenie `+dirty` w pliku wyników
+> pochodzi od zapisanego w Colab notatnika — kolejny commit, a4d58fa, zmienia tylko notatnik).
 
 ## Wynik w jednym zdaniu
 

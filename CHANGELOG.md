@@ -2,12 +2,12 @@
 
 ## Repository history — 2026-11-02
 
-The git history was rewritten (decision D-094). Removed from all commits: the raw ISMN sensor files and a daily ISMN
-sensor series (the ISMN terms forbid passing the data on), and private notes of the author (an old planning note,
-local file paths, an e-mail address in the author field of 31 commits, now the author's GitHub address). Commit order,
-dates, messages and all other files are unchanged. Protocol files are identical, so their registered SHA-256 sums
-still match. Commit IDs changed: old → new in `docs/evidence/historia_git_mapa.csv`, details in
-`docs/evidence/historia_git.md`.
+The git history was rewritten (decision D-094), in two passes on the same day. Removed from all commits: the raw ISMN
+sensor files and a daily ISMN sensor series (the ISMN terms forbid passing the data on), and private notes of the
+author (two planning notes, private parts of a few archived plans, local file paths, an e-mail address in the author
+field of 31 commits, now the author's GitHub address). Commit order, dates, messages, code, results and protocols are
+unchanged; protocol files are identical, so their registered SHA-256 sums still match. Commit IDs changed: original →
+intermediate → new in `docs/evidence/historia_git_mapa.csv`, details in `docs/evidence/historia_git.md`.
 
 ## 1.3.1 — 2026-11-02
 
@@ -95,7 +95,7 @@ First product version: an English panel for 15 vineyards near Condom (Gers) and 
 labelled by the kind of check behind it.
 
 ### Code
-- New Python package `agriscreen/` replaces the `step_*.py` modules (last commit with them: `c914747`). Functions
+- New Python package `agriscreen/` replaces the `step_*.py` modules (last commit with them: `2b8df9d`). Functions
   were moved without changes to their logic. Module map: `docs/ARCHITEKTURA.md` §6.
 - Regression check: the same synthetic inputs as the old self-test, run through the old and the new code, give
   identical outputs in 26 files (parcel statistics, anomalies and flags; W3b, W3c and W3d tests and stores; soil,

@@ -1,7 +1,7 @@
 # Plan v10 — wskazówki AgriScreen potwierdzone pomiarami
 
 Status: zaakceptowany przez autora 2026-11-01 (D-093); zrealizowany 2026-11-02 (wersje 1.3.0–1.3.1). Protokół:
-`docs/evidence/W7_protokol_wskazowki.md` (zarejestrowany przed liczeniem, commit `6907f27`).
+`docs/evidence/W7_protokol_wskazowki.md` (zarejestrowany przed liczeniem, commit `b1f7d49`).
 
 ## Cel
 
@@ -31,7 +31,7 @@ tydzień. Nie chodzi o dokładną wartość wilgotności gleby, tylko o trafnoś
 
 ## Stan realizacji (aktualizowany przy każdym kroku; po przerwie zaczynamy od pierwszego niezrobionego)
 
-- [x] Protokół W7 zarejestrowany 2026-11-02 (commit `6907f27`, SHA-256 `a6689c13…`).
+- [x] Protokół W7 zarejestrowany 2026-11-02 (commit `b1f7d49`, SHA-256 `a6689c13…`).
 - [x] Kod: `agriscreen/experiments/w7_data.py` (pobieranie, rejestr źródeł), `w7.py` (prawda, wskazówki, testy,
       wiersze panelu), generator notatnika `notebooks/experiments/build_w7.py`.
 - [x] Deklaracje celne Gers 2016–2025 pobrane (`09_Reference_Stations/douane`).

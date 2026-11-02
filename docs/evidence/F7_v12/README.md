@@ -1,6 +1,6 @@
 # F7 — wersja 1.2: zgodność wskaźników, projekty parowania i termiki (2026-10-09)
 
-Dowody do decyzji D-051 w `docs/archive/plans/Plan_v7_precyzja.md`. Liczone offline na migawce rejestru (commit f17dcc2)
+Dowody do decyzji D-051 w `docs/archive/plans/Plan_v7_precyzja.md`. Liczone offline na migawce rejestru (commit dcdbea8)
 i surowych plikach ISMN Condom; skrypty mają wpisane ścieżki katalogu roboczego sesji (podmień `SCR` na początku pliku).
 
 ## 1. Czy zgodność kilku wskaźników poprawia warstwę roślinności? — NIE

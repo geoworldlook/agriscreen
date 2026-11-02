@@ -1,141 +1,142 @@
-stary_commit,nowy_commit,data,opis
-b09f883abc22d781401b07cf77ce8009b8acb177,8ea0729fa30f46885f048851006267fc556d8b5b,2026-09-05,Initial commit: Modular S-3/S-2 AgriScreen DSS v2.5 pipeline
-ed4dedb8bc269d3eea218da4f68db888f5b34a5c,7176ea30a7b0cd6e1e0395d1f8152eea534052d1,2026-09-05,Add Git pull synchronization cell to Colab Master Notebook
-eae3c035110d28626724e8e307d453b1a96ffe59,089bc3baa6e8bdfc22f700a5238c7207293ce7e3,2026-09-05,Configure exact repo URL and auto-clone logic in Colab Master Notebook
-e6ee78efc33ea85f6b6710b4119110a28ff92008,2795ae1e30594ebadc291564ce78fb00f453154c,2026-09-05,Add Colab badge and repo link to README
-557a729dd37cb2178d453d0604adc2df6e7e74e9,ab7b3cf513a590b2ab0f36ffe6b3c738b915677a,2026-09-05,Fix ModuleNotFoundError: No module named imp for Python 3.13 in Colab notebook
-63edeff80b2630683a537ca0d074638f3a73d339,a1dc210c2161090a490bc4027947388b9f01800f,2026-09-05,"Remove all emojis across all scripts, notebooks, and documentation"
-06da39eb5fbc56844b26380ffeb9c2fd6468ba92,274aa736dfc644fb75882bf62c67db89e94b34d8,2026-09-05,Update Step 2 to explicitly support standard CPU mode
-a0ede165af235fd028072b8d8ee6a6879d077109,ee2325a70b11d0148ab6c5825c5a55ef143ca304,2026-09-05,Fix geemap TimeoutException on GOOGLE_MAPS_API_KEY using foliumap backend and userdata patch
-56f2de2316e918c02dcd424996c9e99a0418637a,121f1c108f1c331d88050ad8fa6bd16805069013,2026-09-05,"Configure GEE project ee-geoworldlook across step_01, step_05, and Colab notebook"
-9bc73525c3bcef1f097840af3cf340bf8277159d,d34bdcdbf77eab6a975d934ece09a543f10985a0,2026-09-05,Use 1_AOI_GBOV_CONDOM_ZASIEG.geojson and filter cloud cover strictly over AOI parcels; enable historical download
-3c1f32b124cf573b445ec7bc23dcad9feff3786f,153c2b82a47510ebebe739cb2757c8f9eeace62e,2026-09-05,Fix SWI and PPI raster download fallbacks and prevent FileNotFoundError
-ca80576ddd52c07a3119a29a0fadd62befa3a8a0,dad21789052f2faa1887e61748d1153e53b85180,2026-09-05,feat(ingest): add official Copernicus CDSE API for CGLS SWI 8-depths and CLMS HR-VPP ST with multi-year time-series sync
-19a875f0fa0c05d4d38741b5b4b0dd35c7235427,266a2fb62498268032568e2c4fcbab1ee2b0c4cf,2026-09-05,fix(ingest): add interactive fallback and drive .env resolution for CDSE credentials
-31dfa80b00f9d1b3f4144425da16b3c378c6d3d9,1e6471dce5f409785f946c716d0982ffcab15125,2026-09-05,perf(ingest): skip CDSE and GEE downloads if GeoTIFF files already exist on disk
-cbeea52139b61bf4e4124450845a04b535674e59,a08f60e8bda5319acf6cd7329e5ee2bf3d111d89,2026-09-07,Add incremental time-series synchronization for LST 1km scenes paired with Sentinel-2
-05678bcdb27cd8febd7fc522bef53d4a97512f22,d1e76d4ea23abbff597eed8d3536bc48de85c09a,2026-09-07,"Optimize direct disk cache checks across Sentinel-2, SWI, and HR-VPP synchronizers"
-e326c658892ef425cc3af2f5f63879810e636f1b,cc0970c8b63fd21d9dac2dca46af7419882bc35f,2026-09-07,Enforce absolute Google Drive storage paths and immediate raster persistence per module
-8d7727f73a24a8945b16b3b0ebb4623d450f4a04,2bb125105316189b681e8b0d57f1188899e8b612,2026-09-07,feat: implement incremental synchronization for 1km thermal LST time series aligned with Sentinel-2 scenes
-e90aabb6a6b35fb83b9befef5a3783717e6e3727,4f3daa1b53063d4b3149d7018db7aa188afb46d5,2026-09-07,Implement H-pyDMS physics-guided LST downscaling and fix AROSICS parameters
-017399daa0d3694dc95af28406bb6d803b525079,9ed79af4078d3cd2e25a362b16498641b12ebf1e,2026-09-07,Create dedicated 04_Upscaled_LST_10m and 06_Landsat_Validation folders and update notebooks
-b5bb7121f49712395035d0982d448c8c66003478,e4511a682ca9ce42780f12ed832e79feccab9ea5,2026-09-08,Fix ATPRK shape broadcasting and guarantee strict pixel/CRS consistency for odd grid dimensions in Module 3 and 4
-0c697b1944a8d253bea141fd104aa9bbc24b9c99,e49ac788289f1b2adec997cf549483c0849f6230,2026-09-08,Add side-by-side RGB comparison before and after 2.5m super-resolution in Module 3
-1a93296d52fc3321c36db2befb5a7150cf110286,13b7158a737e6b24ca78b9e97d5a315e947736cd,2026-09-08,Dodanie eksportu wielopasmowych COG GeoTIFF dla QGIS oraz interaktywnej mapy Geemap/Folium z wektorami dzialek w Module 3
-6f410346c1ce50c972e7d42c3559e79d4775872d,f65533585f7d1198384f9e643d22bc513db822c0,2026-09-14,"feat(station): integrate ISMN station polygon validation, QA4SM metrics, error diagnostics, and outliers reporting"
-1ae4569e4ff6b0506b6f081a0c00e1198bbe5d7e,300ba4865333cbe7f9a3a24727333ea199a026c2,2026-10-06,"feat(monitor): station pipeline step_07, Drive registry and monitor notebook (plan v3, E0)"
-87ab87b698f47512b2736b160bb15675b1687943,585fed6c5ef91d3bc0226d63af70224d1376e8a5,2026-10-06,fix(monitor): detect existing Drive checkout by .git/step_01 so git pull updates it instead of cloning a second copy
-d8f51ae70da674debe1bb156c1d7b333e2e1c58a,24fecd967c0cca229e133b95d2ff6e84e5b2408c,2026-10-06,fix(monitor): autoreload on Python 3.13 in Colab (missing imp module)
-9008bbec18d0247307cbcae890303ec4071705a3,8aea2fd72dc5e6f54c54f99d4cbbc5d914f3efdc,2026-10-06,feat(monitor): single clean Drive project folder MyDrive/GeoWorldLook/agriwatch
-9104e9af8ca9c7071961525bf85dbfcd84befeea,8105a5128471b32f48f8ed5c1072f31406117050,2026-10-07,"feat(agriwatch): vineyard drought-anomaly monitor (EDO CDI logic), SEN2SR with QC, anomaly validation"
-1e1347281590e74736a047818359fca16effe56c,6f6a48106e28daaa3dba24c23972ad5bf4146b48,2026-10-07,fix(sr): pad scenes narrower than 128 px before SEN2SR predict_large (tile size mismatch)
-85129ae22c8ac2ab79c9169a8a224bfe8af20efb,0787a429acb71c296d2002607abbc82c1caa1ac6,2026-10-07,"fix(sr): work around sen2sr 0.8.5 predict_large bugs (non-square images, 128 px tile)"
-3273b8bb48324146d1aa711efd6198ec2f28ff0b,8a895b80b079dede708daed48a41c459c6df3d53,2026-10-07,chore: tidy repository to match the AgriWatch architecture
-22d9e55bc8852ebe6592ab2467eb5ae38b7cde2a,2d4e3ab248cd2269d83e5e18935ce78dc5640497,2026-10-07,fix(sr): evaluate H-SR1 per band group at native resolution
-fd57d50a3d18a25dac1c785bb2e17429e7ad87f4,59040c83769cc07e32925a9c38d2d2417dcf5de0,2026-10-07,feat(validate): paired 10 m vs SEN2SR comparison on common scene dates
-fcf8c646a751e56801f689cf7d393e43383dff57,bd1f67648050aef1b44b51ff201ede880a5f1382,2026-10-07,feat(sr): SEN2SR 2.5 m as the detection resolution
-7bf9f0f8f63fcf10efd57059984a8649f29c3765,c3cf538b1366b85886a09c52c19da5907eca17ac,2026-10-07,fix(sr): coverage counts scenes accepted before QC versioning as done
-78ec49ff34890ba16cb50d999746c3113de8f5ad,b5010cfc1644f496738fa0f13721b9ba3334d3f1,2026-10-07,docs: plan v6 (WineEO-style anomaly platform) and literature review F3
-c1a9d8b93f6737fb03e7810964130912405b8cd7,9880517ea7c218e6206b3e6b56bd43b305ba5b6d,2026-10-07,"docs(F3): review of additional indicators (SPEI, SWI, NDMI, fAPAR, LST, others)"
-3497fc6fd2e6adf9ef2d77d169f08a521f58f197,4055a860d46aa34488e65e491e089ca52c5fcacf,2026-10-07,docs(F3): fix unverified author attribution
-526a464b38f8c3b5cf0f8cd7f18b04eafaff8072,cc4d1a93ede025fa2a133f4e2a4e777092c78d7c,2026-10-07,"docs(F3): moisture indices that reduce soil/inter-row background (CRSWIR, NMDI, GVMI, NDWI/EVI, unmixing)"
-47276647ceeb94efaa961e03db0a4172025c98c3,9406d0491b917c0fd8c4ed49d02192b2fba6a22e,2026-10-07,"feat(sr): 20 m bands judged against the L2A accuracy spec, per-index acceptance"
-9a282a5413e17f810f599d85c9a3073930cfdabf,37dc952678d92541aef18145f26522bb3f8cc8f6,2026-10-07,feat(indices): CRSWIR (10/20 m and SR 2.5 m) for testing; 20 m spec factor 1.5
-d694242cd2feec0faec06dad6ac2e25acb2639bf,c93562ec61842c0f4e7f63f1ed898cb88410cff9,2026-10-07,feat(dashboard): vineyard dashboard in Colab modelled on the Wago panel (ESA WineEO)
-5c15e9daab10e384abdcb245c5ce2c32cba963aa,367ffbcffdece6f0e764e948037a2614c36b8ffa,2026-10-07,feat(run): run_summary report for post-run analysis; safer dashboard cell
-7d28027f924d0d784b85e91938b2ea14c125fc1e,fe77d48998b28a7d23ab7e51c39469a30ddd36a3,2026-10-08,fix(setup): stash local edits before pull so the Drive copy runs current code
-05210058491d46c486ca950168ae1b9b9e078edf,696f262897856c88090b4fb6337e2027690f1db9,2026-10-08,fix(era5): drop superseded copies of the open ERA5-Land cache chunk
-277d162644032de8bd5c95250f223035421f18d3,f17dcc2018e595237a1082bce89bad1c0369c7ad,2026-10-08,"chore(data): remove unused v2.5 data folders (LST, Copernicus aux, Landsat)"
-c89c0f1669149d6a4682ae1c920ba7ac15a98248,966f20c1ca436a1073a6ef7b182ee69a695017cb,2026-10-08,docs: precision plan v7 with offline experiments and adversarial reviews (F4)
-53d58cb56add72bd3cd7847f8cf389878f9a633a,e5ee59d8afb1b9f0cc9b35ef1d31571695ae57e5,2026-10-08,"docs: F5 data assimilation review, EnKF experiment and probabilistic anomaly (PSMA) in plan v7"
-cb3f6b371e4d0b04cd76f8b22a7c36d240266b94,4eaf1209617f0fd1f5b2cfb8ab7ea9a6d91d4c35,2026-10-08,"docs(F4): surface-layer (5 cm) comparison of ERA5-Land, S-1 assimilation and S-2 OPTRAM"
-a29e4452af2e715d6e47981db08e30e3c570bbc5,cf837739e32c2fc7df18fcd48aae7233b9f8ca91,2026-10-08,docs(F4): add surface-layer results table
-dc7bff6f9d980080fd5d41800189a8cd322624d7,64e20b7a4c05bfa856f0817ccd428b833f9a73d5,2026-10-08,docs: F6 literature review and MVP design for within-parcel scouting alerts
-9f9c477b843b4b15fb86f0f8526ea2c0b53ddb49,c27c1c591c8991d80e07a6f8ca7246801d8c3b39,2026-10-09,"feat(anomalies): causal per-track vegetation climatology, calibrated z and soil drought probability"
-7f73dfb20f968a5ca2f3cc1fdf846ec2b9734ca9,1b7df170cf630b90578e22fe8068e424106003ac,2026-10-09,"feat(weather): frost and heat hazards validated on Météo-France stations, surface soil layer, 5-year dashboard"
-12c05909411366ea93b5e941224f9f76ed78093b,55954145c5b514e89db15fac0570a7936b4979fc,2026-10-09,Utworzono za pomocą Colab
-bdb0a0b8d7c7495da2fec127fdb561b67d01f850,387aeb0fc345cf1c3f5927aee7c35cb2b9b9aa81,2026-10-09,Utworzono za pomocą Colab
-f668b6cfb865ba1e7cd7dd929307a3402641a258,4fb423e276e90dd306deb1c59caab23d07b45c07,2026-10-09,"fix(weather): hazard thresholds from the reference station only, kept nominal unless calibration helps"
-70f2e004320ae886c38374b80826167f48997bad,404b29e3336e7cbba756a927e3e231e68938f403,2026-10-09,Utworzono za pomocą Colab
-a330ad1f92d9aac7eb32e01666ca962435b491c2,865cef6e48ea526d655a908d0edddce2876fcdfb,2026-10-09,"feat(dashboard): v1.2 presentation — vineyard condition panel, season trajectory, signal matrix"
-f36ac274a59064b2ea5375e28c0d5bab7a0ce160,0610897c4b27ab316d131312f8c825f7a700d4dc,2026-10-09,feat(validation): ISMN period ends at the last day in the station files (END_DATE auto)
-7b9390de4cc0f5d327e59d373232896d25d02554,fd3b08fc20fe785bc8cfe956cde2dcd2b1a2dfe5,2026-10-10,"docs: project handover summary — goal, status, how to run, migration checklist, results audit"
-5dd5dfebff69e3968493b8a4a30c7932c9ec425a,9cbfa7798a641e10417c28cec7dcd70f4ebfeacb,2026-10-10,"docs: bring architecture, README and method texts up to date with v1.2"
-53b08b132cb27947e8d7c2be2128372e63c68936,cda709827743966d5d9798c769b501e1772063d8,2026-10-14,"docs: plan v8 (modular: validated soil-drought module, then ortho DL) and A4 method note"
-fdf207d5514dde70e571d440139aeb778e19924b,8d077db0002ec3cbaa2131d76c3fab40fcfd58a1,2026-10-14,"docs: plan v9 ""Woda w winnicy"" — useful water information, prototyped in Colab"
-70c486aabb86441d701606d98dbde00ff7388af6,26d9288df48206949389b4aafa08e0114e3bdbeb,2026-10-14,"feat(dashboard): ""water in the soil"" card at the top (plan v9 W1)"
-f642f03c2ef83648cc931bac6f2e293bc447edb4,b2fe713cc27122eefad7496dacdcc0dcf143a1ce,2026-10-14,"docs(plan v9): W1b trust section, W3a satellite SWI 1 km, W3b local Sentinel-2 layer"
-d280c0f0deec7332f0ed12b3790923cde4d8f61f,d338527be099a2eb216fdcad5f9c5a59201b6f10,2026-10-14,"feat(dashboard): ""how far to trust it"" on the water card (plan v9 W1b)"
-3f3021671662a810afab50c4d0e118882bbdd72e,1e6ec4d7cf990b7b9497df812c3e467cbe031d11,2026-10-14,docs: W3a method note — CLMS Soil Water Index 1 km as satellite confirmation
-5beff3ee015ee3cfafffee1e244d0fb402ad30f5,c04788357af847d352e91a4626d6aeb0cf89cdfa,2026-10-15,feat(notebook): management notebook updated; SWI 1 km access probe with keys from Drive (plan v9 W3a)
-541fb79e36140eea60e8dc9c5020d40d9c5242e1,1a71e3ef8b3273285bc826eb279c7ba131f90679,2026-10-15,Utworzono za pomocą Colab
-3e918850361b5011332b87b0be19a6ebae033779,a90d47905ea617bc3ddb1fbcc376abb8566d31e7,2026-10-15,"fix(water card): first real-data run; SWI probe #2 (archive windows, server errors, STAC v2)"
-2bfd4072d27df0502810a6164dcf47e6a6585e43,981ffa09f2284aa7263331ae3d10ba0cfa7f38d2,2026-10-15,feat(swi probe): both CLMS SWI 1 km versions confirmed in CDSE docs (plan v9 W3a)
-df5f555ae4f29baa174832f96984975f8af6868f,642aa21c6c28902572228fa9f08b00612562d1cd,2026-10-15,Utworzono za pomocą Colab
-3939cca1e7545889b98098fb96093dfdffc332d4,f4592b065a9c39227a3bb0c5224240a6c9cded41,2026-10-15,docs(plan v9): plan reorganised; W3a revised before download; auxiliary in-situ site proposal
-314ae499ea61f42174a2c4ca5541cd4bfa180fb9,270a977fb0ba8951a6588f3eb55799518ca83734,2026-10-15,"feat(water card): satellite soil water row from CLMS SWI 0.1 deg v4, ERA5-SWI agreement (plan v9 W3a)"
-1b704b95d44dc3b0944a6b6a608eeb41699537c8,3417ca44c482c773b328566c5d20d84a560ba9bd,2026-10-15,Utworzono za pomocą Colab
-a93b5bdeae9ef9b1a3f8858a51a3f1fe1ae9fed7,5165ec46d6e1ef115891ce4b72503b0e9eaf5977,2026-10-15,Utworzono za pomocą Colab
-af0dde718277e87daf4e51e1bb809f11762871fc,ba2b1c957d91bd9f9326191ba0a1fe47845744b6,2026-10-15,docs(W3a): first real-data result of the satellite row; extreme percentiles in words
-43bfe31e5bb92eabe3d57f9f67c25ea8553cceee,f41c5398ea4c63ca89a9c0c78a3003db2ff098b1,2026-10-15,docs(W2+REF): register validation protocol and A4 rules before any code or metric
-d840bc861b0de15a752ab73c96d4e2bef03eee29,4cb51178eb46cb648ccd55eb10a54f6a8df21cc2,2026-10-15,"feat(W2+REF): A4 sensor QC and one validation protocol for Condom, FR-Aur and FR-Lus"
-25b3a995a7d6d1eddaae4c69299166a2be7a9889,72718aff0fb6618a74ca475ff38eecb12474c422,2026-10-17,Utworzono za pomocą Colab
-b83c5e3760fbd7c1fe5c0c4881b52914d3c4c411,2e707fa3a9a4ae5b6b00b4305a583d44e2bc9146,2026-10-18,"docs: English README, MIT licence; keep Polish README in docs/"
-db4e4943069f218444d60f4125a78f0ca9656474,9baadfc178f946a6f613370f9308c5431d498ff4,2026-10-18,chore: point notebook and docs at renamed repo geoworldlook/agriscreen
-7168d23826b2968b19b0f35cf22ede150720e29c,7c2a7da1d168acb7b5cad45d6d3407bc811b31c6,2026-10-18,Utworzono za pomocą Colab
-4e6016977e6f6b271d2b99468580bbd6402b50bd,d825914e42e415f377f17d37fc44fba39f512d85,2026-10-18,feat(W2+REF): first results on the card; results note and scorecard
-e93e025e316fa563c66f97f2fde7422a1c20e865,ebc9046b0e61ee803a10be0dc01a37e2bc5c1616,2026-10-18,Merge remote-tracking branch 'origin/claude/new-session-dxyke7' into claude/new-session-dxyke7
-53e65f0ee649bc0bf84f19dee106e095b3741689,5d90a2a94fcac3d5ef916ec5c44bfacd34e2d400,2026-10-18,docs(W3b): implementation plan 'Moja winnica' with pre-registered tests V1-V4
-db5cf811a083e89ff3cba04574ad253253ddfc5f,14e9a725ad5ce714e5079b101a7ba6704add6aaa,2026-10-18,docs(W3b): use the Sentinel-2 archive already on Drive; W3b.2 extends existing scene stats
-43590401a964638813f4e512ed8a29b74acf434a,e1a3dce1578ea098b12467960ceb77c26885c904,2026-10-18,"docs(W3b): plan v2 — validate on existing in-situ sensors, no field observations"
-ab7d9cec09e230204cc4ff9309da421a906561c6,e3874efc41fd04156b906f4918643488b698ed3f,2026-10-18,"docs(W3b): plan v3 — simplified: three sentences, three tests, four steps"
-0025c24668b1bb42c7d0951b050051fc7eaee5f0,fd286bab1602bd31d7426c01aff7027a7d262c95,2026-10-18,docs(W3b): leaf-water index (NDMI + CRSWIR) plan v4 and literature review
-aecd91c753c594f3d681cf037e64f9868bbb1755,6731cacfa716a20400369db899eb03ba220b8819,2026-10-18,docs(W3b): Ceccato 2001 full text and FORDEAD CRSWIR formula; reading status of sources
-1ef60f2be6772dd2b6030848ab13ce75fb371b2f,6431bcb69995b48ef511ce0410b927d9b1bcaf68,2026-10-19,docs(W3b): full-text literature review v2 and plan v5; dated corrections of misquotes
-ed9dc80615b88cb2e0524043c4fb1ffab3f9082b,64c9c61cd1babaddd67df50f0ee4b1fcd9cfa4a9,2026-10-19,docs(W3b): apply verification fixes; simplify plan v5
-7cf1099a784e8ecc739029d6ec3abaff7e3cf69b,46df79e071c8ef89396eb62822ec12e2635a3c21,2026-10-19,docs: one-page status (have / now / later); W3b multi-band variant (D-088)
-5392b13866bb09d97658b254d5c50fb046e57e41,7b07cbc466961a70f9ec29ce8c4a5e0091bcceec,2026-10-19,"docs(W3b): implementation plan K1–K4, validation protocol draft, power simulation"
-dccd827864b4a2e8e053f1d5db6ee3ae62892bc7,8edb745a0a050daea3b39ad7f39cf602154acb92,2026-10-19,docs(W3b): register validation protocol (D-089)
-54cc586a72371bc17beb31dfe19bca4fa8ef7da8,428c7314bfbfdbcfcc00f550fa742c6dcad29474,2026-10-20,"feat(W3b): ""Moja winnica"" — parcel statistics, frozen tests T1–T3, multiband variant, card"
-2d2fcbe497755362e47ade620d278a5fcb44f429,3ba54a2f12dbec0d111821b2e1e4984e0191ff92,2026-10-20,Obliczenia 20.10.2026.
-9f8c73bc64f5256a39c87ca2b2703fbb2e421c9f,5a0c487466e6a153e8ff0f5f7942d1bfab9cd535,2026-10-20,"docs(W3b): results of the first run (frozen 2026-10-18, 419 scenes)"
-8657c2456565a5a779dba06d75e5ea6cd7493e4a,184cba0c309379a22bec7715f65a21647319e42b,2026-10-20,"feat: AgriScreen panel (15 vineyards, EN) and story notebook for the blog"
-8a438f523629f66412c3511f638f6832c9bf12a6,c6539bc08993a73ce00799f360a6e5c47457676b,2026-10-20,feat(panel): Wago-style AgriScreen panel with satellite map and 10 m pixel layers
-8d6beb4c94eb917e87516759c6b36227014232ee,d0f657a34c555b7029252b7a4a25dc526477ae71,2026-10-20,"feat(panel): within-parcel zones (pixel minus parcel median, same day)"
-7fd58be86b5b1a8d328413f8fdab9a4d121ba7b7,f95a38ffab4a31717d93005bf3e09edc4b958264,2026-10-20,"docs(W3c): draft protocol for ""zone weaker than usual"" (not registered)"
-0bf6eb89719015800704ee228d065cdda340aae0,6574c5b0fd0cbb5256ca1c8a90026debf12cbc2b,2026-10-20,"docs(W3c): register ""zone weaker than usual"" protocol (D-090)"
-a52d7a13d4e9f1360a448ec86483bcef94ba8ed0,05556494d940070d1cbe5a7ef67b1f3d1fcedcfd,2026-10-20,"feat(W3c): ""zone weaker than usual"" per registered protocol (D-090)"
-acc201b651e1d08f7c9edbfa743eb592c059638e,6bc96c2ffd922ee012c808f873e1694332b9738d,2026-10-20,Utworzono za pomocą Colab
-80365c1b14e40ed353d1ac478c91569da9a9338c,ceed9211d0bddb8cc8ec02659bc866ade12a0918,2026-10-20,"docs(W3c): first run results — ""zones vs usual"" not shown (criterion failed)"
-c092e5c092de0973df6bdc92c37f54e812e0ab69,928be1be39f1f813e7c661413266bda345d303da,2026-10-20,docs(W3c): RPG crop register confirms all 15 parcels are vineyards; replanting in 13 and 22
-96e8d570282ce3404ef988d387168d9df8e578bc,cae9b278bb6c2145c5c0b6f4d7abcdd75ddcded2,2026-10-20,"docs(W3d): register ""place lowest in 5 years"" protocol (D-091)"
-ddf26dd3ad5450718044c7b6da8a5959fb2978bb,1b0f674c8e15c299db0aad33995952908b8ea707,2026-10-20,"feat(W3d): ""place lowest in 5 years"" per registered protocol (D-091)"
-c3783a301b30b39be3b086147d4d00fabd633331,e217894affdab9fd4e1fe41dd295502218a79cbb,2026-10-20,Utworzono za pomocą Colab
-82844ae58ebd2b4f5f1f6f91c89a38462e24e26a,c9147479ae7523819bd2c0f20c40663daf5e1377,2026-10-20,"docs(W3d): first run results — ""lowest in 5 years"" not shown (interval too wide)"
-1e0f5968f2a2f64229a83f924e81f613dc71e4c8,f2b848fe9d516b8d397c22447dc98f1ffa4c0d5e,2026-10-20,"v1: pakiet agriscreen/ (kod z step_* bez SR, bez starego dashboardu i biuletynu)"
-2e3018f2d2b632ff75cfd3ae79a16ddcf865d646,e42c7e41c9e2d7f13cb360540badb0811263ff85,2026-10-20,v1: zgodność z protokołami i uczciwsze statusy w panelu (audyt wyników)
-d5eaf73242b1e97137c8729a142da39eb0a42857,0c28cb4262aa044d733866f63971b0d7fff363b5,2026-10-20,"v1: notatniki w notebooks/ (monitor AgriScreen_Monitor, opowieść na blog) i panel pokazowy z pakietu"
-ce7f5df5c034b9b4d54a9822996859822b62c1d3,adb40e34532a766a9d2105ab2660373fdc72d3fe,2026-10-20,"v1.0: porządek repozytorium i dokumentacji, poprawki opisu wyników po audycie"
-275dbb6d4387e86104e587cc2447e488cad98e01,021734f790723475786f4be53c4c96e69a2389c6,2026-10-24,1.1: obliczenia na własnym komputerze (Windows) zamiast Colab
-b4eb01b6f7f235fb96aa252e8e8bba6a0db4c4f4,70d2263e8ff9a53c3f2c0987dd75db15eaecd473,2026-10-24,"1.1.1: panel works on Windows (date format), guide note on conda 26.9"
-ee744958971f416a082984d271c71e0e775a1deb,dfd220e03521d0d12accf944358db8215ff8b0ff,2026-10-24,1.1.2: 7-day forecast back in the panel
-d9255cb9c555651f7dd28d714039eb1f4aa6c899,fb9f83d000533f4255a97252b30abb66d956351e,2026-10-24,1.2.0: local Jupyter notebook to look at the results
-2e37a38d5bae226d721158412d2f10029d90383d,b1e86ee99c462b2623067f9e61e69d6ec1d43909,2026-10-25,"docs(W3e): register ""vineyard vs neighbours"" protocol (D-092)"
-ab6b693659a4147b5eff6ad57e21b7f3d3fda618,1ac6e23c09a353ff74ca2d728d0242e5f8083442,2026-10-25,"W3e results: neighbour comparison calibrated (H1-H3), replanting signal not shown (H4)"
-ebe303d4d2ff2fcd47e3988033cdf1f367615480,a282aed02ac2fa092580c8bbcc85c8f989cda752,2026-11-01,auto: przebieg tygodniowy 2026-11-01 (ostatnia scena 2026-10-31)
-6191dd384d793c1c6f6eebbb71f27b43fb4fb33b,eb6f95451a8aae3c6412d130627f5fd67418f504,2026-11-01,"docs: archive old plans, serve docs/ as GitHub Pages (live panel)"
-4c5fe091383cfd5a8ee64f79af21d7f06047a1d8,5dd9c2e27f7e4c2994dea317cf8eac30b2b95952,2026-11-01,"1.2.1: product card README, CI (ruff + offline selftest), live panel link"
-40d79e659cabb9ff61944e0faa54544c90af7698,d06b540e90083cfedc61c38cedc22a3de84dfe16,2026-11-01,docs(readme): note that the project is built with help from Claude (Anthropic)
-a198773eb4c8a0a7b5bd4a3ac3614b0f0ecb542d,c3e7f528ede3d773f1559eaad51bc09377855115,2026-11-01,docs(W7): Plan v10 (D-093) and draft protocol for hints vs ground measurements (not registered)
-cf2dfcfcf2aa5680360b027b8c9882d6e3f2525b,6907f27ee452fe9b4db5ab23c95ef4a523473f02,2026-11-02,"docs(W7): register protocol (D-093), SHA-256 a6689c13 of sections 0-9, before any computation"
-fe178631dcc4e87aebe8b1c0dd2dcb8e1b2fbba7,d7394f0bd89656e2916a5f53ade04400ae7722db,2026-11-02,feat(W7): data download with manifest and analysis code per registered protocol D-093
-c8af2453e1f8f7ddb4b5017bf06f64a3f13dc720,5985c7113c4162b81daad5bdb1748c668ff9b9e2,2026-11-02,feat(W7): K1/K2 rows in the panel trust table and weekly publish of w7_tests.csv; plan status checklist
-f933e9a4e2c9c323d8d7e1a92831cd2ee407b049,6a647d015aebc378b68ef0dac89040a4a7176f34,2026-11-02,docs(W7): plan status - ICOS archives and ERA5-Land for 10 stations downloaded
-d4572408f7ef5bc81b13b317a9fdd7bc0456ac4f,1d7a96e0688979015f864c070b7b6b0ea976ebb5,2026-11-02,fix(data): ISMN sensor data out of the public repository (ISMN terms forbid redistribution)
-e5dcbe360ce95a951a4728551ce37f781d783737,5089da7102f240b67a6202e121d96bada86a7305,2026-11-02,fix(data): read ISMN from the data folder; synthetic ISMN sensor in selftest; README licence note
-9fc7f0609d5332bd431f6845c224663ab3e2e067,85900377e5048534e363c1f394c1c0912a80e1bc,2026-11-02,"1.3.0: W7 results - ""dry soil"" hint confirmed by ground sensors, vegetation hint not confirmed"
-6ee8f172c959544993b288ec5ad8eed5274449af,e82d5d65822919754a27a028a5868f6641f9e624,2026-11-02,auto: przebieg tygodniowy 2026-11-02 (ostatnia scena 2026-10-31)
-f86565577f28acb9e38615e103c7530b48bce2ba,5177763183328e55c72a864552d50cb50368a548,2026-11-02,"1.3.1: weekly push never waits for a login window (system git, git calls without prompts)"
-6733dd398b318267fd7ea8330627e92e678f14ac,00a93e7c474003d6e7854738d4f6fc87d6923f3e,2026-11-02,auto: przebieg tygodniowy 2026-11-02 (ostatnia scena 2026-10-31)
-5464c79aa6187abceeee2262ee076c05186a4c3b,82064454c1f822401004348448d17452155b763b,2026-11-02,"docs: data citations (ICOS persistent identifiers, ERA5-Land, Copernicus notices), W7 source list, Plan v10 done"
-10ee9dd233da661d3fc4ef83ac7edafef5549238,9d0683fd3e4a876fb2a115ea58406ba393859b02,2026-11-02,auto: przebieg tygodniowy 2026-11-02 (ostatnia scena 2026-10-31)
+stary_commit,posredni_commit,nowy_commit,data,opis
+b09f883abc22d781401b07cf77ce8009b8acb177,8ea0729fa30f46885f048851006267fc556d8b5b,8ea0729fa30f46885f048851006267fc556d8b5b,2026-09-05,Initial commit: Modular S-3/S-2 AgriScreen DSS v2.5 pipeline
+ed4dedb8bc269d3eea218da4f68db888f5b34a5c,7176ea30a7b0cd6e1e0395d1f8152eea534052d1,7176ea30a7b0cd6e1e0395d1f8152eea534052d1,2026-09-05,Add Git pull synchronization cell to Colab Master Notebook
+eae3c035110d28626724e8e307d453b1a96ffe59,089bc3baa6e8bdfc22f700a5238c7207293ce7e3,089bc3baa6e8bdfc22f700a5238c7207293ce7e3,2026-09-05,Configure exact repo URL and auto-clone logic in Colab Master Notebook
+e6ee78efc33ea85f6b6710b4119110a28ff92008,2795ae1e30594ebadc291564ce78fb00f453154c,2795ae1e30594ebadc291564ce78fb00f453154c,2026-09-05,Add Colab badge and repo link to README
+557a729dd37cb2178d453d0604adc2df6e7e74e9,ab7b3cf513a590b2ab0f36ffe6b3c738b915677a,ab7b3cf513a590b2ab0f36ffe6b3c738b915677a,2026-09-05,Fix ModuleNotFoundError: No module named imp for Python 3.13 in Colab notebook
+63edeff80b2630683a537ca0d074638f3a73d339,a1dc210c2161090a490bc4027947388b9f01800f,a1dc210c2161090a490bc4027947388b9f01800f,2026-09-05,"Remove all emojis across all scripts, notebooks, and documentation"
+06da39eb5fbc56844b26380ffeb9c2fd6468ba92,274aa736dfc644fb75882bf62c67db89e94b34d8,274aa736dfc644fb75882bf62c67db89e94b34d8,2026-09-05,Update Step 2 to explicitly support standard CPU mode
+a0ede165af235fd028072b8d8ee6a6879d077109,ee2325a70b11d0148ab6c5825c5a55ef143ca304,ee2325a70b11d0148ab6c5825c5a55ef143ca304,2026-09-05,Fix geemap TimeoutException on GOOGLE_MAPS_API_KEY using foliumap backend and userdata patch
+56f2de2316e918c02dcd424996c9e99a0418637a,121f1c108f1c331d88050ad8fa6bd16805069013,121f1c108f1c331d88050ad8fa6bd16805069013,2026-09-05,"Configure GEE project ee-geoworldlook across step_01, step_05, and Colab notebook"
+9bc73525c3bcef1f097840af3cf340bf8277159d,d34bdcdbf77eab6a975d934ece09a543f10985a0,d34bdcdbf77eab6a975d934ece09a543f10985a0,2026-09-05,Use 1_AOI_GBOV_CONDOM_ZASIEG.geojson and filter cloud cover strictly over AOI parcels; enable historical download
+3c1f32b124cf573b445ec7bc23dcad9feff3786f,153c2b82a47510ebebe739cb2757c8f9eeace62e,153c2b82a47510ebebe739cb2757c8f9eeace62e,2026-09-05,Fix SWI and PPI raster download fallbacks and prevent FileNotFoundError
+ca80576ddd52c07a3119a29a0fadd62befa3a8a0,dad21789052f2faa1887e61748d1153e53b85180,dad21789052f2faa1887e61748d1153e53b85180,2026-09-05,feat(ingest): add official Copernicus CDSE API for CGLS SWI 8-depths and CLMS HR-VPP ST with multi-year time-series sync
+19a875f0fa0c05d4d38741b5b4b0dd35c7235427,266a2fb62498268032568e2c4fcbab1ee2b0c4cf,266a2fb62498268032568e2c4fcbab1ee2b0c4cf,2026-09-05,fix(ingest): add interactive fallback and drive .env resolution for CDSE credentials
+31dfa80b00f9d1b3f4144425da16b3c378c6d3d9,1e6471dce5f409785f946c716d0982ffcab15125,1e6471dce5f409785f946c716d0982ffcab15125,2026-09-05,perf(ingest): skip CDSE and GEE downloads if GeoTIFF files already exist on disk
+cbeea52139b61bf4e4124450845a04b535674e59,a08f60e8bda5319acf6cd7329e5ee2bf3d111d89,a08f60e8bda5319acf6cd7329e5ee2bf3d111d89,2026-09-07,Add incremental time-series synchronization for LST 1km scenes paired with Sentinel-2
+05678bcdb27cd8febd7fc522bef53d4a97512f22,d1e76d4ea23abbff597eed8d3536bc48de85c09a,d1e76d4ea23abbff597eed8d3536bc48de85c09a,2026-09-07,"Optimize direct disk cache checks across Sentinel-2, SWI, and HR-VPP synchronizers"
+e326c658892ef425cc3af2f5f63879810e636f1b,cc0970c8b63fd21d9dac2dca46af7419882bc35f,cc0970c8b63fd21d9dac2dca46af7419882bc35f,2026-09-07,Enforce absolute Google Drive storage paths and immediate raster persistence per module
+8d7727f73a24a8945b16b3b0ebb4623d450f4a04,2bb125105316189b681e8b0d57f1188899e8b612,2bb125105316189b681e8b0d57f1188899e8b612,2026-09-07,feat: implement incremental synchronization for 1km thermal LST time series aligned with Sentinel-2 scenes
+e90aabb6a6b35fb83b9befef5a3783717e6e3727,4f3daa1b53063d4b3149d7018db7aa188afb46d5,4f3daa1b53063d4b3149d7018db7aa188afb46d5,2026-09-07,Implement H-pyDMS physics-guided LST downscaling and fix AROSICS parameters
+017399daa0d3694dc95af28406bb6d803b525079,9ed79af4078d3cd2e25a362b16498641b12ebf1e,9ed79af4078d3cd2e25a362b16498641b12ebf1e,2026-09-07,Create dedicated 04_Upscaled_LST_10m and 06_Landsat_Validation folders and update notebooks
+b5bb7121f49712395035d0982d448c8c66003478,e4511a682ca9ce42780f12ed832e79feccab9ea5,e4511a682ca9ce42780f12ed832e79feccab9ea5,2026-09-08,Fix ATPRK shape broadcasting and guarantee strict pixel/CRS consistency for odd grid dimensions in Module 3 and 4
+0c697b1944a8d253bea141fd104aa9bbc24b9c99,e49ac788289f1b2adec997cf549483c0849f6230,e49ac788289f1b2adec997cf549483c0849f6230,2026-09-08,Add side-by-side RGB comparison before and after 2.5m super-resolution in Module 3
+1a93296d52fc3321c36db2befb5a7150cf110286,13b7158a737e6b24ca78b9e97d5a315e947736cd,13b7158a737e6b24ca78b9e97d5a315e947736cd,2026-09-08,Dodanie eksportu wielopasmowych COG GeoTIFF dla QGIS oraz interaktywnej mapy Geemap/Folium z wektorami dzialek w Module 3
+6f410346c1ce50c972e7d42c3559e79d4775872d,f65533585f7d1198384f9e643d22bc513db822c0,f65533585f7d1198384f9e643d22bc513db822c0,2026-09-14,"feat(station): integrate ISMN station polygon validation, QA4SM metrics, error diagnostics, and outliers reporting"
+1ae4569e4ff6b0506b6f081a0c00e1198bbe5d7e,300ba4865333cbe7f9a3a24727333ea199a026c2,995d3dde92707b7033e82a613b2ecf1800cb76c8,2026-10-06,"feat(monitor): station pipeline step_07, Drive registry and monitor notebook (plan v3, E0)"
+87ab87b698f47512b2736b160bb15675b1687943,585fed6c5ef91d3bc0226d63af70224d1376e8a5,a4778d6fda7e435a4df06f08c6f06df34541e099,2026-10-06,fix(monitor): detect existing Drive checkout by .git/step_01 so git pull updates it instead of cloning a second copy
+d8f51ae70da674debe1bb156c1d7b333e2e1c58a,24fecd967c0cca229e133b95d2ff6e84e5b2408c,53903d699beb0b8ceed6b65c7439935f70d514d3,2026-10-06,fix(monitor): autoreload on Python 3.13 in Colab (missing imp module)
+9008bbec18d0247307cbcae890303ec4071705a3,8aea2fd72dc5e6f54c54f99d4cbbc5d914f3efdc,3384048fda6a72285e9436f3a67f3d0272ba88b2,2026-10-06,feat(monitor): single clean Drive project folder MyDrive/GeoWorldLook/agriwatch
+9104e9af8ca9c7071961525bf85dbfcd84befeea,8105a5128471b32f48f8ed5c1072f31406117050,d0e67f295f7745ca19836f8be9516e82b955c89b,2026-10-07,"feat(agriwatch): vineyard drought-anomaly monitor (EDO CDI logic), SEN2SR with QC, anomaly validation"
+1e1347281590e74736a047818359fca16effe56c,6f6a48106e28daaa3dba24c23972ad5bf4146b48,de4cd7f6978435425a8ab55e0502069637fa54ec,2026-10-07,fix(sr): pad scenes narrower than 128 px before SEN2SR predict_large (tile size mismatch)
+85129ae22c8ac2ab79c9169a8a224bfe8af20efb,0787a429acb71c296d2002607abbc82c1caa1ac6,46fd53c6e211ebf3211c4b0ef6db315a9935ef09,2026-10-07,"fix(sr): work around sen2sr 0.8.5 predict_large bugs (non-square images, 128 px tile)"
+3273b8bb48324146d1aa711efd6198ec2f28ff0b,8a895b80b079dede708daed48a41c459c6df3d53,aa02f3ad8ec31ea83e8650950d05dc6686d30034,2026-10-07,chore: tidy repository to match the AgriWatch architecture
+22d9e55bc8852ebe6592ab2467eb5ae38b7cde2a,2d4e3ab248cd2269d83e5e18935ce78dc5640497,6ae505d9a2b0f4730a8d635662ed637231f27a95,2026-10-07,fix(sr): evaluate H-SR1 per band group at native resolution
+fd57d50a3d18a25dac1c785bb2e17429e7ad87f4,59040c83769cc07e32925a9c38d2d2417dcf5de0,f852ebd226a7e29ebb631c1f398b644f93e882a5,2026-10-07,feat(validate): paired 10 m vs SEN2SR comparison on common scene dates
+fcf8c646a751e56801f689cf7d393e43383dff57,bd1f67648050aef1b44b51ff201ede880a5f1382,d185fbc9a8225e5cb2aab6ab86ec8a75dab6cec9,2026-10-07,feat(sr): SEN2SR 2.5 m as the detection resolution
+7bf9f0f8f63fcf10efd57059984a8649f29c3765,c3cf538b1366b85886a09c52c19da5907eca17ac,1af8503a681937c4732d1b3b3635c90e12073ddc,2026-10-07,fix(sr): coverage counts scenes accepted before QC versioning as done
+78ec49ff34890ba16cb50d999746c3113de8f5ad,b5010cfc1644f496738fa0f13721b9ba3334d3f1,6b33b79d7294586a7a17ed653d90f07464f8a8ef,2026-10-07,docs: plan v6 (WineEO-style anomaly platform) and literature review F3
+c1a9d8b93f6737fb03e7810964130912405b8cd7,9880517ea7c218e6206b3e6b56bd43b305ba5b6d,31e4283df7e18f5c42b28e37c138f2db5f5235db,2026-10-07,"docs(F3): review of additional indicators (SPEI, SWI, NDMI, fAPAR, LST, others)"
+3497fc6fd2e6adf9ef2d77d169f08a521f58f197,4055a860d46aa34488e65e491e089ca52c5fcacf,0526d362804a4c7e2757cb513f5588605fd9a629,2026-10-07,docs(F3): fix unverified author attribution
+526a464b38f8c3b5cf0f8cd7f18b04eafaff8072,cc4d1a93ede025fa2a133f4e2a4e777092c78d7c,40df34b6fc9ba628f3426d5a04e267243a7da7ce,2026-10-07,"docs(F3): moisture indices that reduce soil/inter-row background (CRSWIR, NMDI, GVMI, NDWI/EVI, unmixing)"
+47276647ceeb94efaa961e03db0a4172025c98c3,9406d0491b917c0fd8c4ed49d02192b2fba6a22e,a355dbc882def251a79fbb06324288aa8450fece,2026-10-07,"feat(sr): 20 m bands judged against the L2A accuracy spec, per-index acceptance"
+9a282a5413e17f810f599d85c9a3073930cfdabf,37dc952678d92541aef18145f26522bb3f8cc8f6,d9353f9644c4df141e3b1cd955d874b24e78b507,2026-10-07,feat(indices): CRSWIR (10/20 m and SR 2.5 m) for testing; 20 m spec factor 1.5
+d694242cd2feec0faec06dad6ac2e25acb2639bf,c93562ec61842c0f4e7f63f1ed898cb88410cff9,ccf92075cc59f7ae0009d42e953f55b8f18d0be4,2026-10-07,feat(dashboard): vineyard dashboard in Colab modelled on the Wago panel (ESA WineEO)
+5c15e9daab10e384abdcb245c5ce2c32cba963aa,367ffbcffdece6f0e764e948037a2614c36b8ffa,848b5ffb98ca30aa4d1f13568856ee4f7b9031f9,2026-10-07,feat(run): run_summary report for post-run analysis; safer dashboard cell
+7d28027f924d0d784b85e91938b2ea14c125fc1e,fe77d48998b28a7d23ab7e51c39469a30ddd36a3,91b045ecaa07e1c234b78e15dc4c904cf0419c05,2026-10-08,fix(setup): stash local edits before pull so the Drive copy runs current code
+05210058491d46c486ca950168ae1b9b9e078edf,696f262897856c88090b4fb6337e2027690f1db9,0e78c8664e08616c783732f21f722744b30d26a8,2026-10-08,fix(era5): drop superseded copies of the open ERA5-Land cache chunk
+277d162644032de8bd5c95250f223035421f18d3,f17dcc2018e595237a1082bce89bad1c0369c7ad,dcdbea826e43ed4f4848786833cdafa0fd4b76c1,2026-10-08,"chore(data): remove unused v2.5 data folders (LST, Copernicus aux, Landsat)"
+c89c0f1669149d6a4682ae1c920ba7ac15a98248,966f20c1ca436a1073a6ef7b182ee69a695017cb,ce802c096c347e9080e28e76ba28869d935c3a00,2026-10-08,docs: precision plan v7 with offline experiments and adversarial reviews (F4)
+53d58cb56add72bd3cd7847f8cf389878f9a633a,e5ee59d8afb1b9f0cc9b35ef1d31571695ae57e5,11d2d0f48e8d0f686ec991b1a9536df64fa16ac6,2026-10-08,"docs: F5 data assimilation review, EnKF experiment and probabilistic anomaly (PSMA) in plan v7"
+cb3f6b371e4d0b04cd76f8b22a7c36d240266b94,4eaf1209617f0fd1f5b2cfb8ab7ea9a6d91d4c35,a6eabc9440b1a7542a44aebdbfc57d50b112f89a,2026-10-08,"docs(F4): surface-layer (5 cm) comparison of ERA5-Land, S-1 assimilation and S-2 OPTRAM"
+a29e4452af2e715d6e47981db08e30e3c570bbc5,cf837739e32c2fc7df18fcd48aae7233b9f8ca91,81bb9b3e51ee23f228c88b6a9d2a93c47983ffef,2026-10-08,docs(F4): add surface-layer results table
+dc7bff6f9d980080fd5d41800189a8cd322624d7,64e20b7a4c05bfa856f0817ccd428b833f9a73d5,87b1790113e2365132a3cebc8aa1c97ea44bccd4,2026-10-08,docs: F6 literature review and MVP design for within-parcel scouting alerts
+9f9c477b843b4b15fb86f0f8526ea2c0b53ddb49,c27c1c591c8991d80e07a6f8ca7246801d8c3b39,8c2ec4d1b0cfaf3d00c96698489a94573c37d65b,2026-10-09,"feat(anomalies): causal per-track vegetation climatology, calibrated z and soil drought probability"
+7f73dfb20f968a5ca2f3cc1fdf846ec2b9734ca9,1b7df170cf630b90578e22fe8068e424106003ac,57e37c2b2c3e6b03152955b72b052fac37b4852b,2026-10-09,"feat(weather): frost and heat hazards validated on Météo-France stations, surface soil layer, 5-year dashboard"
+12c05909411366ea93b5e941224f9f76ed78093b,55954145c5b514e89db15fac0570a7936b4979fc,6e10367189af73a40182d594af5e7ca9ad9e6b5e,2026-10-09,Utworzono za pomocą Colab
+bdb0a0b8d7c7495da2fec127fdb561b67d01f850,387aeb0fc345cf1c3f5927aee7c35cb2b9b9aa81,1bc5736909a2597c78db35d4cac5d7efafb08a9a,2026-10-09,Utworzono za pomocą Colab
+f668b6cfb865ba1e7cd7dd929307a3402641a258,4fb423e276e90dd306deb1c59caab23d07b45c07,ffc2661bc3bdd030b1edbc58f6db7a13c80690fe,2026-10-09,"fix(weather): hazard thresholds from the reference station only, kept nominal unless calibration helps"
+70f2e004320ae886c38374b80826167f48997bad,404b29e3336e7cbba756a927e3e231e68938f403,1060a0070bd4195939bd408b943773037a05201d,2026-10-09,Utworzono za pomocą Colab
+a330ad1f92d9aac7eb32e01666ca962435b491c2,865cef6e48ea526d655a908d0edddce2876fcdfb,2f65eefa85e1249e9964584181c0ed2e5238def0,2026-10-09,"feat(dashboard): v1.2 presentation — vineyard condition panel, season trajectory, signal matrix"
+f36ac274a59064b2ea5375e28c0d5bab7a0ce160,0610897c4b27ab316d131312f8c825f7a700d4dc,068bb92280a86bcf9520ec046b2a4bc5e5079e82,2026-10-09,feat(validation): ISMN period ends at the last day in the station files (END_DATE auto)
+7b9390de4cc0f5d327e59d373232896d25d02554,fd3b08fc20fe785bc8cfe956cde2dcd2b1a2dfe5,2af40218c1c1a893e53d87f437bbb3512cf8c07e,2026-10-10,"docs: project handover summary — goal, status, how to run, migration checklist, results audit"
+5dd5dfebff69e3968493b8a4a30c7932c9ec425a,9cbfa7798a641e10417c28cec7dcd70f4ebfeacb,c1a6a70021660be9c19220ef28c08348bd80f923,2026-10-10,"docs: bring architecture, README and method texts up to date with v1.2"
+53b08b132cb27947e8d7c2be2128372e63c68936,cda709827743966d5d9798c769b501e1772063d8,94d7257d8dbd98077bd5502e91c152e0e84140eb,2026-10-14,"docs: plan v8 (modular: validated soil-drought module, then ortho DL) and A4 method note"
+fdf207d5514dde70e571d440139aeb778e19924b,8d077db0002ec3cbaa2131d76c3fab40fcfd58a1,633996baca9fed76a70d80cb48f762ae6d08a352,2026-10-14,"docs: plan v9 ""Woda w winnicy"" — useful water information, prototyped in Colab"
+70c486aabb86441d701606d98dbde00ff7388af6,26d9288df48206949389b4aafa08e0114e3bdbeb,6334b20a81689b3994a26c1ad7278b18dd2a631f,2026-10-14,"feat(dashboard): ""water in the soil"" card at the top (plan v9 W1)"
+f642f03c2ef83648cc931bac6f2e293bc447edb4,b2fe713cc27122eefad7496dacdcc0dcf143a1ce,5eb96c4e54b39a1e85e8ef1d770184ad728a55c5,2026-10-14,"docs(plan v9): W1b trust section, W3a satellite SWI 1 km, W3b local Sentinel-2 layer"
+d280c0f0deec7332f0ed12b3790923cde4d8f61f,d338527be099a2eb216fdcad5f9c5a59201b6f10,920ed479c26baf831a8caa7009c26143a9278831,2026-10-14,"feat(dashboard): ""how far to trust it"" on the water card (plan v9 W1b)"
+3f3021671662a810afab50c4d0e118882bbdd72e,1e6ec4d7cf990b7b9497df812c3e467cbe031d11,0420da580045fdcf2dfa1bf4261e610ed5e561ca,2026-10-14,docs: W3a method note — CLMS Soil Water Index 1 km as satellite confirmation
+5beff3ee015ee3cfafffee1e244d0fb402ad30f5,c04788357af847d352e91a4626d6aeb0cf89cdfa,089cd686e72170cc85ff47dfac0b915a1b4c591a,2026-10-15,feat(notebook): management notebook updated; SWI 1 km access probe with keys from Drive (plan v9 W3a)
+541fb79e36140eea60e8dc9c5020d40d9c5242e1,1a71e3ef8b3273285bc826eb279c7ba131f90679,c92200fee28f17696d00df2831c80452b0ee31b3,2026-10-15,Utworzono za pomocą Colab
+3e918850361b5011332b87b0be19a6ebae033779,a90d47905ea617bc3ddb1fbcc376abb8566d31e7,e5be8efa979641253d803c451e695a7fe96094b5,2026-10-15,"fix(water card): first real-data run; SWI probe #2 (archive windows, server errors, STAC v2)"
+2bfd4072d27df0502810a6164dcf47e6a6585e43,981ffa09f2284aa7263331ae3d10ba0cfa7f38d2,19651a76204b4ffb092fbde471ec10c885588dde,2026-10-15,feat(swi probe): both CLMS SWI 1 km versions confirmed in CDSE docs (plan v9 W3a)
+df5f555ae4f29baa174832f96984975f8af6868f,642aa21c6c28902572228fa9f08b00612562d1cd,bc4ffa4f0d52d09d7edbf667d474ea28eec79fa3,2026-10-15,Utworzono za pomocą Colab
+3939cca1e7545889b98098fb96093dfdffc332d4,f4592b065a9c39227a3bb0c5224240a6c9cded41,875b55f466a5077240bbe8447e53231c1ce53e75,2026-10-15,docs(plan v9): plan reorganised; W3a revised before download; auxiliary in-situ site proposal
+314ae499ea61f42174a2c4ca5541cd4bfa180fb9,270a977fb0ba8951a6588f3eb55799518ca83734,ac38777c50b3ff664ae33b856184fb9358efd1b5,2026-10-15,"feat(water card): satellite soil water row from CLMS SWI 0.1 deg v4, ERA5-SWI agreement (plan v9 W3a)"
+1b704b95d44dc3b0944a6b6a608eeb41699537c8,3417ca44c482c773b328566c5d20d84a560ba9bd,c2277cc43e19b2fe59c39dabdf8e102ed9c53e16,2026-10-15,Utworzono za pomocą Colab
+a93b5bdeae9ef9b1a3f8858a51a3f1fe1ae9fed7,5165ec46d6e1ef115891ce4b72503b0e9eaf5977,906f33029d7fc50b567c3179977d026d1fa3239b,2026-10-15,Utworzono za pomocą Colab
+af0dde718277e87daf4e51e1bb809f11762871fc,ba2b1c957d91bd9f9326191ba0a1fe47845744b6,3cf6f31e5a66c1678ea7b1184f8cb2616f93681d,2026-10-15,docs(W3a): first real-data result of the satellite row; extreme percentiles in words
+43bfe31e5bb92eabe3d57f9f67c25ea8553cceee,f41c5398ea4c63ca89a9c0c78a3003db2ff098b1,c6a11683c4bb6a0e7624e771fc6e54621b043dbb,2026-10-15,docs(W2+REF): register validation protocol and A4 rules before any code or metric
+d840bc861b0de15a752ab73c96d4e2bef03eee29,4cb51178eb46cb648ccd55eb10a54f6a8df21cc2,118973de52e43c94a0919b779d5914b1d8ad20cb,2026-10-15,"feat(W2+REF): A4 sensor QC and one validation protocol for Condom, FR-Aur and FR-Lus"
+25b3a995a7d6d1eddaae4c69299166a2be7a9889,72718aff0fb6618a74ca475ff38eecb12474c422,2c453cd28e9804a6ca5cbac077de7e94d8f7fa27,2026-10-17,Utworzono za pomocą Colab
+b83c5e3760fbd7c1fe5c0c4881b52914d3c4c411,2e707fa3a9a4ae5b6b00b4305a583d44e2bc9146,4623438f6155ca12286cf0486d099c997b6bd984,2026-10-18,"docs: English README, MIT licence; keep Polish README in docs/"
+db4e4943069f218444d60f4125a78f0ca9656474,9baadfc178f946a6f613370f9308c5431d498ff4,0e10cebe8cc10b102e5d54d7070fd15a881aeeba,2026-10-18,chore: point notebook and docs at renamed repo geoworldlook/agriscreen
+7168d23826b2968b19b0f35cf22ede150720e29c,7c2a7da1d168acb7b5cad45d6d3407bc811b31c6,30d872d6124239d9f61ab619d0f42998617c2003,2026-10-18,Utworzono za pomocą Colab
+4e6016977e6f6b271d2b99468580bbd6402b50bd,d825914e42e415f377f17d37fc44fba39f512d85,97ffab1b3b99166533a3fdea4abeb9c0c78028d8,2026-10-18,feat(W2+REF): first results on the card; results note and scorecard
+e93e025e316fa563c66f97f2fde7422a1c20e865,ebc9046b0e61ee803a10be0dc01a37e2bc5c1616,3d51e86fdd444f9538d5095a505ea4f1bc58a5de,2026-10-18,Merge remote-tracking branch 'origin/claude/new-session-dxyke7' into claude/new-session-dxyke7
+53e65f0ee649bc0bf84f19dee106e095b3741689,5d90a2a94fcac3d5ef916ec5c44bfacd34e2d400,f7a35468929a1d61b86ce5f158491aa7eec2b87a,2026-10-18,docs(W3b): implementation plan 'Moja winnica' with pre-registered tests V1-V4
+db5cf811a083e89ff3cba04574ad253253ddfc5f,14e9a725ad5ce714e5079b101a7ba6704add6aaa,1bd8611b88badc8c22511bfac77ef85353a499bc,2026-10-18,docs(W3b): use the Sentinel-2 archive already on Drive; W3b.2 extends existing scene stats
+43590401a964638813f4e512ed8a29b74acf434a,e1a3dce1578ea098b12467960ceb77c26885c904,f21847b6c24745875d0ebb0c859fc20d0b93d5dc,2026-10-18,"docs(W3b): plan v2 — validate on existing in-situ sensors, no field observations"
+ab7d9cec09e230204cc4ff9309da421a906561c6,e3874efc41fd04156b906f4918643488b698ed3f,d29f283567ac73190fbacc7ad9abe8cc68d8b70c,2026-10-18,"docs(W3b): plan v3 — simplified: three sentences, three tests, four steps"
+0025c24668b1bb42c7d0951b050051fc7eaee5f0,fd286bab1602bd31d7426c01aff7027a7d262c95,e12ac3787ec2d5f696f93c2e47f49844194f2fab,2026-10-18,docs(W3b): leaf-water index (NDMI + CRSWIR) plan v4 and literature review
+aecd91c753c594f3d681cf037e64f9868bbb1755,6731cacfa716a20400369db899eb03ba220b8819,77bdb468a27c385cc50d6f956cffd9a7b41ddcaa,2026-10-18,docs(W3b): Ceccato 2001 full text and FORDEAD CRSWIR formula; reading status of sources
+1ef60f2be6772dd2b6030848ab13ce75fb371b2f,6431bcb69995b48ef511ce0410b927d9b1bcaf68,edff9c1d3ab0b9a72eaf1e2f14ee9cfc26219be1,2026-10-19,docs(W3b): full-text literature review v2 and plan v5; dated corrections of misquotes
+ed9dc80615b88cb2e0524043c4fb1ffab3f9082b,64c9c61cd1babaddd67df50f0ee4b1fcd9cfa4a9,07784fa7a920d59eb9ea77beb343e6760e7e0728,2026-10-19,docs(W3b): apply verification fixes; simplify plan v5
+7cf1099a784e8ecc739029d6ec3abaff7e3cf69b,46df79e071c8ef89396eb62822ec12e2635a3c21,17468bdb4025a05aafc782706c2e86cbab4fbaa4,2026-10-19,docs: one-page status (have / now / later); W3b multi-band variant (D-088)
+5392b13866bb09d97658b254d5c50fb046e57e41,7b07cbc466961a70f9ec29ce8c4a5e0091bcceec,043982b6b8ac28b2b2785f8bc32f8096024a7c91,2026-10-19,"docs(W3b): implementation plan K1–K4, validation protocol draft, power simulation"
+dccd827864b4a2e8e053f1d5db6ee3ae62892bc7,8edb745a0a050daea3b39ad7f39cf602154acb92,95d3b7cb79f4ec0d861683436ba30ce20445bd69,2026-10-19,docs(W3b): register validation protocol (D-089)
+54cc586a72371bc17beb31dfe19bca4fa8ef7da8,428c7314bfbfdbcfcc00f550fa742c6dcad29474,ec97ad68e4b3937410bd4fe49216e4b8ba323987,2026-10-20,"feat(W3b): ""Moja winnica"" — parcel statistics, frozen tests T1–T3, multiband variant, card"
+2d2fcbe497755362e47ade620d278a5fcb44f429,3ba54a2f12dbec0d111821b2e1e4984e0191ff92,fa14060deac0b529c63fc706db219f723a8c4180,2026-10-20,Obliczenia 20.10.2026.
+9f8c73bc64f5256a39c87ca2b2703fbb2e421c9f,5a0c487466e6a153e8ff0f5f7942d1bfab9cd535,c3c71d0685e0df0db37e807062d0359e5677b018,2026-10-20,"docs(W3b): results of the first run (frozen 2026-10-18, 419 scenes)"
+8657c2456565a5a779dba06d75e5ea6cd7493e4a,184cba0c309379a22bec7715f65a21647319e42b,8276f8f99c0a9a19401cc058dfb4fe26c7692144,2026-10-20,"feat: AgriScreen panel (15 vineyards, EN) and story notebook for the blog"
+8a438f523629f66412c3511f638f6832c9bf12a6,c6539bc08993a73ce00799f360a6e5c47457676b,85b3da48e5c790e4233e4389537b597145c3e75a,2026-10-20,feat(panel): Wago-style AgriScreen panel with satellite map and 10 m pixel layers
+8d6beb4c94eb917e87516759c6b36227014232ee,d0f657a34c555b7029252b7a4a25dc526477ae71,97f1b9ffc6750aa56136b9c45a05eeee397e4de1,2026-10-20,"feat(panel): within-parcel zones (pixel minus parcel median, same day)"
+7fd58be86b5b1a8d328413f8fdab9a4d121ba7b7,f95a38ffab4a31717d93005bf3e09edc4b958264,13f0591b31f1ce73443b647551e0d2c904598736,2026-10-20,"docs(W3c): draft protocol for ""zone weaker than usual"" (not registered)"
+0bf6eb89719015800704ee228d065cdda340aae0,6574c5b0fd0cbb5256ca1c8a90026debf12cbc2b,ad6805b440a1836b660978f2f7d9b39a53bd6b7a,2026-10-20,"docs(W3c): register ""zone weaker than usual"" protocol (D-090)"
+a52d7a13d4e9f1360a448ec86483bcef94ba8ed0,05556494d940070d1cbe5a7ef67b1f3d1fcedcfd,bae990ee34cc0c7f4796f6fabb5173570c1019ac,2026-10-20,"feat(W3c): ""zone weaker than usual"" per registered protocol (D-090)"
+acc201b651e1d08f7c9edbfa743eb592c059638e,6bc96c2ffd922ee012c808f873e1694332b9738d,a4d58fa01d14df546322af4aacdb895f2f01bf8f,2026-10-20,Utworzono za pomocą Colab
+80365c1b14e40ed353d1ac478c91569da9a9338c,ceed9211d0bddb8cc8ec02659bc866ade12a0918,c8cb6978caf54cec6c62f813a0cd2af059764b27,2026-10-20,"docs(W3c): first run results — ""zones vs usual"" not shown (criterion failed)"
+c092e5c092de0973df6bdc92c37f54e812e0ab69,928be1be39f1f813e7c661413266bda345d303da,69f069207ff34d94cd0fbe20ba79ea81d3975492,2026-10-20,docs(W3c): RPG crop register confirms all 15 parcels are vineyards; replanting in 13 and 22
+96e8d570282ce3404ef988d387168d9df8e578bc,cae9b278bb6c2145c5c0b6f4d7abcdd75ddcded2,f543e4531c1fe66436b1b8fb6441ff36b34b5745,2026-10-20,"docs(W3d): register ""place lowest in 5 years"" protocol (D-091)"
+ddf26dd3ad5450718044c7b6da8a5959fb2978bb,1b0f674c8e15c299db0aad33995952908b8ea707,131bb80b672277b72f14d3571ff1c25ca1aa822d,2026-10-20,"feat(W3d): ""place lowest in 5 years"" per registered protocol (D-091)"
+c3783a301b30b39be3b086147d4d00fabd633331,e217894affdab9fd4e1fe41dd295502218a79cbb,6be43101536c5c25d72349bca1f5cb2b3ed272c2,2026-10-20,Utworzono za pomocą Colab
+82844ae58ebd2b4f5f1f6f91c89a38462e24e26a,c9147479ae7523819bd2c0f20c40663daf5e1377,2b8df9d3e9db82a9b95413ceeb240240ffc6e593,2026-10-20,"docs(W3d): first run results — ""lowest in 5 years"" not shown (interval too wide)"
+1e0f5968f2a2f64229a83f924e81f613dc71e4c8,f2b848fe9d516b8d397c22447dc98f1ffa4c0d5e,55dac939378123626f195f4c3e2a0c1fd436f2fc,2026-10-20,"v1: pakiet agriscreen/ (kod z step_* bez SR, bez starego dashboardu i biuletynu)"
+2e3018f2d2b632ff75cfd3ae79a16ddcf865d646,e42c7e41c9e2d7f13cb360540badb0811263ff85,c14aa9dccbe596bb4c34c80eae72974d6d0cdf7b,2026-10-20,v1: zgodność z protokołami i uczciwsze statusy w panelu (audyt wyników)
+d5eaf73242b1e97137c8729a142da39eb0a42857,0c28cb4262aa044d733866f63971b0d7fff363b5,15648710b7a41fed202ed9e7fac80bd9aedc1d30,2026-10-20,"v1: notatniki w notebooks/ (monitor AgriScreen_Monitor, opowieść na blog) i panel pokazowy z pakietu"
+ce7f5df5c034b9b4d54a9822996859822b62c1d3,adb40e34532a766a9d2105ab2660373fdc72d3fe,77d263c8c745de0c6fee04a7239442d452451239,2026-10-20,"v1.0: porządek repozytorium i dokumentacji, poprawki opisu wyników po audycie"
+275dbb6d4387e86104e587cc2447e488cad98e01,021734f790723475786f4be53c4c96e69a2389c6,dfaef5018f6f8934d7f133fb79170ea48bfa2479,2026-10-24,1.1: obliczenia na własnym komputerze (Windows) zamiast Colab
+b4eb01b6f7f235fb96aa252e8e8bba6a0db4c4f4,70d2263e8ff9a53c3f2c0987dd75db15eaecd473,0a49ccd8aa096f321be7634ff7f1fa84a41df244,2026-10-24,"1.1.1: panel works on Windows (date format), guide note on conda 26.9"
+ee744958971f416a082984d271c71e0e775a1deb,dfd220e03521d0d12accf944358db8215ff8b0ff,842e84f3169a3f7b3f15c77e1d7c6520e8c67ebd,2026-10-24,1.1.2: 7-day forecast back in the panel
+d9255cb9c555651f7dd28d714039eb1f4aa6c899,fb9f83d000533f4255a97252b30abb66d956351e,568d2b065bc18cd739a671fd2482dcc55d0c361e,2026-10-24,1.2.0: local Jupyter notebook to look at the results
+2e37a38d5bae226d721158412d2f10029d90383d,b1e86ee99c462b2623067f9e61e69d6ec1d43909,96fec25a76b31b84d94ff3543ad35b9365e953bc,2026-10-25,"docs(W3e): register ""vineyard vs neighbours"" protocol (D-092)"
+ab6b693659a4147b5eff6ad57e21b7f3d3fda618,1ac6e23c09a353ff74ca2d728d0242e5f8083442,5949f5e6bc08a159cdc364656b08ab56f379db6f,2026-10-25,"W3e results: neighbour comparison calibrated (H1-H3), replanting signal not shown (H4)"
+ebe303d4d2ff2fcd47e3988033cdf1f367615480,a282aed02ac2fa092580c8bbcc85c8f989cda752,94f6f09b76eccb90dd9c8800738de25f4233a4da,2026-11-01,auto: przebieg tygodniowy 2026-11-01 (ostatnia scena 2026-10-31)
+6191dd384d793c1c6f6eebbb71f27b43fb4fb33b,eb6f95451a8aae3c6412d130627f5fd67418f504,51338e68016e823adc7c5b0593da4aad939c8788,2026-11-01,"docs: archive old plans, serve docs/ as GitHub Pages (live panel)"
+4c5fe091383cfd5a8ee64f79af21d7f06047a1d8,5dd9c2e27f7e4c2994dea317cf8eac30b2b95952,e386e367b59a6f9dc0627a805fd7c0041aeef545,2026-11-01,"1.2.1: product card README, CI (ruff + offline selftest), live panel link"
+40d79e659cabb9ff61944e0faa54544c90af7698,d06b540e90083cfedc61c38cedc22a3de84dfe16,1997eb404d72c286daded51f88e2909770cbae01,2026-11-01,docs(readme): note that the project is built with help from Claude (Anthropic)
+a198773eb4c8a0a7b5bd4a3ac3614b0f0ecb542d,c3e7f528ede3d773f1559eaad51bc09377855115,f5211ba2a4455b3261efc4c66284236ca1c96135,2026-11-01,docs(W7): Plan v10 (D-093) and draft protocol for hints vs ground measurements (not registered)
+cf2dfcfcf2aa5680360b027b8c9882d6e3f2525b,6907f27ee452fe9b4db5ab23c95ef4a523473f02,b1f7d495965f2c1729093f65ad28dc66a9c340dd,2026-11-02,"docs(W7): register protocol (D-093), SHA-256 a6689c13 of sections 0-9, before any computation"
+fe178631dcc4e87aebe8b1c0dd2dcb8e1b2fbba7,d7394f0bd89656e2916a5f53ade04400ae7722db,649ed833cb566dc3be605760ed73c5bf937ba656,2026-11-02,feat(W7): data download with manifest and analysis code per registered protocol D-093
+c8af2453e1f8f7ddb4b5017bf06f64a3f13dc720,5985c7113c4162b81daad5bdb1748c668ff9b9e2,16e0452ac69cc1db53e520c6118d08741a67b6d1,2026-11-02,feat(W7): K1/K2 rows in the panel trust table and weekly publish of w7_tests.csv; plan status checklist
+f933e9a4e2c9c323d8d7e1a92831cd2ee407b049,6a647d015aebc378b68ef0dac89040a4a7176f34,98d2449edb208ff8a2e2754f4c97b580b2db5a10,2026-11-02,docs(W7): plan status - ICOS archives and ERA5-Land for 10 stations downloaded
+d4572408f7ef5bc81b13b317a9fdd7bc0456ac4f,1d7a96e0688979015f864c070b7b6b0ea976ebb5,b743b04a4d74522ea9f85230e3d9ee14ee14b8a5,2026-11-02,fix(data): ISMN sensor data out of the public repository (ISMN terms forbid redistribution)
+e5dcbe360ce95a951a4728551ce37f781d783737,5089da7102f240b67a6202e121d96bada86a7305,19d2ed779d059cf631cc82ccb6c531bb80a6e7f4,2026-11-02,fix(data): read ISMN from the data folder; synthetic ISMN sensor in selftest; README licence note
+9fc7f0609d5332bd431f6845c224663ab3e2e067,85900377e5048534e363c1f394c1c0912a80e1bc,1bfa2be954c4a555b495aaa2951277bf3579b1c3,2026-11-02,"1.3.0: W7 results - ""dry soil"" hint confirmed by ground sensors, vegetation hint not confirmed"
+6ee8f172c959544993b288ec5ad8eed5274449af,e82d5d65822919754a27a028a5868f6641f9e624,5af1570a56d5a5fe98352dc8add7a789c917055f,2026-11-02,auto: przebieg tygodniowy 2026-11-02 (ostatnia scena 2026-10-31)
+f86565577f28acb9e38615e103c7530b48bce2ba,5177763183328e55c72a864552d50cb50368a548,fa8e045cfc7b2976f867f80302c5cbd4e4e7ccfa,2026-11-02,"1.3.1: weekly push never waits for a login window (system git, git calls without prompts)"
+6733dd398b318267fd7ea8330627e92e678f14ac,00a93e7c474003d6e7854738d4f6fc87d6923f3e,430b5114d929cb79d62a8c536a8a59b2ebe291ab,2026-11-02,auto: przebieg tygodniowy 2026-11-02 (ostatnia scena 2026-10-31)
+5464c79aa6187abceeee2262ee076c05186a4c3b,82064454c1f822401004348448d17452155b763b,ebfff09b54d8024a90f9f3cd77b6caa3b987173e,2026-11-02,"docs: data citations (ICOS persistent identifiers, ERA5-Land, Copernicus notices), W7 source list, Plan v10 done"
+10ee9dd233da661d3fc4ef83ac7edafef5549238,9d0683fd3e4a876fb2a115ea58406ba393859b02,f021f5d6705399c5354c94ecf3f9af2679564c9b,2026-11-02,auto: przebieg tygodniowy 2026-11-02 (ostatnia scena 2026-10-31)
+,699392ecfc5443db860ad83b8849f3305a36e024,a615dfbe5ac1b53e548ae64fc981cefdb20fb07d,2026-11-02,"docs: history rewrite note (D-094), old-to-new commit map, commit references updated"

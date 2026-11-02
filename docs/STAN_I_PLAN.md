@@ -29,7 +29,7 @@ ani zabiegów. Każda liczba ma wynik sprawdzenia i jego rodzaj (status) albo na
   Przebudowa z modułów `step_*` niczego nie zmieniła w wynikach (regresja na tych samych danych syntetycznych:
   26 plików wynikowych identycznych; `CHANGELOG.md`).
 - **Wycofane w 1.0:** super-rozdzielczość SEN2SR, status dekadowy w stylu EDO CDI, polski dashboard i biuletyn,
-  gałąź Sentinel-1 (wszystko w historii git, ostatni commit przed 1.0: `c914747`).
+  gałąź Sentinel-1 (wszystko w historii git, ostatni commit przed 1.0: `2b8df9d`).
 
 ## 2. Co jest sprawdzone
 
