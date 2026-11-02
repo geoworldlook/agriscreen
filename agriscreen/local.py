@@ -69,8 +69,11 @@ def load_settings(code_dir: str = CODE_DIR, **overrides: Any) -> Dict[str, Any]:
 # ==============================================================================
 
 def git(code_dir: str, *args: str, check: bool = True) -> str:
+    # Bez okien i pytań o logowanie: przebiegu z Harmonogramu nikt nie klika. Brak zapisanego logowania = błąd
+    # w logu (commit zostaje lokalnie, następny przebieg go wypchnie), a nie okno czekające godzinami.
+    env = {**os.environ, "GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"}
     r = subprocess.run(["git", "-C", code_dir, *args], capture_output=True, text=True, encoding="utf-8",
-                       errors="replace")
+                       errors="replace", env=env)
     if check and r.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)}: {(r.stderr or r.stdout).strip()}")
     return r.stdout.strip()

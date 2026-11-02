@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.1 — 2026-11-02
+
+- Fix: the weekly job could wait for hours at `git push`. The conda environment had its own git (conda-forge), and
+  its default opens a “select a credential helper” window. Nobody clicks it in a scheduled run. `git` is removed from
+  `environment.yml`, so the system Git (Git for Windows, installed by the setup script) with its saved login is used.
+  Git calls in `agriscreen/local.py` never ask for a login (`GIT_TERMINAL_PROMPT=0`, `GCM_INTERACTIVE=never`):
+  a missing login is an error in the log, the commit stays local, and the next run pushes it.
+- Panel “How far to trust it”: the W7 rows now say “the measurement agreed on X% of hint days” (K2: “hint scenes”).
+  The old text (“confirmed by the measurement on…”) sounded like a confirmation next to the status “not confirmed”.
+
 ## 1.3.0 — 2026-11-02
 
 - **W7 (protocol D-093, registered before computing): product hints vs real ground measurements.**

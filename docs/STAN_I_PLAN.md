@@ -1,6 +1,6 @@
 # AgriScreen — stan i plan
 
-Stan na 2026-11-02, wersja 1.3.0. Jedna strona do orientacji; szczegóły w dokumentach z §7.
+Stan na 2026-11-02, wersja 1.3.1. Jedna strona do orientacji; szczegóły w dokumentach z §7.
 
 **Najważniejszy wynik (W7, D-093):** gdy AgriScreen mówi „gleba w okolicy jest sucha”, czujniki w gruncie
 potwierdziły to w 81% dni (przypadkiem 49%; 11 stanowisk, 4783 dni) — **potwierdzone**. Wskazówka o roślinności

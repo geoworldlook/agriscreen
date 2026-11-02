@@ -1,5 +1,7 @@
 # Środowisko AgriScreen dla conda / Miniforge (Windows, macOS, Linux):
 #   conda env create -f environment.yml      (aktualizacja: conda env update -f environment.yml --prune)
+# Git: systemowy (Windows: Git for Windows ze skryptu instalacyjnego), nie z conda — git z conda-forge pyta oknem
+# o sposób logowania i zatrzymuje push w przebiegu tygodniowym.
 name: agriscreen
 channels:
   - conda-forge
@@ -16,7 +18,6 @@ dependencies:
   - ipython
   - jupyterlab        # notatnik lokalny: notebooks/AgriScreen_Local.ipynb (podgląd wyników)
   - earthengine-api
-  - git
   - pip
   - pip:
       - geemap

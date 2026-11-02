@@ -4,7 +4,7 @@
 [![selftest](https://github.com/geoworldlook/agriscreen/actions/workflows/selftest.yml/badge.svg)](https://github.com/geoworldlook/agriscreen/actions/workflows/selftest.yml)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/geoworldlook/agriscreen/blob/main/notebooks/AgriScreen_Monitor.ipynb)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![Version](https://img.shields.io/badge/version-1.3.0-green)
+![Version](https://img.shields.io/badge/version-1.3.1-green)
 
 AgriScreen tells a winegrower near Condom (Gers, south-west France) whether a vineyard parcel is **unusual right now
 compared with its own history**, and how far that answer can be trusted. It covers 15 vineyards (0.7–4.1 ha) and

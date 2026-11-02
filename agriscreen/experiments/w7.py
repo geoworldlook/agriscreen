@@ -296,9 +296,10 @@ def trust_rows(out_dir: str) -> List[Dict[str, str]]:
             continue
         what, against = _TRUST[key]
         ok = str(r.get("werdykt", "")) == "potwierdzone"
-        result = (f"confirmed by the measurement on {100 * r['p']:.0f}% of hint days "
+        unit = "days" if key == "K1" else "scenes"
+        result = (f"the measurement agreed on {100 * r['p']:.0f}% of hint {unit} "
                   f"[{100 * r['p_lo']:.0f}–{100 * r['p_hi']:.0f}%] vs {100 * r['b']:.0f}% by chance "
-                  f"({int(r['n_hint'])} hint days, {int(r['years_hint'])} years)")
+                  f"({int(r['n_hint'])} hint {unit}, {int(r['years_hint'])} years)")
         if not ok and str(r.get("werdykt", "")).startswith("za mało"):
             result += "; too little data for a verdict"
         rows.append({"what": what, "against": against + f" (pre-registered W7, {str(r['protocol_sha256'])[:8]}…)",
