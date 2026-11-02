@@ -26,7 +26,7 @@ in France and the ISMN sensor at Condom, 2016–2026, with test rules registered
 | **Problem** | A winegrower sees one season at a time. A dry summer makes every vineyard look worse, so it is hard to tell “my parcel has a problem” from “the whole area is dry”. |
 | **User** | Winegrowers and advisers in one wine area (now: 15 vineyards near Condom, Gers). |
 | **Solution** | Each vineyard compared with its own past seasons (Sentinel-2, 10 m), next to soil moisture in the area (ERA5-Land, satellite SWI) and weather. One weekly panel, no field visit needed. |
-| **Evidence** | Every layer checked against ground measurements, with test rules written down before computing (pre-registration). “Dry soil” hint confirmed by in situ sensors on 81% of days vs 49% by chance (11 sites); rainfall vs rain gauge: R 0.90; heat days at Condom: 70% detected, 15% false alarms. Failed tests are reported and hidden from the map (see below). |
+| **Evidence** | Each layer says how it was checked against ground measurements, with test rules written down before computing (pre-registration). “Dry soil” hint confirmed by in situ sensors on 81% of days vs 49% by chance (11 sites); rainfall vs rain gauge: R 0.90; heat days at Condom: 70% detected, 15% false alarms. Failed tests are reported and hidden from the map (see below). |
 | **Status** | Runs every week without manual work (download, compute, publish). Self-assessed technology readiness: TRL 4–5 (working end to end on real data in its area; not yet tested with users). |
 | **Limits** | No vine water stress diagnosis and no advice: there are no measurements inside the vineyards. The vegetation index follows dry vs wet seasons, not week-by-week soil water. |
 | **Next** | Re-test all rules on the 2027 season; any parcel from a user-drawn outline; cloud-native pipeline (STAC, Docker); deep learning to separate vine rows from inter-rows. |
@@ -163,6 +163,14 @@ Copernicus Sentinel-2 L2A (ESA), ERA5-Land (Copernicus Climate Change Service), 
 Land Monitoring Service); in situ: ICOS ecosystem stations in France (CC BY 4.0), ISMN SMOSMANIA (Météo-France /
 ISMN); rain gauges Météo-France; wine production declarations (French customs, open data); crop register RPG (IGN);
 7-day forecast Open-Meteo; background imagery in the browser Esri World Imagery; map library Leaflet.
+
+**Notices and licences.** Contains modified Copernicus Sentinel data (2016–2026) and modified Copernicus Service
+information (2026). ERA5-Land: Muñoz-Sabater et al. (2021), *Earth System Science Data* 13, 4349–4383,
+https://doi.org/10.5194/essd-13-4349-2021; neither the European Commission nor ECMWF is responsible for any use of
+this information. ICOS data (CC BY 4.0) are cited object by object, with persistent identifiers, in
+[W7 results §7](docs/evidence/W7_wyniki.md); all downloaded files with SHA-256 checksums are listed in
+[`docs/evidence/W7_zrodla.csv`](docs/evidence/W7_zrodla.csv). Météo-France daily climate data: Licence Ouverte /
+Open Licence 2.0 (Etalab).
 
 **ISMN data** are used only for scientific validation and are **not redistributed**: the ISMN terms allow scientific
 use only and forbid passing the data on. To rerun the validation, download the SMOSMANIA Condom station with your own

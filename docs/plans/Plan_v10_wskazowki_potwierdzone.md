@@ -1,7 +1,7 @@
 # Plan v10 — wskazówki AgriScreen potwierdzone pomiarami
 
-Status: zaakceptowany przez autora 2026-11-01 (D-093). Protokół: `docs/evidence/W7_protokol_wskazowki.md`
-(szkic do akceptacji, potem rejestracja przed liczeniem).
+Status: zaakceptowany przez autora 2026-11-01 (D-093); zrealizowany 2026-11-02 (wersje 1.3.0–1.3.1). Protokół:
+`docs/evidence/W7_protokol_wskazowki.md` (zarejestrowany przed liczeniem, commit `cf2dfcf`).
 
 ## Cel
 
@@ -40,8 +40,13 @@ tydzień. Nie chodzi o dokładną wartość wilgotności gleby, tylko o trafnoś
 - [x] Sentinel-2 i statystyki kwadratów 7 stacji → `W7_stacje/<stacja>/` (2016–2026; wszystkie pliki czytelne).
 - [x] Notatnik `W7_wskazowki.ipynb` wykonany; `docs/evidence/W7_wyniki.md`; wiersz w `karta_wynikow.md`
       (K1 potwierdzone 81,2% wobec 49,3%; K2 niepotwierdzone).
-- [ ] Publikacja: wiersze K1/K2 w panelu (`w7.trust_rows`, `w7_tests.csv` w `docs/showcase/`), README, strona.
-- [ ] Końcowe sprawdzenie produktu (6 obszarów + tylko dane rzeczywiste).
+- [x] Publikacja 2026-11-02: wiersze K1/K2 w panelu (`w7.trust_rows`, `w7_tests.csv` w `docs/showcase/`), README,
+      strona.
+- [x] Końcowe sprawdzenie produktu 2026-11-02 (6 obszarów + tylko dane rzeczywiste): selftest i CI zielone; przebieg
+      z Harmonogramu liczy i publikuje bez obsługi (1.3.1: push czekał na okno logowania z gita w środowisku conda);
+      w opublikowanych plikach tylko wyniki z danych rzeczywistych; cytowania ICOS z identyfikatorami
+      (`W7_wyniki.md` §7, rejestr `docs/evidence/W7_zrodla.csv`). Sprawy do decyzji autora prowadzone poza
+      repozytorium.
 
 Wznowienie: brakujące dane dociąga ponowne uruchomienie tych samych funkcji (pobierają tylko to, czego brak).
 

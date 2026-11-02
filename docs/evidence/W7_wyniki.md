@@ -97,3 +97,32 @@ jeszcze takiego potwierdzenia.
 - K2 łączy różne typy roślinności; po teście widać różnicę łąka / las, ale to obserwacja, nie wynik.
 - Lata po zamrożeniu i sezon 2027: te same reguły jako potwierdzenie (§8); dla roślinności — nowy protokół
   z podziałem na typ roślinności, zapisany przed sezonem 2027.
+
+## 7. Źródła danych (cytowania)
+
+Dane ICOS (licencja CC BY 4.0): archiwa „ETC L2 ARCHIVE” 10 stacji; cytowania w brzmieniu z portalu ICOS.
+
+- FR-Aur: Tallec, T., Ceschia, E., Granouillac, F., Claverie, N., Zawilski, B., Brut, A., Lemaire, B., Gibrin, H. (2026). ETC L2 ARCHIVE from Aurade, 2019–2025, ICOS RI, https://hdl.handle.net/11676/E4Xm_4CfgdmdEFoni2AjKk4K (pobrano 2026-11-01, sha256 1385e6ff809f…)
+- FR-Bil: Domec, J.C., Loustau, D., Aluome, C., Chipeaux, C., Denou, J.-L., Depuydt, J., Garrigou, C., Kruszewski, A., Lafont, S. (2026). ETC L2 ARCHIVE from Bilos, 2019-01-01–2026-08-31, ICOS RI, https://hdl.handle.net/11676/rwLvNgUUlBEVXgxfOlnS1oDq (pobrano 2026-11-01, sha256 af02ef360514…)
+- FR-Fon: Berveiller, D., Dufrêne, E., Delpierre, N., Morfin, A., Francois, C., Vincent, G., Bazot, S., Soudani, K., Girardin, C., Guillot, T., Perot-Guillaume, C. (2026). ETC L2 ARCHIVE from Fontainebleau-Barbeau, 2019-01-01–2026-08-31, ICOS RI, https://hdl.handle.net/11676/r3oEzGwCWocoF0jZiyYhhdIj (pobrano 2026-11-01, sha256 af7a04cc6c02…)
+- FR-Gri: Buysse, P., Loubet, B., Depuydt, J., Durand, B., Kalalian, C. (2026). ETC L2 ARCHIVE from Grignon, 2021-01-01–2026-08-31, ICOS RI, https://hdl.handle.net/11676/c0knzV7SGbac3mdg5OHlC6Cq (pobrano 2026-11-01, sha256 734927cd5ed2…)
+- FR-Hes: Cuntz, M., Joetzjer, E., Aiguier, T., Courtois, P., Lily, J.-B., Naiken, A. (2026). ETC L2 ARCHIVE from Hesse, 2022-01-01–2026-08-31, ICOS RI, https://hdl.handle.net/11676/hnh5IHKw9yDIC3RbGWvvFidz (pobrano 2026-11-01, sha256 8678792072b0…)
+- FR-Lam: Brut, A., Tallec, T., Granouillac, F., Zawilski, B., Claverie, N., Lemaire, B., Ceschia, E. (2024). ETC L2 ARCHIVE from Lamasquere, 2020-01-01–2024-09-01, ICOS RI, https://hdl.handle.net/11676/JhEP9E7ZyJoy59VmdApHBGzY (pobrano 2026-11-01, sha256 26110ff44ed9…)
+- FR-Lus: Gastal, F., Beauclair, P., Chabbi, A., Chebil, B., de Berranger, C., Decau, M.-L., Huguet, C., Lafont, S., Perrot, C. (2026). ETC L2 ARCHIVE from Lusignan, 2022-01-01–2026-08-31, ICOS RI, https://hdl.handle.net/11676/j4ipbZgzoDtuPBLEwSUKyVfp (pobrano 2026-11-01, sha256 8f88a96d9833…)
+- FR-Mej: Flechard, C., Fauvel, Y., Hamon, Y., Jacotot, A. (2026). ETC L2 ARCHIVE from Mejusseaume, 2019–2025, ICOS RI, https://hdl.handle.net/11676/H3JuEZOLrC_3Z8S-lfVBECpu (pobrano 2026-11-01, sha256 1f726e11938b…)
+- FR-Pue: Limousin, J.-M., Kempf, J., Ourcival, J.-M., Veuillen, L. (2026). ETC L2 ARCHIVE from Puechabon, 2021-01-01–2026-08-31, ICOS RI, https://hdl.handle.net/11676/kehEIf4c-WGAJJHco2fgsmwH (pobrano 2026-11-01, sha256 91e84421fe1c…)
+- FR-Tou: Calvet, J.-C., Canut-Rocafort, G., Etienne, J.-C., Pommies, S., Maurel, W., Paci, A. (2026). ETC L2 ARCHIVE from Toulouse, 2018–2025, ICOS RI, https://hdl.handle.net/11676/UuBf7xaMbgbIVclxbq_ZD9pB (pobrano 2026-11-01, sha256 52e05fef168c…)
+
+Pozostałe źródła:
+
+- ISMN, sieć SMOSMANIA, stacja Condom: Dorigo et al. (2021), *Hydrology and Earth System Sciences* 25,
+  5749–5804, https://doi.org/10.5194/hess-25-5749-2021; Calvet et al. (2007), IGARSS 2007, 1196–1199. Tylko do
+  użytku naukowego, bez przekazywania danych dalej (dane poza repozytorium).
+- ERA5-Land: Muñoz-Sabater et al. (2021), *Earth System Science Data* 13, 4349–4383,
+  https://doi.org/10.5194/essd-13-4349-2021 (Copernicus Climate Change Service).
+- Sentinel-2 L2A: dane Copernicus Sentinel 2016–2026 (ESA), przetworzone.
+- Météo-France, „Données climatologiques de base quotidiennes” (data.gouv.fr), Licence Ouverte 2.0 (Etalab).
+- Douane, „Relevé par département de la production des vins” 2016–2025 (douane.gouv.fr, open data).
+
+Adresy wszystkich pobranych plików, daty pobrania i sumy SHA-256: `W7_zrodla.csv` (kopia rejestru
+`MANIFEST_W7.csv` z katalogu danych).

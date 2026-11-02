@@ -9,6 +9,9 @@
   a missing login is an error in the log, the commit stays local, and the next run pushes it.
 - Panel “How far to trust it”: the W7 rows now say “the measurement agreed on X% of hint days” (K2: “hint scenes”).
   The old text (“confirmed by the measurement on…”) sounded like a confirmation next to the status “not confirmed”.
+- Data citations: the 10 ICOS data objects are cited with persistent identifiers in `docs/evidence/W7_wyniki.md` §7,
+  and the list of downloaded W7 files with SHA-256 checksums is published as `docs/evidence/W7_zrodla.csv`. README:
+  Copernicus and ERA5-Land notices, Météo-France licence; product card: “each layer says how it was checked”.
 
 ## 1.3.0 — 2026-11-02
 
