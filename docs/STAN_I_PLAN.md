@@ -19,7 +19,9 @@ ani zabiegów. Każda liczba ma wynik sprawdzenia i jego rodzaj (status) albo na
   warstwą: piksele 10 m (NDVI, NDRE, NDMI), strefy wobec reszty działki tego samego dnia albo cała działka wobec
   własnej historii (z). Obok: statystyki, stan działki, gleba w okolicy, pogoda (prognoza, ostatnie dni, przymrozki
   i upały), karta, sezon i „How far to trust it”. Jeden plik `panel.html` + dane `panel_data.json`.
-- **Obliczenia na własnym komputerze (1.1):** folder `GeoWorldLook` na pulpicie (projekty, dane z Dysku Google,
+- **Przebieg tygodniowy w GitHub Actions (1.4.0):** `weekly.yml` (pon. i czw.), dane w prywatnym repo `agriscreen-data`,
+  GEE przez konto serwisowe, błąd = issue (`docs/URUCHOMIENIE_GITHUB_ACTIONS.md`). Komputer i Colab to zapas.
+- **Obliczenia na własnym komputerze (1.1, teraz zapas):** folder `GeoWorldLook` na pulpicie (projekty, dane z Dysku Google,
   skrypty), przebieg co poniedziałek z Harmonogramu zadań, panel sam trafia na GitHub (`docs/URUCHOMIENIE_LOKALNE.md`).
 - **Panel publiczny (1.2.1):** https://geoworldlook.github.io/agriscreen/showcase/agriscreen_panel.html (GitHub Pages
   z `docs/`), na stronie jako „Live demo”. **CI:** ruff i test bez sieci przy każdej zmianie kodu.

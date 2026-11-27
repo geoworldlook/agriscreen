@@ -1,0 +1,233 @@
+Metadata-Version: 2.4
+Name: agriscreen
+Version: 1.3.1
+Summary: Vineyards against their own history, from open Copernicus data (Sentinel-2, ERA5-Land, CLMS SWI)
+License: MIT License
+        
+        Copyright (c) 2026 Dawid Sajewski
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: scipy
+Requires-Dist: rasterio
+Requires-Dist: geopandas
+Requires-Dist: requests
+Requires-Dist: pillow
+Provides-Extra: ingest
+Requires-Dist: earthengine-api; extra == "ingest"
+Requires-Dist: geemap; extra == "ingest"
+Requires-Dist: geedim; extra == "ingest"
+Dynamic: license-file
+
+# AgriScreen: vineyards against their own history, from open Copernicus data
+
+[![Live panel](https://img.shields.io/badge/live_panel-about_weekly-2ea44f)](https://geoworldlook.github.io/agriscreen/showcase/agriscreen_panel.html)
+[![selftest](https://github.com/geoworldlook/agriscreen/actions/workflows/selftest.yml/badge.svg)](https://github.com/geoworldlook/agriscreen/actions/workflows/selftest.yml)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/geoworldlook/agriscreen/blob/main/notebooks/AgriScreen_Monitor.ipynb)
+![Python](https://img.shields.io/badge/python-3.10%2B-blue)
+![Version](https://img.shields.io/badge/version-1.3.1-green)
+
+AgriScreen tells a winegrower near Condom (Gers, south-west France) whether a vineyard parcel is **unusual right now
+compared with its own history**, and how far that answer can be trusted. It covers 15 vineyards (0.7–4.1 ha) and
+uses only open data: Copernicus Sentinel-2, ERA5-Land and the CLMS Soil Water Index. It gives no irrigation or
+treatment advice and does not diagnose vine water stress.
+
+**[Open the live panel](https://geoworldlook.github.io/agriscreen/showcase/agriscreen_panel.html)** — it is refreshed
+about once a week, and shows the date of the latest usable Sentinel-2 scene.
+
+**Checked against the ground:** when AgriScreen says *the soil in the area is dry*, soil moisture sensors in the
+ground confirmed it was drier than usual on **81% of those days** (49% by chance) — 4,783 days at 10 ICOS stations
+in France and the ISMN sensor at Condom, 2016–2026, with test rules registered before computing
+([W7 results](docs/evidence/W7_wyniki.md)). The vegetation hint is **not confirmed** yet (see below).
+
+## Product card
+
+| | |
+|---|---|
+| **Problem** | A winegrower sees one season at a time. A dry summer makes every vineyard look worse, so it is hard to tell “my parcel has a problem” from “the whole area is dry”. |
+| **User** | Winegrowers and advisers in one wine area (now: 15 vineyards near Condom, Gers). |
+| **Solution** | Each vineyard compared with its own past seasons (Sentinel-2, 10 m), next to soil moisture in the area (ERA5-Land, satellite SWI) and weather. One weekly panel, no field visit needed. |
+| **Evidence** | Each layer says how it was checked against ground measurements, with test rules written down before computing (pre-registration). “Dry soil” hint confirmed by in situ sensors on 81% of days vs 49% by chance (11 sites); rainfall vs rain gauge: R 0.90; heat days at Condom: 70% detected, 15% false alarms. Failed tests are reported and hidden from the map (see below). |
+| **Status** | A scheduled weekly job on my own computer downloads, computes and publishes without manual steps; a run is skipped when the computer is off, and cloudy weeks bring no new scene. Self-assessed technology readiness: TRL 4–5 (working end to end on real data in its area; not yet tested with users). |
+| **Limits** | No vine water stress diagnosis and no advice: there are no measurements inside the vineyards. The vegetation index follows dry vs wet seasons, not week-by-week soil water. |
+| **Next** | Re-test all rules on the 2027 season; any parcel from a user-drawn outline; cloud-native pipeline (STAC, Docker); deep learning to separate vine rows from inter-rows. |
+
+![AgriScreen panel: 15 vineyards, 10 m greenness zones on a Sentinel-2 background, soil dryness and weather](docs/showcase/agriscreen_panel.jpg)
+
+*Panel with the Sentinel-2 background (contains modified Copernicus Sentinel data 2026). The interactive version is
+[`docs/showcase/agriscreen_panel.html`](docs/showcase/agriscreen_panel.html); the story with results is
+[`notebooks/AgriScreen_story.ipynb`](notebooks/AgriScreen_story.ipynb).*
+
+## What the panel shows
+
+- **Map** on a satellite photo, with a semi-transparent layer:
+  10 m pixels inside each vineyard (NDVI, NDRE, NDMI);
+  zones (each pixel minus the median of the same parcel on the same day);
+  or the whole parcel against the same parcel in the previous five years (z-score, same time of year, same orbit).
+- **Card for each vineyard:**
+  (1) soil in the area — dry / near normal / wet (ERA5-Land 0–100 cm percentile vs 1991–2020);
+  (2) the parcel's vegetation water index (SWIR) below / within / above its own normal, and how many vineyards
+  nearby are in the same state;
+  (3) whether area vegetation follows soil water — shown only if a pre-registered test confirms it (so far it has not).
+- **Statistics, season curve, weather** (7-day forecast, frost and heat) and a **“How far to trust it”** table where
+  every line says what it was checked against and what kind of check it was.
+
+## How far to trust it
+
+All tests below were written down and hashed (SHA-256) before any number was computed, and run on data frozen on
+2026-10-18 (419 Sentinel-2 scenes, 2016–2026). Protocols and results: [`docs/evidence/`](docs/evidence/)
+(summary: [`karta_wynikow.md`](docs/evidence/karta_wynikow.md)).
+
+| What | Result | Status |
+|---|---|---|
+| Soil moisture 0–100 cm (ERA5-Land) vs in situ sensors at 3 stations | anomaly correlation 0.57 Condom (ISMN), 0.57 Auradé, 0.68 Lusignan (ICOS, 35-day anomalies); same dry/normal/wet class on 55–65% of days | checked (no pass threshold) |
+| Soil water index (ASCAT satellite) | 0.57 / 0.52 / 0.53 | checked |
+| 30-day rainfall (ERA5-Land) vs rain gauge | R 0.90 | checked |
+| Parcel index: noise between close scenes | smallest clear change (MDC95) 1.0 z same orbit, 1.1 z different orbits | descriptive |
+| Parcel index: share of scenes “below its own normal” (expected 16%) | 28% [4; 52]; from 1% (2021) to 76% (2022); 14% [0; 30] with near-normal soil | descriptive — no gross miscalibration, weak test |
+| Area vegetation follows soil water of the previous 30 days | ρ 0.55 [−0.02; 1.00] (criterion: lower bound > 0) | **not confirmed** — sentence 3 hidden |
+| 4-band model (red, red-edge, NIR, SWIR) instead of the simple index | Δρ −0.01 [−0.18; 0.16] | **not adopted** |
+| Hint “dry soil in the area” vs measured soil moisture below its usual level (W7, 10 ICOS stations + ISMN Condom, April–October, data to 2026-09-30) | right on 81.2% [74.6; 87.8] of 4,783 hint days vs 49.3% by chance | **confirmed** |
+| Hint “vegetation below its own normal” vs measured evapotranspiration (W7, 7 ICOS towers in forests and grasslands, June–September) | 67.1% [33.0; 100] of 82 hint scenes vs 51.7% by chance | **not confirmed** |
+| Vine water stress | no measurements inside the vineyards | not validated |
+
+**Negative results, reported as such:**
+- **Vegetation hint vs measured evapotranspiration (W7 K2) did not pass.** The interval includes chance. After the
+  test (an observation, not a result): it agreed on the three grassland towers (79–94%) but not on the four forest
+  towers (14–50%). A vineyard sits between these two; a new test split by vegetation type is planned before 2027.
+- **Places inside a parcel against their own history did not pass.** “Zones weaker than usual” (W3c) would light up
+  about 15% of the parcel area on ordinary days (limit 5%). “Lowest in five years” for 30 m squares (W3d) could not
+  be checked for calibration with only four years of normal-soil months. Neither is drawn on the map; both will be
+  re-tested after the 2027 season with the same rules.
+- Vegetation and soil agree mostly **between years** (ρ of seasonal means 0.64) but not **within a season** (0.06).
+- An earlier experiment used a normal that included later years; with the causal normal the agreement with the
+  sensor on the same days fell from 0.57 to 0.44 (several things changed at once, so not all of it is leakage).
+- Super-resolution to 2.5 m (SEN2SR) gave the same validation result as 10 m and was removed in 1.0.
+- **Vineyard against its neighbours (W3e, exploratory).** Comparing a vineyard with the median of the other
+  vineyards on the same day removes the shared weather: the “below” class is calibrated (15.9% of scenes, expected
+  15.9%) and no longer depends on the year or the soil. But the test that it points to events in the vineyard
+  itself (replanting in the crop register) did not pass — only 2 of 5 events could be measured. Not added to the
+  panel ([`W3e_wyniki.md`](docs/evidence/W3e_wyniki.md), notebook
+  [`W3e_sasiedzi.ipynb`](notebooks/experiments/W3e_sasiedzi.ipynb)).
+
+Before 1.0 an independent recomputation from the output files checked every number above
+([`docs/STAN_I_PLAN.md`](docs/STAN_I_PLAN.md) §4).
+
+## Code
+
+```text
+agriscreen/                 Python package (docs/ARCHITEKTURA.md)
+├── config.py               all settings; method values come from the registered protocols
+├── runtime.py              Colab / local setup, CSV registry, run_task
+├── ingest.py               Sentinel-2 L2A (Earth Engine), ERA5-Land, CLMS SWI (Copernicus Data Space)
+├── metrics.py              indices, parcel statistics with a 20 m inner strip, anomalies, SPI
+├── parcel.py               15 vineyards vs their own history; pre-registered tests T1–T3, 4-band model
+├── stations.py             ISMN Condom sensor, quality-control rules
+├── reference.py            ICOS stations and the shared soil-layer validation
+├── weather.py              Météo-France: ERA5-Land validation, frost and heat
+├── card.py                 card sentences
+├── panel.py                the product: panel.html + panel_data.json
+├── pipeline.py             tasks in order, run_all
+├── local.py                local runs: settings, weekly job, publishing to GitHub (python -m agriscreen)
+├── experiments/            W3c zones, W3d months (off by default); W7 hints vs ground measurements
+└── selftest.py             offline end-to-end test on synthetic data (runs in CI on every push)
+notebooks/                  AgriScreen_Monitor (Colab), AgriScreen_story (blog), and their generators;
+                            build_local.py makes AgriScreen_Local (Jupyter on your computer, not in git);
+                            experiments/ holds executed experiment notebooks (W3e, W7)
+docs/                       status, architecture, protocols and results (in Polish); showcase/ is the live
+                            panel served by GitHub Pages; archive/ keeps older plans
+data/                       vineyard polygons, RPG crop register (ISMN sensor data are not stored here, see below)
+```
+
+## How to run
+
+**On your own Windows computer (weekly, unattended):** one PowerShell command sets up a `GeoWorldLook` folder on the
+desktop (code, data linked from Google Drive, scripts), a Python environment and a weekly Task Scheduler job that
+updates the code, runs everything and publishes the panel to GitHub:
+
+```powershell
+irm https://raw.githubusercontent.com/geoworldlook/agriscreen/main/scripts/windows/setup_workspace.ps1 | iex
+```
+
+Details (in Polish): [`docs/URUCHOMIENIE_LOKALNE.md`](docs/URUCHOMIENIE_LOKALNE.md). Commands:
+`python -m agriscreen run | weekly | publish | selftest`. To look at the results in Jupyter, start
+`scripts\agriscreen_jupyter.cmd`: it opens `notebooks/AgriScreen_Local.ipynb`, which by default only reads the
+outputs from Drive (panel, vineyards, W3b tests, validation, run report) and can also run the whole pipeline.
+
+**In Colab (full pipeline, backup):** open [`notebooks/AgriScreen_Monitor.ipynb`](notebooks/AgriScreen_Monitor.ipynb) from
+GitHub (badge above) and choose *Run all*. It mounts Google Drive, updates the code, installs packages, initialises
+Earth Engine and runs `ingest → parcel statistics → soil → tests → anomalies → validation → weather → panel →
+summary`. Keys are read only from a folder on Drive. Outputs: `data/05_Final_Outputs/agriwatch/` and the registry
+`data/registry/gwl_*.csv`.
+
+**Locally, without network or keys:**
+
+```bash
+pip install -r requirements.txt
+python -m agriscreen.selftest --out /tmp/agriscreen_selftest   # synthetic data, all tasks, a few minutes
+ruff check agriscreen
+```
+
+**In a script:**
+
+```python
+from agriscreen.runtime import setup_runtime
+from agriscreen.config import make_config
+from agriscreen.pipeline import run_all
+rt = setup_runtime(PROJECT_DIR)
+run_all(rt, make_config(PROJECT_DIR), ingest_data=True, experiments=False)
+```
+
+## Data and attribution
+
+Copernicus Sentinel-2 L2A (ESA), ERA5-Land (Copernicus Climate Change Service), CLMS Soil Water Index (Copernicus
+Land Monitoring Service); in situ: ICOS ecosystem stations in France (CC BY 4.0), ISMN SMOSMANIA (Météo-France /
+ISMN); rain gauges Météo-France; wine production declarations (French customs, open data); crop register RPG (IGN);
+7-day forecast Open-Meteo; background imagery in the browser Esri World Imagery; map library Leaflet.
+
+**Notices and licences.** Contains modified Copernicus Sentinel data (2016–2026) and modified Copernicus Service
+information (2026). ERA5-Land: Muñoz-Sabater et al. (2021), *Earth System Science Data* 13, 4349–4383,
+https://doi.org/10.5194/essd-13-4349-2021; neither the European Commission nor ECMWF is responsible for any use of
+this information. ICOS data (CC BY 4.0) are cited object by object, with persistent identifiers, in
+[W7 results §7](docs/evidence/W7_wyniki.md); all downloaded files with SHA-256 checksums are listed in
+[`docs/evidence/W7_zrodla.csv`](docs/evidence/W7_zrodla.csv). Météo-France daily climate data: Licence Ouverte /
+Open Licence 2.0 (Etalab).
+
+**ISMN data** are used only for scientific validation and are **not redistributed**: the ISMN terms allow scientific
+use only and forbid passing the data on. To rerun the validation, download the SMOSMANIA Condom station with your own
+ISMN account into `<data folder>/data/ismn/`. The automatic test (CI) uses a synthetic sensor in the ISMN file format.
+References: Dorigo et al. (2021), *Hydrology and Earth System Sciences* 25, 5749–5804,
+https://doi.org/10.5194/hess-25-5749-2021; Dorigo et al. (2011), *Hydrology and Earth System Sciences* 15,
+1675–1698; SMOSMANIA network: Calvet et al. (2007), IGARSS 2007, 1196–1199.
+
+## How it is built
+
+I build this project with help from Claude, an AI assistant made by Anthropic. Claude helps with code, analysis runs
+and documentation. I set the goals and the methods, review the results and make the decisions. Every result is
+checked against ground measurements, as described above.
+
+## License
+
+[MIT](LICENSE). Documentation in [`docs/`](docs/) is in Polish; the Polish README from before 1.0 is in
+[`docs/archive/`](docs/archive/). Changes: [`CHANGELOG.md`](CHANGELOG.md).

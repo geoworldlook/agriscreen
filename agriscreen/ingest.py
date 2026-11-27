@@ -108,6 +108,18 @@ def initialize_earth_engine(project_id: Optional[str] = "ee-geoworldlook", allow
     if not project_id:
         project_id = os.environ.get("EE_PROJECT", "ee-geoworldlook")
 
+    # Konto serwisowe (GitHub Actions): ścieżka do klucza JSON w EE_SERVICE_ACCOUNT_KEY. Zły klucz = błąd, bez
+    # przejścia na logowanie interaktywne.
+    key_file = os.environ.get("EE_SERVICE_ACCOUNT_KEY")
+    if key_file:
+        if not os.path.isfile(key_file):
+            raise FileNotFoundError(f"GEE: EE_SERVICE_ACCOUNT_KEY wskazuje nieistniejący plik: {key_file}")
+        with open(key_file, encoding="utf-8") as f:
+            email = json.load(f)["client_email"]
+        ee.Initialize(ee.ServiceAccountCredentials(email, key_file), project=project_id)
+        logger.info(f"GEE: konto serwisowe {email} (projekt: {project_id}).")
+        return
+
     try:
         ee.Initialize(project=project_id)
         logger.info(f"Pomyślnie zainicjalizowano Google Earth Engine (projekt: {project_id}).")
