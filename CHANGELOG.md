@@ -9,6 +9,16 @@ field of 31 commits, now the author's GitHub address). Commit order, dates, mess
 unchanged; protocol files are identical, so their registered SHA-256 sums still match. Commit IDs changed: original →
 intermediate → new in `docs/evidence/historia_git_mapa.csv`, details in `docs/evidence/historia_git.md`.
 
+## 1.4.0 — 2026-11-27
+
+- The weekly run moves to GitHub Actions (`.github/workflows/weekly.yml`, Monday and Thursday 05:30 UTC, also by hand).
+  The pipeline state lives in the private repository `agriscreen-data` (ISMN data may not be passed on); the workflow
+  checks it out, runs `python -m agriscreen weekly --no-pull`, publishes the panel and pushes the new state back.
+  A task error or an unpublished panel fails the run and opens an issue. Setup: `docs/URUCHOMIENIE_GITHUB_ACTIONS.md`.
+- Earth Engine with a service account: `EE_SERVICE_ACCOUNT_KEY` (path to the JSON key) in
+  `ingest.initialize_earth_engine`; a missing or broken key is an error, never a fallback to interactive login.
+- The Windows Task Scheduler job and Colab stay as backups.
+
 ## 1.3.1 — 2026-11-02
 
 - Fix: the weekly job could wait for hours at `git push`. The conda environment had its own git (conda-forge), and

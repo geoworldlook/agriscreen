@@ -1,18 +1,19 @@
 # AgriScreen: vineyards against their own history, from open Copernicus data
 
-[![Live panel](https://img.shields.io/badge/live_panel-about_weekly-2ea44f)](https://geoworldlook.github.io/agriscreen/showcase/agriscreen_panel.html)
+[![Live panel](https://img.shields.io/badge/live_panel-weekly-2ea44f)](https://geoworldlook.github.io/agriscreen/showcase/agriscreen_panel.html)
 [![selftest](https://github.com/geoworldlook/agriscreen/actions/workflows/selftest.yml/badge.svg)](https://github.com/geoworldlook/agriscreen/actions/workflows/selftest.yml)
+[![weekly](https://github.com/geoworldlook/agriscreen/actions/workflows/weekly.yml/badge.svg)](https://github.com/geoworldlook/agriscreen/actions/workflows/weekly.yml)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/geoworldlook/agriscreen/blob/main/notebooks/AgriScreen_Monitor.ipynb)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
-![Version](https://img.shields.io/badge/version-1.3.1-green)
+![Version](https://img.shields.io/badge/version-1.4.0-green)
 
 AgriScreen tells a winegrower near Condom (Gers, south-west France) whether a vineyard parcel is **unusual right now
 compared with its own history**, and how far that answer can be trusted. It covers 15 vineyards (0.7–4.1 ha) and
 uses only open data: Copernicus Sentinel-2, ERA5-Land and the CLMS Soil Water Index. It gives no irrigation or
 treatment advice and does not diagnose vine water stress.
 
-**[Open the live panel](https://geoworldlook.github.io/agriscreen/showcase/agriscreen_panel.html)** — it is refreshed
-about once a week, and shows the date of the latest usable Sentinel-2 scene.
+**[Open the live panel](https://geoworldlook.github.io/agriscreen/showcase/agriscreen_panel.html)** — it updates
+itself every week (GitHub Actions) and shows the date of the latest usable Sentinel-2 scene.
 
 **Checked against the ground:** when AgriScreen says *the soil in the area is dry*, soil moisture sensors in the
 ground confirmed it was drier than usual on **81% of those days** (49% by chance) — 4,783 days at 10 ICOS stations
@@ -27,7 +28,7 @@ in France and the ISMN sensor at Condom, 2016–2026, with test rules registered
 | **User** | Winegrowers and advisers in one wine area (now: 15 vineyards near Condom, Gers). |
 | **Solution** | Each vineyard compared with its own past seasons (Sentinel-2, 10 m), next to soil moisture in the area (ERA5-Land, satellite SWI) and weather. One weekly panel, no field visit needed. |
 | **Evidence** | Each layer says how it was checked against ground measurements, with test rules written down before computing (pre-registration). “Dry soil” hint confirmed by in situ sensors on 81% of days vs 49% by chance (11 sites); rainfall vs rain gauge: R 0.90; heat days at Condom: 70% detected, 15% false alarms. Failed tests are reported and hidden from the map (see below). |
-| **Status** | A scheduled weekly job on my own computer downloads, computes and publishes without manual steps; a run is skipped when the computer is off, and cloudy weeks bring no new scene. Self-assessed technology readiness: TRL 4–5 (working end to end on real data in its area; not yet tested with users). |
+| **Status** | Runs every week on GitHub Actions without manual work (download, compute, publish); a failed run opens an issue. Cloudy weeks bring no new scene. Self-assessed technology readiness: TRL 4–5 (working end to end on real data in its area; not yet tested with users). |
 | **Limits** | No vine water stress diagnosis and no advice: there are no measurements inside the vineyards. The vegetation index follows dry vs wet seasons, not week-by-week soil water. |
 | **Next** | Re-test all rules on the 2027 season; any parcel from a user-drawn outline; cloud-native pipeline (STAC, Docker); deep learning to separate vine rows from inter-rows. |
 
@@ -120,7 +121,12 @@ data/                       vineyard polygons, RPG crop register (ISMN sensor da
 
 ## How to run
 
-**On your own Windows computer (weekly, unattended):** one PowerShell command sets up a `GeoWorldLook` folder on the
+**Every week on GitHub Actions (main path):** [`weekly.yml`](.github/workflows/weekly.yml) checks out the code and the
+pipeline state from a private data repository (the ISMN terms forbid passing the sensor data on), runs
+`python -m agriscreen weekly`, publishes the panel and pushes the new state back. Earth Engine uses a service account;
+keys are repository secrets. Setup (in Polish): [`docs/URUCHOMIENIE_GITHUB_ACTIONS.md`](docs/URUCHOMIENIE_GITHUB_ACTIONS.md).
+
+**On your own Windows computer (backup):** one PowerShell command sets up a `GeoWorldLook` folder on the
 desktop (code, data linked from Google Drive, scripts), a Python environment and a weekly Task Scheduler job that
 updates the code, runs everything and publishes the panel to GitHub:
 

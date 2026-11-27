@@ -1,0 +1,12 @@
+numpy
+pandas
+scipy
+rasterio
+geopandas
+requests
+pillow
+
+[ingest]
+earthengine-api
+geemap
+geedim
